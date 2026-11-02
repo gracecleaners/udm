@@ -1,0 +1,46 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+env/
+db.sqlite3
+*.sqlite3
+local_settings.py
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+serviceaccount*.json
+
+# Django
+staticfiles/
+media/
+coverage.xml
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+ios/Pods/
+ios/.symlinks/
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
