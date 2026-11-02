@@ -45,3 +45,7 @@ All records use UUID identifiers where they cross the API boundary and carry `cr
 ## Data rules
 
 Index feed status/publication time, campus/group scope, user-owned progress by user and date, and foreign keys used in list filters. Add uniqueness constraints for memberships, enrollments, registrations, progress, and canonical Bible ordering. Store timestamps in UTC and retain an explicit timezone for user/event schedules. Never treat client-supplied ownership, role, score, or campus scope as authoritative.
+
+## Implemented today
+
+The entities above are the target model. Migrated and reachable through `/api/v1/` so far: **User**, **UserProfile**, **Devotional**, **Article**, **FeaturedVerse** and **UserContentProgress**. `FeaturedVerse` is a deliberately small, license-checked verse store (public-domain KJV only) that backs the home screen; the full `BibleTranslation`/`Book`/`Chapter`/`Verse` tree arrives with the licensed Scripture work in Phase 3. Publication state lives on a shared `PublishableModel` mixin — `is_published` plus `publish_at` — so every content type hides drafts and future-scheduled rows the same way. Everything else remains specified, not built.

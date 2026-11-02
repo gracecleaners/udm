@@ -31,3 +31,12 @@ Five tabs: **Home · Bible · Learn · Community · Profile**. Home leads with a
 ## Interaction principles
 
 Use calm transitions, preserve reading position, give immediate feedback on saved/completed actions, and show offline state when relevant. Every control must have a defined action and accessible label. Personal prayer/journal content must not leak into previews, notifications, analytics, or shared surfaces without explicit user choice.
+
+## As built
+
+`AppColors` carries the light tokens above plus their dark counterparts (`darkBackground`, `darkSurface`, `darkModeText`, `darkModeSecondaryText`, `darkLightBlue`); screens read `Theme.of(context).colorScheme` and `textTheme` rather than raw colors, and surfaces Material has no slot for (the scripture tint) come from the `AppSurfaces` theme extension. `AppSpacing` fixes the 8-point rhythm and the two corner radii. Shared widgets today: `ContentCard`, `ScripturePanel`, `SectionHeader`, `StateView` (loading/error/empty/ready), `MessagePanel`, `UdmProgress`, `OfflineChip` and `FeatureStatusView`.
+
+Two rules learned while wiring Phase 1 are worth keeping:
+
+- **A tappable card owns its Material.** `InkWell` sits *inside* `Card`/`Ink`, so the ripple paints on the card surface and the widget renders correctly outside a `Scaffold`. Wrapping a card from the outside leaves the splash hidden behind the card's own surface and needs a Material ancestor.
+- **Offline is stated, not implied.** Cached content shows the `OfflineChip` in the verse header; a tab whose feature has not shipped shows `FeatureStatusView` naming its phase and what works today. No control is rendered that does nothing.

@@ -32,4 +32,4 @@ Enforce campus/group scope on the server for every read and write. Apply object 
 
 ## Environments and operations
 
-Separate development, staging, and production settings and secrets. PostgreSQL backups and restore drills, structured logs, health checks, error monitoring, and migration review are production requirements. Keep media out of Django request/response streaming. The local stack is intended to be Docker Compose based once backend bootstrap is added.
+Separate development, staging, and production settings and secrets. PostgreSQL backups and restore drills, structured logs, health checks, error monitoring, and migration review are production requirements. Keep media out of Django request/response streaming. Local development runs the API against a native PostgreSQL cluster with `runserver`; containerised parity for staging and production is scheduled with Phase 8 rather than committed as unused files today.
