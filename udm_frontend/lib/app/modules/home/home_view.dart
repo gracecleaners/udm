@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/content_card.dart';
@@ -8,6 +9,7 @@ import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
 import '../../data/models/home_payload.dart';
+import '../session/session_controller.dart';
 import 'home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -70,6 +72,8 @@ class HomeView extends GetView<HomeController> {
                         onTap: () => controller.openArticle(article.id),
                       ),
                     )),
+                const SizedBox(height: AppSpacing.md),
+                const _SignInNudge(),
               ],
             ),
           ),
@@ -81,6 +85,54 @@ class HomeView extends GetView<HomeController> {
       if (article.category.isNotEmpty) article.category,
     ];
     return parts.isEmpty ? 'UDM' : parts.join(' · ');
+  }
+}
+
+/// Signing in has to be reachable where the student actually reads, not only
+/// from the Profile tab. It sits under the day's content, so the feed is never
+/// gated: spec asks that public content stays browsable without an account.
+class _SignInNudge extends GetView<SessionController> {
+  const _SignInNudge();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Obx(
+      () => controller.isSignedIn
+          ? const SizedBox.shrink()
+          : Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Sign in to keep this reading, your progress and your details on your own account.',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    FilledButton(
+                      key: const Key('udm.homeSignIn'),
+                      onPressed: () => Get.toNamed(AppRoutes.signIn),
+                      child: const Text('Sign in'),
+                    ),
+                    TextButton(
+                      onPressed: () => Get.toNamed(AppRoutes.register),
+                      child: const Text('Create an account'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
   }
 }
 

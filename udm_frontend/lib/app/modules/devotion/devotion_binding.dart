@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
 import '../../data/repositories/content_repository.dart';
+import '../session/session_controller.dart';
 import 'devotion_controller.dart';
 
 class DevotionBinding extends Bindings {
@@ -9,6 +10,8 @@ class DevotionBinding extends Bindings {
   void dependencies() {
     final arguments = Get.arguments;
     final id = arguments is Map<String, dynamic> ? arguments[RouteArgs.devotionId] as String : '';
-    Get.lazyPut(() => DevotionController(Get.find<ContentRepository>(), id));
+    Get.lazyPut(
+      () => DevotionController(Get.find<ContentRepository>(), Get.find<SessionController>(), id),
+    );
   }
 }

@@ -1,11 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
 import 'package:udm_frontend/app/modules/home/home_controller.dart';
 import 'package:udm_frontend/app/modules/home/home_view.dart';
+import 'package:udm_frontend/app/modules/session/session_controller.dart';
 
 import '../support/fakes.dart';
 
@@ -15,12 +18,20 @@ void main() {
 
   Future<void> pumpHome(WidgetTester tester, HomeController controller) async {
     Get.put(controller);
+    Get.put(
+      SessionController(
+        FakeAuthRepository(profile: sampleProfile()),
+        ApiClient(dio: Dio(BaseOptions(baseUrl: 'http://127.0.0.1:1/api/v1')), tokenStore: InMemoryTokenStore()),
+      ),
+    );
     await tester.pumpWidget(
       GetMaterialApp(
         theme: AppTheme.light,
         getPages: [
           GetPage(name: AppRoutes.devotion, page: () => const Center(child: Text('DEVOTION SCREEN'))),
           GetPage(name: AppRoutes.article, page: () => const Center(child: Text('ARTICLE SCREEN'))),
+          GetPage(name: AppRoutes.signIn, page: () => const Center(child: Text('SIGN IN SCREEN'))),
+          GetPage(name: AppRoutes.register, page: () => const Center(child: Text('REGISTER SCREEN'))),
         ],
         home: const HomeView(),
       ),

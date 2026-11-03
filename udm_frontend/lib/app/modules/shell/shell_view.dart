@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/widgets/feature_status_view.dart';
 import '../home/home_view.dart';
+import '../profile/profile_view.dart';
 import 'shell_controller.dart';
 
 class ShellView extends GetView<ShellController> {
@@ -30,12 +31,7 @@ class ShellView extends GetView<ShellController> {
       plannedFor: 'Phase 5',
       icon: Icons.groups_rounded,
     ),
-    FeatureStatusView(
-      title: 'Profile',
-      message: 'Your campus, translation preference, prayer journal and growth summary live here after sign-in.',
-      plannedFor: 'Phase 2',
-      icon: Icons.person_rounded,
-    ),
+    ProfileView(),
   ];
 
   @override

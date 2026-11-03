@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app talks to the UDM API, so networking is a release requirement,
+         not a development one. Release builds are HTTPS-only; the debug
+         manifest adds cleartext so a LAN Django server can be reached. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="udm_frontend"
         android:name="${applicationName}"

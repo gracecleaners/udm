@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITestCase
+from core.testing import UdmAPITestCase
 
 from accounts.models import User, UserProfile
 from content.models import Article, Devotional, FeaturedVerse, UserContentProgress
@@ -20,7 +20,7 @@ def make_devotional(title="Daily bread", **overrides):
     return Devotional.objects.create(**fields)
 
 
-class PublishedVisibilityTests(APITestCase):
+class PublishedVisibilityTests(UdmAPITestCase):
     def setUp(self):
         self.live = make_devotional("Live today")
         self.draft = make_devotional("Not ready", is_published=False)
@@ -71,7 +71,7 @@ class PublishedVisibilityTests(APITestCase):
         self.assertEqual(len(response.json()["results"]), 1)
 
 
-class FeaturedVerseTests(APITestCase):
+class FeaturedVerseTests(UdmAPITestCase):
     def test_rotation_is_stable_for_a_day_and_skips_inactive_rows(self):
         first = FeaturedVerse.objects.create(reference="Romans 12:2", text="Be transformed...", translation_code="kjv")
         second = FeaturedVerse.objects.create(reference="Joshua 1:9", text="Be strong...", translation_code="kjv")
@@ -115,7 +115,7 @@ class FeaturedVerseTests(APITestCase):
         self.assertEqual(payload["articles"], [])
 
 
-class HomeGreetingTests(APITestCase):
+class HomeGreetingTests(UdmAPITestCase):
     def test_greeting_addresses_a_signed_in_student(self):
         user = User.objects.create_user(email="student@udm.ac.ke", password="long-enough-pass")
         UserProfile.objects.create(user=user, full_name="Grace")
@@ -126,7 +126,7 @@ class HomeGreetingTests(APITestCase):
         self.assertNotIn(",", self.client.get("/api/v1/home/").json()["greeting"])
 
 
-class ProgressApiTests(APITestCase):
+class ProgressApiTests(UdmAPITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="learner@udm.ac.ke", password="long-enough-pass")
         self.other = User.objects.create_user(email="friend@udm.ac.ke", password="long-enough-pass")
@@ -171,7 +171,7 @@ class ProgressApiTests(APITestCase):
         self.assertEqual(self.client.get("/api/v1/progress/").json()["results"], [])
 
 
-class AuthenticationTests(APITestCase):
+class AuthenticationTests(UdmAPITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="runner@udm.ac.ke", password="sup3r-long-secret")
 
@@ -205,7 +205,7 @@ class AuthenticationTests(APITestCase):
         self.assertEqual(self.client.get("/api/v1/progress/").status_code, 200)
 
 
-class HealthTests(APITestCase):
+class HealthTests(UdmAPITestCase):
     def test_health_reports_database_reachability(self):
         body = self.client.get("/api/v1/health/").json()
         self.assertEqual(body["status"], "ok")

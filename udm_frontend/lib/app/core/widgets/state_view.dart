@@ -67,11 +67,16 @@ class CenteredSlot extends StatelessWidget {
 
   final Widget child;
 
+  /// Centred while it fits, scrollable when it does not: a long server message
+  /// on a small phone must stay readable, not clip.
   @override
-  Widget build(BuildContext context) => Centered(
-        child: Padding(
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
-          child: child,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Centered(child: child),
+          ),
         ),
       );
 }
@@ -186,4 +191,47 @@ class OfflineChip extends StatelessWidget {
           ],
         ),
       );
+}
+
+enum NoticeTone { info, problem }
+
+/// Something the student has to see that is not a whole-screen state: a rejected
+/// sign-in, a sign-out the server never heard about, a profile that is offline
+/// copy.
+class NoticeBanner extends StatelessWidget {
+  const NoticeBanner({super.key, required this.message, this.tone = NoticeTone.info});
+
+  final String message;
+  final NoticeTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final color = tone == NoticeTone.problem ? AppColors.danger : AppColors.warning;
+    return Container(
+      key: const Key('udm.noticeBanner'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            tone == NoticeTone.problem ? Icons.error_outline_rounded : Icons.info_outline_rounded,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(message, style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodyLarge?.color)),
+          ),
+        ],
+      ),
+    );
+  }
 }

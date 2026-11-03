@@ -14,16 +14,19 @@ Flutter (GetX, Dio, SharedPreferences-backed cache) against Django + DRF on Post
 
 ## What runs today
 
-Phase 1 is wired end to end, plus the first vertical slice of Phase 2:
+Phase 1 and the whole of Phase 2 are wired end to end against PostgreSQL:
 
 - `GET /api/v1/home/` returns the greeting, verse of the day, today's devotional and latest articles. Every value is read from the database; nothing is hardcoded in the client or the server.
 - Devotional and article readers render real API content; each screen has loading, error, empty and offline states.
 - The home feed is cached on device. When the network fails the last cached payload is shown and labelled **Offline copy** — never presented as fresh.
 - Publishing is server-authoritative: drafts and future-scheduled items are invisible to the API until `publish_at` is reached; admins use Publish now / Schedule actions in Django Admin.
-- `POST /api/v1/progress/` is owner-scoped and idempotent. The model is deliberately **not** registered in Django Admin: reading a student's private progress is not an operations task.
-- Four tabs (Pray, Grow, Community, More) show a status panel naming the phase that ships them. They contain no dead controls.
+- **Accounts work on device.** Register, sign in, restore the session after a cold start, edit the profile and sign out. Access/refresh tokens live in the platform keystore (`flutter_secure_storage`); the Dio interceptor attaches them, refreshes a rotated pair once on 401, and shares one refresh between concurrent requests. An offline failure never signs anyone out — only the server rejecting the token does.
+- **The Profile tab is the account.** It shows the server's copy of the student's details, edits them through `PATCH /api/v1/users/me/` (read-only fields such as email and photo are never echoed back), and holds the only sign-out path. An unverified email is labelled as a capability this build does not have.
+- **Reading writes back.** "Mark as read" in both readers posts to `POST /api/v1/progress/`, which is owner-scoped and idempotent. Signed-out readers are offered sign-in instead of a silent no-op. The model is deliberately **not** registered in Django Admin: reading a student's private progress is not an operations task.
+- Students browse everything without an account; sign-in is offered from the feed and the readers, never demanded (spec: public content stays open).
+- Five tabs — Home, Bible, Learn, Community, Profile. Home and Profile are live; Bible (Phase 3), Learn (Phase 4) and Community (Phase 5) show a status panel naming the phase that ships them and pointing at what already works today. They contain no dead controls.
 
-Not built yet: accounts/sign-up flows in the app, secure token storage and the refresh interceptor, FCM, Celery, and the Phase 3+ domain apps. See [roadmap](docs/roadmap.md).
+Not built yet: social sign-in, email/phone verification and password reset (no mail provider configured), profile photo upload, FCM, Celery, and the Phase 3+ domain apps. See [roadmap](docs/roadmap.md).
 
 ## Local development
 
@@ -66,7 +69,9 @@ flutter test
 flutter run --dart-define=UDM_API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
-`10.0.2.2` reaches the host from an Android emulator; use the machine's LAN address on a physical device.
+`10.0.2.2` reaches the host from an Android emulator; use the machine's LAN address on a physical device (`--dart-define=UDM_API_BASE_URL=http://192.168.x.x:8000/api/v1`). The debug manifest sets `usesCleartextTraffic` so a plain-http dev server is reachable; the release manifest does not, so a release build talks to https only. Tokens are held in the Android keystore / iOS keychain, never in SharedPreferences.
+
+With the dev server running, `python scripts\phase2_smoke.py` from `udm_backend` walks every Phase 2 client contract against the live API — registration, profile patch, reading progress and its idempotency, the refused cases, refresh rotation and blacklisting, logout — and is the check to re-run after touching anything under `accounts/`. It registers a throwaway account, so point it at a development database.
 
 ## Checks
 
@@ -74,6 +79,7 @@ flutter run --dart-define=UDM_API_BASE_URL=http://10.0.2.2:8000/api/v1
 | --- | --- |
 | Backend models, config, URLs | `python manage.py check` |
 | Backend behaviour | `python manage.py test` |
+| Phase 2 contracts against a running API | `python scripts\phase2_smoke.py` |
 | Mobile static analysis | `flutter analyze` |
 | Mobile unit + widget tests | `flutter test` |
 

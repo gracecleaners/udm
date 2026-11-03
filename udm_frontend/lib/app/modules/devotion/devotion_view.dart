@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/devotional.dart';
+import '../reader/reading_progress.dart';
 import 'devotion_controller.dart';
 
 class DevotionView extends GetView<DevotionController> {
@@ -22,15 +23,16 @@ class DevotionView extends GetView<DevotionController> {
               emptyMessage: 'This devotion is no longer published.',
               child: controller.devotional.value == null
                   ? const SizedBox.shrink()
-                  : _DevotionBody(devotional: controller.devotional.value!),
+                  : _DevotionBody(devotional: controller.devotional.value!, controller: controller),
             )),
       );
 }
 
 class _DevotionBody extends StatelessWidget {
-  const _DevotionBody({required this.devotional});
+  const _DevotionBody({required this.devotional, required this.controller});
 
   final Devotional devotional;
+  final DevotionController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +98,8 @@ class _DevotionBody extends StatelessWidget {
             body: devotional.memoryScriptureReference,
           ),
         ],
+        const SizedBox(height: AppSpacing.lg),
+        ProgressFooter(reader: controller),
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/state_view.dart';
 import '../../data/models/article.dart';
+import '../reader/reading_progress.dart';
 import 'article_controller.dart';
 
 class ArticleView extends GetView<ArticleController> {
@@ -28,15 +29,16 @@ class ArticleView extends GetView<ArticleController> {
               emptyMessage: 'This article is no longer published.',
               child: controller.article.value == null
                   ? const SizedBox.shrink()
-                  : _ArticleBody(article: controller.article.value!),
+                  : _ArticleBody(article: controller.article.value!, controller: controller),
             )),
       );
 }
 
 class _ArticleBody extends StatelessWidget {
-  const _ArticleBody({required this.article});
+  const _ArticleBody({required this.article, required this.controller});
 
   final Article article;
+  final ArticleController controller;
 
   static String _isoDate(DateTime moment) =>
       '${moment.year}-${moment.month.toString().padLeft(2, '0')}-${moment.day.toString().padLeft(2, '0')}';
@@ -82,6 +84,8 @@ class _ArticleBody extends StatelessWidget {
               style: theme.textTheme.bodyLarge,
             ),
           ),
+        const SizedBox(height: AppSpacing.lg),
+        ProgressFooter(reader: controller),
       ],
     );
   }

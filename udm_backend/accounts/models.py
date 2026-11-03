@@ -110,3 +110,10 @@ class UserProfile(TimestampedModel):
 
     def __str__(self):
         return self.full_name or self.user.email
+
+    @classmethod
+    def for_user(cls, user):
+        """Accounts created by `createsuperuser` have no profile row, so the
+        first read of /users/me/ creates it rather than failing."""
+        profile, _ = cls.objects.get_or_create(user=user)
+        return profile

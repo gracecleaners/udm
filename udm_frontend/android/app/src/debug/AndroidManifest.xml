@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:usesCleartextTraffic="true">
+        <!-- Merged into the debug build only: `flutter run --dart-define=UDM_API_BASE_URL=http://192.168.x.x:8000/api/v1`
+             points the app at a Django server on the LAN, which is plain HTTP.
+             Release builds keep Android's HTTPS default. -->
+    </application>
 </manifest>

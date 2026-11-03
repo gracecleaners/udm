@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
 import '../../data/repositories/content_repository.dart';
+import '../session/session_controller.dart';
 import 'article_controller.dart';
 
 class ArticleBinding extends Bindings {
@@ -9,6 +10,8 @@ class ArticleBinding extends Bindings {
   void dependencies() {
     final arguments = Get.arguments;
     final id = arguments is Map<String, dynamic> ? arguments[RouteArgs.articleId] as String : '';
-    Get.lazyPut(() => ArticleController(Get.find<ContentRepository>(), id));
+    Get.lazyPut(
+      () => ArticleController(Get.find<ContentRepository>(), Get.find<SessionController>(), id),
+    );
   }
 }

@@ -2,6 +2,9 @@ import 'package:get/get.dart';
 
 import '../../modules/article/article_binding.dart';
 import '../../modules/article/article_view.dart';
+import '../../modules/auth/auth_binding.dart';
+import '../../modules/auth/register_view.dart';
+import '../../modules/auth/sign_in_view.dart';
 import '../../modules/devotion/devotion_binding.dart';
 import '../../modules/devotion/devotion_view.dart';
 import '../../modules/onboarding/onboarding_binding.dart';
@@ -30,6 +33,20 @@ abstract class AppPages {
       name: AppRoutes.shell,
       page: () => const ShellView(),
       binding: ShellBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.signIn,
+      page: () => const SignInView(),
+      binding: SignInBinding(),
+      transition: Transition.upToDown,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.register,
+      page: () => const RegisterView(),
+      binding: RegisterBinding(),
+      transition: Transition.upToDown,
+      transitionDuration: transitionDuration,
     ),
     GetPage(
       name: AppRoutes.devotion,

@@ -35,7 +35,8 @@ class UdmLogo extends StatelessWidget {
       children: [
         mark,
         SizedBox(width: size * 0.28),
-        Column(
+        Flexible(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -54,6 +55,7 @@ class UdmLogo extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(fontSize: size * 0.24),
               ),
           ],
+        ),
         ),
       ],
     );
