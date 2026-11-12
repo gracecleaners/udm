@@ -1,0 +1,31 @@
+# SPA fallback for Apache / LiteSpeed hosting.
+# Any URL that is not a real file or folder is served by index.html,
+# so React Router can handle /devotions, /campuses, etc. on refresh.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve real files and folders (assets, images, service-worker.js) as they are
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else goes to the app
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# Correct MIME type for module scripts
+<IfModule mod_mime.c>
+  AddType text/javascript .mjs
+</IfModule>
+
+# Never cache the HTML shell so new deployments show up immediately
+<IfModule mod_headers.c>
+  <FilesMatch "index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "service-worker\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

@@ -1,3 +1,4 @@
+import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -65,13 +66,13 @@ class ProgressFooter extends StatelessWidget {
               ? OutlinedButton.icon(
                   onPressed: null,
                   icon: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 18),
-                  label: const Text('Marked as read'),
+                  label: const AppText('Marked as read'),
                 )
               : FilledButton.icon(
                   key: const Key('udm.markRead'),
                   onPressed: reader.savingProgress.value ? null : reader.markRead,
                   icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                  label: Text(reader.savingProgress.value ? 'Saving…' : 'Mark as read'),
+                  label: AppText(reader.savingProgress.value ? 'Saving…' : 'Mark as read'),
                 ),
         ),
         Obx(
@@ -79,7 +80,7 @@ class ProgressFooter extends StatelessWidget {
               ? const SizedBox.shrink()
               : Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: Text(
+                  child: AppText(
                     'Sign in to keep this in your reading history.',
                     style: theme.textTheme.bodySmall,
                     textAlign: TextAlign.center,

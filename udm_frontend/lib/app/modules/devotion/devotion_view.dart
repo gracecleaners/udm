@@ -1,3 +1,4 @@
+import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -14,7 +15,7 @@ class DevotionView extends GetView<DevotionController> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Today\'s devotion')),
+        appBar: AppBar(title: const AppText('Today\'s devotion')),
         body: Obx(() => StateView(
               state: controller.state.value,
               failureMessage: controller.failureMessage.value,
@@ -37,65 +38,73 @@ class _DevotionBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bodyColor = theme.textTheme.bodyLarge!.color!;
     final paragraphs = devotional.body.split(RegExp(r'\n\s*\n')).where((p) => p.trim().isNotEmpty).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
       children: [
-        Text(devotional.title, style: theme.textTheme.displaySmall),
-        const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _MetaPill(icon: Icons.book_outlined, label: devotional.scriptureReference),
-            _MetaPill(icon: Icons.schedule_rounded, label: '${devotional.readingMinutes} min'),
-            if (devotional.author.isNotEmpty)
-              _MetaPill(icon: Icons.person_outline_rounded, label: devotional.author),
+            MetaPill(icon: Icons.book_outlined, label: devotional.scriptureReference),
+            MetaPill(icon: Icons.schedule_rounded, label: '${devotional.readingMinutes} min'),
+            if (devotional.author.isNotEmpty) MetaPill(icon: Icons.person_outline_rounded, label: devotional.author),
           ],
         ),
+        const SizedBox(height: AppSpacing.md),
+        AppText(devotional.title, style: theme.textTheme.displayMedium),
+        const SizedBox(height: AppSpacing.sm),
+        const GoldRule(width: 72),
         const SizedBox(height: AppSpacing.lg),
         for (final paragraph in paragraphs)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Text(paragraph.trim(), style: theme.textTheme.bodyLarge),
+            child: AppText(paragraph.trim(), style: AppTypography.scriptureBody(bodyColor)),
           ),
         if (devotional.hasQuestions) ...[
           const SizedBox(height: AppSpacing.sm),
-          const SectionHeader(title: 'Reflect'),
-          const SizedBox(height: AppSpacing.sm),
-          ...devotional.reflectionQuestions.indexed.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${entry.$1 + 1}.',
-                    style: theme.textTheme.titleMedium?.copyWith(color: AppColors.primaryBlue),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: Text(entry.$2, style: theme.textTheme.bodyMedium)),
-                ],
-              ),
+          SectionHeader(
+            title: 'Reflect',
+            subtitle: '${devotional.reflectionQuestions.length} questions to sit with',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Panel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: devotional.reflectionQuestions.indexed
+                  .map((entry) => _Question(index: entry.$1 + 1, text: entry.$2))
+                  .toList(),
             ),
           ),
         ],
         if (devotional.application.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          _Block(icon: Icons.check_circle_outline_rounded, title: 'Live it out', body: devotional.application),
+          _Block(
+            icon: Icons.check_circle_outline_rounded,
+            eyebrow: 'Live it out',
+            body: devotional.application,
+            tone: IconBadgeTone.success,
+          ),
         ],
         if (devotional.prayer.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          _Block(icon: Icons.volunteer_activism_outlined, title: 'Pray', body: devotional.prayer),
+          _Block(
+            icon: Icons.volunteer_activism_outlined,
+            eyebrow: 'Pray',
+            body: devotional.prayer,
+            tone: IconBadgeTone.brand,
+          ),
         ],
         if (devotional.memoryScriptureReference.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
           _Block(
             icon: Icons.psychology_outlined,
-            title: 'Memorise',
+            eyebrow: 'Memorise',
             body: devotional.memoryScriptureReference,
+            tone: IconBadgeTone.gold,
+            onDark: true,
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
@@ -105,65 +114,96 @@ class _DevotionBody extends StatelessWidget {
   }
 }
 
-class _Block extends StatelessWidget {
-  const _Block({required this.icon, required this.title, required this.body});
+class _Question extends StatelessWidget {
+  const _Question({required this.index, required this.text});
 
-  final IconData icon;
-  final String title;
-  final String body;
+  final int index;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: AppColors.primaryBlue),
-                const SizedBox(width: AppSpacing.sm),
-                Text(title.toUpperCase(), style: theme.textTheme.labelMedium),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppGradients.hero,
+              boxShadow: AppShadows.glow(AppColors.primaryBlue),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(body, style: theme.textTheme.bodyMedium),
-          ],
-        ),
+            child: AppText(
+              '$index',
+              style: const TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                color: AppColors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: AppText(text, style: theme.textTheme.titleSmall?.copyWith(height: 1.5))),
+        ],
       ),
     );
   }
 }
 
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({required this.icon, required this.label});
+/// The three closing blocks of a devotion. Only the memory verse is scripture,
+/// so only it wears the dark gradient and the reading serif.
+class _Block extends StatelessWidget {
+  const _Block({
+    required this.icon,
+    required this.eyebrow,
+    required this.body,
+    required this.tone,
+    this.onDark = false,
+  });
 
   final IconData icon;
-  final String label;
+  final String eyebrow;
+  final String body;
+  final IconBadgeTone tone;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.extension<AppSurfaces>()!.scripture,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    final accent = switch (tone) {
+      IconBadgeTone.success => AppColors.success,
+      IconBadgeTone.gold => AppColors.gold,
+      IconBadgeTone.warning => AppColors.warning,
+      _ => AppColors.primaryBlue,
+    };
+
+    return Panel(
+      gradient: onDark ? AppGradients.scripture : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: theme.colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
-            ),
+          Row(
+            children: [
+              IconBadge(icon: icon, size: 32, tone: tone, filled: onDark),
+              const SizedBox(width: AppSpacing.sm),
+              Eyebrow(eyebrow, color: onDark ? Colors.white70 : accent),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (onDark) ...[
+            const GoldRule(width: 44),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          AppText(
+            body,
+            style: onDark
+                ? AppTypography.scriptureVerse(AppColors.white, size: 19)
+                : theme.textTheme.bodyMedium?.copyWith(height: 1.62),
           ),
         ],
       ),

@@ -47,7 +47,10 @@ void main() {
   /// Both forms scroll, and the test font is much wider than the production
   /// one, so the lower fields and buttons sit below the fold. Reach them the
   /// way a student on a small phone would: scroll, then tap.
-  Future<void> scrollTo(WidgetTester tester, Finder finder) => tester.ensureVisible(finder);
+  Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+  }
 
   Future<void> fill(WidgetTester tester, Key key, String text) async {
     final field = find.byKey(key);

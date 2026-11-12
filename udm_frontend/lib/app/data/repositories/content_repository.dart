@@ -1,6 +1,7 @@
 import '../models/article.dart';
 import '../models/content_kind.dart';
 import '../models/devotional.dart';
+import '../models/resource_step.dart';
 import '../providers/udm_api.dart';
 
 /// Reads individual content items and records that the student finished one.
@@ -14,6 +15,8 @@ class ContentRepository {
   Future<Devotional> devotional(String id) => _api.devotion(id);
 
   Future<Article> article(String id) => _api.article(id);
+
+  Future<ResourceStep> resourceStep(String id) => _api.resourceStep(id);
 
   /// Requires a signed-in student: progress belongs to an account. The API
   /// keeps one row per item, so marking the same devotion twice is harmless.

@@ -24,16 +24,19 @@ class OnboardingController extends GetxController {
       'Read a licensed Bible, take today\'s devotion, and memorise a verse. Notes and highlights stay yours.',
     ),
     OnboardingSlide(
-      Icons.groups_rounded,
+      Icons.smart_display_rounded,
       'Grow in Christ',
       'Discipleship, not downloads',
-      'Work through structured courses, keep a prayer rhythm, and grow with a campus group and a mentor.',
+      'Work through the ministry\'s teaching recordings, write what each one '
+          'brought you, and follow a guided resource on the questions you '
+          'actually ask.',
     ),
     OnboardingSlide(
       Icons.send_rounded,
       'Make Disciples',
       'Sent to your campus',
-      'Find the fellowship at your university, learn to share your faith plainly, and train someone else to do the same.',
+      'Share a teaching with a friend, work through a guide with someone new '
+          'to the faith, and keep a verse ready for the day they ask you why.',
     ),
   ];
 

@@ -13,9 +13,20 @@ import 'failure.dart';
 /// anonymous one into an authenticated one; there is no second client to keep
 /// in sync.
 class ApiClient {
-  ApiClient({String? baseUrl, Dio? dio, TokenStore? tokenStore})
+  ApiClient({String? baseUrl, Dio? dio, TokenStore? tokenStore, String Function()? languageCode})
       : baseUrl = baseUrl ?? AppConfig.apiBaseUrl,
-        dio = dio ?? _buildDio(baseUrl ?? AppConfig.apiBaseUrl) {
+        dio = dio ?? _buildDio(baseUrl ?? AppConfig.apiBaseUrl),
+        _languageCode = languageCode ?? (() => 'en') {
+    this.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.method.toUpperCase() == 'GET') {
+            options.queryParameters.putIfAbsent('language', _languageCode);
+          }
+          handler.next(options);
+        },
+      ),
+    );
     if (tokenStore != null) {
       auth = AuthInterceptor(
         store: tokenStore,
@@ -29,6 +40,7 @@ class ApiClient {
 
   final String baseUrl;
   final Dio dio;
+  final String Function() _languageCode;
 
   /// Null on an anonymous client (tests, and the build before a session exists).
   AuthInterceptor? auth;

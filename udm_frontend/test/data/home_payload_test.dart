@@ -3,11 +3,11 @@ import 'package:udm_frontend/app/data/models/home_payload.dart';
 
 const Map<String, dynamic> _apiJson = {
   'greeting': 'Good morning, Grace',
-  'verse': {
+  'memory_verse': {
     'id': 'b1',
     'reference': 'Romans 12:2',
     'text': 'Be not conformed to this world.',
-    'translation_code': 'kjv',
+    'translation': 'kjv',
     'attribution': 'King James Version (public domain)',
   },
   'devotion': {
@@ -36,7 +36,12 @@ const Map<String, dynamic> _apiJson = {
       'publish_at': '2026-11-01T05:00:00Z',
     },
   ],
+  'resources': [
+    {'id': 'r1', 'title': 'Receive Christ', 'summary': '', 'order': 1, 'step_count': 5},
+    {'id': 'r2', 'title': 'New Believer', 'order': 2, 'step_count': 5},
+  ],
   'server_time': '2026-11-02T07:30:00Z',
+  'content_version': 23,
 };
 
 void main() {
@@ -45,37 +50,48 @@ void main() {
       final payload = HomePayload.fromJson(_apiJson);
 
       expect(payload.greeting, 'Good morning, Grace');
-      expect(payload.verse?.reference, 'Romans 12:2');
-      expect(payload.verse?.translationCode, 'kjv');
+      expect(payload.memoryVerse?.reference, 'Romans 12:2');
+      expect(payload.memoryVerse?.translationCode, 'kjv');
       expect(payload.devotion?.reflectionQuestions, hasLength(1));
       expect(payload.devotion?.readingMinutes, 5);
       expect(payload.articles.single.category, 'Bible study');
+      expect(payload.resources, hasLength(2));
+      expect(payload.resources.first.title, 'Receive Christ');
+      expect(payload.resources.first.stepCount, 5);
       expect(payload.serverTime, DateTime.utc(2026, 11, 2, 7, 30));
       expect(payload.fromCache, isFalse);
       expect(payload.isEmpty, isFalse);
+      // The payload dates its own copy, so a screen never has to guess which
+      // moment its rows came from.
+      expect(payload.contentVersion, 23);
     });
 
     test('survives a cache round trip and keeps the stamp', () {
-      final payload = HomePayload.fromJson(_apiJson).withCacheStamp(DateTime.utc(2026, 11, 1, 20));
+      final payload = HomePayload.fromJson(_apiJson)
+          .withCacheStamp(DateTime.utc(2026, 11, 1, 20), version: 7);
       final restored = HomePayload.fromJson(payload.toJson());
 
       expect(restored.devotion?.title, payload.devotion?.title);
+      expect(restored.memoryVerse?.reference, 'Romans 12:2');
       expect(restored.articles.single.id, 'a1');
+      expect(restored.resources, hasLength(2));
+      expect(restored.resources.first.stepCount, 5);
       expect(restored.cachedAt, DateTime.utc(2026, 11, 1, 20));
+      expect(restored.contentVersion, 7);
       expect(restored.asCached().fromCache, isTrue);
     });
 
     test('tolerates a server with nothing published yet', () {
       final payload = HomePayload.fromJson({
         'greeting': 'Good evening',
-        'verse': null,
+        'memory_verse': null,
         'devotion': null,
         'articles': [],
         'server_time': null,
       });
 
       expect(payload.isEmpty, isTrue);
-      expect(payload.verse, isNull);
+      expect(payload.memoryVerse, isNull);
       expect(payload.articles, isEmpty);
     });
 

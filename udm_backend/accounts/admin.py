@@ -5,8 +5,21 @@ from django.utils.translation import gettext_lazy as _
 from .models import User, UserProfile
 
 
+class PlatformOwnerDeletesOnly(admin.ModelAdmin):
+    """Ministry staff monitor accounts; they do not erase them.
+
+    Django Admin is where a user deletion would otherwise sit one click away
+    from any `is_staff` account, and a student's bookmarks, notes, progress and
+    prayer history go with the row. The console has no delete route at all, so
+    this is the whole of the rule: superusers delete, staff read.
+    """
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and request.user.is_superuser
+
+
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(PlatformOwnerDeletesOnly, BaseUserAdmin):
     ordering = ("-created_at",)
     list_display = ("email", "display_name", "is_active", "is_email_verified", "is_staff", "created_at")
     list_filter = ("is_active", "is_email_verified", "is_staff", "groups")

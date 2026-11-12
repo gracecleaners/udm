@@ -62,7 +62,11 @@ class RegisterController extends GetxController {
       password: password.text,
       fullName: fullName.text,
     );
-    if (created) Get.back();
+    if (created) {
+      // The session is live the moment the server answers, so the sign-in form
+      // a student may have arrived from is already stale. Land them in the app.
+      Get.offAllNamed(AppRoutes.shell);
+    }
   }
 
   void signIn() => Get.back();

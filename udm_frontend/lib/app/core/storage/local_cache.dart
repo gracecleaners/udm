@@ -27,6 +27,10 @@ class LocalCache {
 
   bool flag(String key) => _prefs.getBool(key) ?? false;
 
+  String? readString(String key) => _prefs.getString(key);
+
+  Future<void> writeString(String key, String value) => _prefs.setString(key, value);
+
   Future<void> setFlag(String key, bool value) => _prefs.setBool(key, value);
 
   Future<void> remove(String key) => _prefs.remove(key);

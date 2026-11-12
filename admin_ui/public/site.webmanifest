@@ -1,0 +1,12 @@
+{
+  "name": "UDM Ministry Console",
+  "short_name": "UDM Console",
+  "description": "Curate devotionals, Scripture, courses and campus life for University Discipleship Mission students.",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "theme_color": "#1769AA",
+  "background_color": "#F7F9FC",
+  "display": "standalone",
+  "start_url": "/"
+}

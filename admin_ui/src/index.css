@@ -1,0 +1,66 @@
+@import "./design-system.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 33% 98%; /* #F7F9FC */
+    --foreground: 205 41% 16%; /* #182B3A */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 205 41% 16%; /* #182B3A */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 205 41% 16%; /* #182B3A */
+    --primary: 207 76% 38%; /* #1769AA */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --primary-soft: 207 78% 95%; /* #EAF4FC */
+    --secondary: 206 69% 23%; /* #123B63 */
+    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
+    --muted: 207 78% 95%; /* #EAF4FC */
+    --muted-foreground: 211 16% 52%; /* #718096 */
+    --accent: 207 78% 95%; /* #EAF4FC */
+    --accent-foreground: 206 69% 23%; /* #123B63 */
+    --destructive: 6 63% 46%; /* #C0392B */
+    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+    --success: 163 60% 38%; /* #269B72 */
+    --success-foreground: 0 0% 100%; /* #FFFFFF */
+    --warning: 36 77% 57%; /* #E6A23C */
+    --warning-foreground: 205 41% 16%; /* #182B3A */
+    --border: 206 26% 89%; /* #DCE5EE */
+    --input: 206 26% 89%; /* #DCE5EE */
+    --ring: 207 76% 38%; /* #1769AA */
+    --radius: 0.85rem;
+    --brand-blue: 206 69% 23%; /* #123B63 */
+    --brand-mist: 210 33% 98%; /* #F7F9FC */
+    --brand-gold: 41 84% 61%; /* #F2B544 */
+    --sidebar-background: 0 0% 100%; /* #FFFFFF */
+    --sidebar-foreground: 205 41% 16%; /* #182B3A */
+    --sidebar-primary: 207 76% 38%; /* #1769AA */
+    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --sidebar-accent: 207 78% 95%; /* #EAF4FC */
+    --sidebar-accent-foreground: 206 69% 23%; /* #123B63 */
+    --sidebar-border: 206 26% 89%; /* #DCE5EE */
+    --sidebar-ring: 207 76% 38%; /* #1769AA */
+  }
+
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { min-width: 320px; scroll-behavior: smooth; }
+  body { @apply bg-background text-foreground antialiased; min-height: 100vh; }
+  button, input, textarea, select { font: inherit; }
+}
+
+#root { min-height: 100vh; }
+/* A single shared focus treatment keeps custom wrappers and native controls aligned. */
+::selection { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
+input, textarea { caret-color: hsl(var(--primary)); }
+:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+input::placeholder, textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-spin, .animate-pulse { animation: none; }
+  [data-state="open"][role="dialog"], [data-state="closed"][role="dialog"] { animation: none; }
+}

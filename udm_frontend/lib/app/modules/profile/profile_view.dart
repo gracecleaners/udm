@@ -1,3 +1,5 @@
+import 'package:udm_frontend/app/core/localization/localized_snackbar.dart';
+import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -6,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
+import '../../core/widgets/language_menu_button.dart';
 import '../../data/models/user_profile.dart';
 import '../session/session_controller.dart';
 
@@ -17,13 +20,14 @@ class ProfileView extends GetView<SessionController> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('Profile'),
+          title: const AppText('Profile'),
           actions: [
+            const LanguageMenuButton(),
             Obx(
               () => controller.isSignedIn
                   ? IconButton(
                       key: const Key('udm.signOutAction'),
-                      tooltip: 'Sign out',
+                      tooltip: 'Sign out'.tr,
                       icon: const Icon(Icons.logout_rounded),
                       onPressed: () => _confirmSignOut(context, controller),
                     )
@@ -66,10 +70,11 @@ class _SignedOut extends GetView<SessionController> {
               onAction: () => Get.toNamed(AppRoutes.signIn),
             ),
             const SizedBox(height: AppSpacing.md),
-            TextButton(
+            OutlinedButton.icon(
               key: const Key('udm.registerFromProfile'),
               onPressed: () => Get.toNamed(AppRoutes.register),
-              child: const Text('Create an account'),
+              icon: const Icon(Icons.person_add_alt_rounded, size: 18),
+              label: const AppText('Create an account'),
             ),
           ],
         ),
@@ -95,8 +100,6 @@ class _ProfileBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // One `Obx` over the whole body: the screen is a view of `profile`, and a
     // save changes that without changing `status`. Observing only the fields
     // read by the outer switch would leave the old values on screen.
@@ -116,55 +119,21 @@ class _ProfileBody extends StatelessWidget {
         children: [
           NoticeBanner(message: notice),
           NoticeBanner(message: error, tone: NoticeTone.problem),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.lightBlue,
-                    foregroundColor: AppColors.primaryBlue,
-                    child: Text(profile.initials, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(profile.displayName, style: theme.textTheme.titleLarge),
-                        const SizedBox(height: 2),
-                        Text(profile.email, style: theme.textTheme.bodySmall),
-                        if (!profile.emailVerified) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          const Text(
-                            'Email verification is not available in this build yet.',
-                            style: TextStyle(fontSize: 12, color: AppColors.secondaryText),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _IdentityCard(profile: profile),
           const SizedBox(height: AppSpacing.lg),
-          const SectionHeader(
+          SectionHeader(
+            eyebrow: 'On your account',
             title: 'Your details',
             subtitle: 'Saved to your account on the UDM service.',
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Card(
+          const SizedBox(height: AppSpacing.md),
+          Panel(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             child: Column(
               children: [
                 _DetailRow(icon: Icons.school_outlined, label: 'University', value: profile.university),
                 _DetailRow(icon: Icons.place_outlined, label: 'Campus', value: profile.campus),
-                _DetailRow(
-                  icon: Icons.menu_book_outlined,
-                  label: 'Course',
-                  value: profile.course,
-                ),
+                _DetailRow(icon: Icons.menu_book_outlined, label: 'Course', value: profile.course),
                 _DetailRow(
                   icon: Icons.stairs_outlined,
                   label: 'Year of study',
@@ -178,8 +147,9 @@ class _ProfileBody extends StatelessWidget {
                 ),
                 _DetailRow(
                   icon: Icons.translate_rounded,
-                  label: 'Bible preference',
+                  label: 'Bible version',
                   value: ProfileEditorSheet.translationLabel(profile.preferredTranslationCode),
+                  last: true,
                 ),
               ],
             ),
@@ -189,7 +159,9 @@ class _ProfileBody extends StatelessWidget {
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: profile.interests.map((interest) => Chip(label: Text(interest))).toList(),
+              children: profile.interests
+                  .map((interest) => MetaPill(icon: Icons.star_rounded, label: interest, tone: AppColors.gold))
+                  .toList(),
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
@@ -197,13 +169,14 @@ class _ProfileBody extends StatelessWidget {
             key: const Key('udm.editProfile'),
             onPressed: () => _edit(context),
             icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit details'),
+            label: const AppText('Edit details'),
           ),
           const SizedBox(height: AppSpacing.md),
-          OutlinedButton(
+          OutlinedButton.icon(
             key: const Key('udm.signOut'),
             onPressed: () => _confirmSignOut(context, session),
-            child: const Text('Sign out'),
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const AppText('Sign out'),
           ),
         ],
       );
@@ -211,18 +184,119 @@ class _ProfileBody extends StatelessWidget {
   }
 }
 
+/// The one card on this screen that should look like the brand: the student's
+/// own initials on the gradient, name and email over it.
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: AppGradients.hero,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
+        boxShadow: AppShadows.float,
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.18),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: UdmAvatar(initials: profile.initials, size: 56),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            profile.displayName,
+                            style: const TextStyle(
+                              fontFamily: AppFonts.ui,
+                              fontSize: 20,
+                              height: 1.25,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                              color: AppColors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          AppText(
+                            profile.email,
+                            style: const TextStyle(
+                              fontFamily: AppFonts.ui,
+                              fontSize: 13,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (!profile.emailVerified) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 14, color: Colors.white70),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: AppText(
+                          'Email verification is not available in this build yet.',
+                          style: const TextStyle(
+                            fontFamily: AppFonts.ui,
+                            fontSize: 11.5,
+                            height: 1.45,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> _confirmSignOut(BuildContext context, SessionController session) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Sign out?'),
-      content: const Text('Your content stays readable. Your saved profile and progress stay on your account.'),
+      title: const AppText('Sign out?'),
+      content: const AppText('Your content stays readable. Your saved profile and progress stay on your account.'),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const AppText('Cancel')),
         FilledButton(
           key: const Key('udm.confirmSignOut'),
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('Sign out'),
+          child: const AppText('Sign out'),
         ),
       ],
     ),
@@ -231,31 +305,53 @@ Future<void> _confirmSignOut(BuildContext context, SessionController session) as
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({required this.icon, required this.label, required this.value, this.last = false});
 
   final IconData icon;
   final String label;
   final String value;
+  final bool last;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final surfaces = theme.extension<AppSurfaces>()!;
     final filled = value.trim().isNotEmpty;
-    return ListTile(
-      leading: Icon(icon, size: 20),
-      title: Text(label),
-      trailing: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 190),
-        child: Text(
-          filled ? value : 'Not added',
-          textAlign: TextAlign.end,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: filled ? theme.textTheme.bodyLarge?.color : AppColors.secondaryText,
-            fontWeight: filled ? FontWeight.w600 : FontWeight.w400,
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2),
+          child: Row(
+            children: [
+              IconBadge(icon: icon, size: 32, filled: false),
+              const SizedBox(width: AppSpacing.md),
+              // Both sides get a share of the row instead of a fixed trailing
+              // width, so a long university name wraps onto a second line rather
+              // than pushing the label off a 320dp screen.
+              Expanded(
+                flex: 6,
+                child: AppText(label, style: theme.textTheme.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                flex: 6,
+                child: AppText(
+                  filled ? value : 'Not added',
+                  textAlign: TextAlign.end,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: filled ? theme.textTheme.bodyLarge?.color : theme.textTheme.bodySmall?.color,
+                    fontWeight: filled ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+        if (!last) Divider(height: 1, thickness: 1, color: surfaces.hairline),
+      ],
     );
   }
 }
@@ -276,7 +372,7 @@ class ProfileEditorSheet extends StatefulWidget {
     (key: 'country', label: 'Country', maxLength: 80, keyboard: TextInputType.text),
   ];
 
-  /// Mirrors `UDM_FEATURED_VERSE_TRANSLATIONS` on the server. All three are
+  /// Mirrors `UDM_MEMORY_VERSE_TRANSLATIONS` on the server. All three are
   /// public-domain; a code the API does not recognise comes back as a field
   /// error rather than being saved.
   static const Map<String, String> translations = {
@@ -350,7 +446,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     setState(_interest.clear);
     if (label.isEmpty || _interests.contains(label)) return;
     if (_interests.length >= UserProfile.maxInterests) {
-      Get.snackbar('Interests', 'Choose at most ${UserProfile.maxInterests} interests.');
+      showLocalizedSnackbar('Interests', 'Choose at most ${UserProfile.maxInterests} interests.');
       return;
     }
     setState(() => _interests.add(label));
@@ -373,7 +469,10 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     if (text.isEmpty) return null;
     final year = int.tryParse(text);
     if (year == null || year < UserProfile.minYearOfStudy || year > UserProfile.maxYearOfStudy) {
-      return 'Between ${UserProfile.minYearOfStudy} and ${UserProfile.maxYearOfStudy}.';
+      return 'Between @min and @max.'.trParams({
+        'min': '${UserProfile.minYearOfStudy}',
+        'max': '${UserProfile.maxYearOfStudy}',
+      });
     }
     return null;
   }
@@ -401,7 +500,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.sm),
-              child: Text('Edit your details', style: theme.textTheme.titleLarge),
+              child: AppText('Edit your details', style: theme.textTheme.titleLarge),
             ),
             // The fields scroll; the decision to save or drop stays reachable.
             Flexible(
@@ -420,9 +519,8 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                           keyboardType: field.keyboard,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            labelText: field.label,
+                            labelText: field.label.tr,
                             counterText: '',
-                            border: const OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -431,10 +529,9 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         key: const Key('udm.field.year_of_study'),
                         controller: _year,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Year of study',
+                        decoration: InputDecoration(
+                          labelText: 'Year of study'.tr,
                           counterText: '',
-                          border: OutlineInputBorder(),
                         ),
                         validator: _validateYear,
                       ),
@@ -445,30 +542,35 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         key: const Key('udm.field.translation'),
                         initialValue: _translation,
                         isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Bible version',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Bible version'.tr,
                         ),
                         items: ProfileEditorSheet.translations.entries
-                            .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
+                            .map((entry) => DropdownMenuItem(value: entry.key, child: AppText(entry.value)))
                             .toList(),
                         onChanged: (value) => setState(() => _translation = value ?? _translation),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      Text('Gender', style: theme.textTheme.titleMedium),
+                      AppText('Gender', style: theme.textTheme.titleMedium),
                       const SizedBox(height: AppSpacing.sm),
-                      SegmentedButton<String>(
-                        segments: ProfileEditorSheet.genders.entries
-                            .map((entry) => ButtonSegment(value: entry.key, label: Text(entry.value)))
-                            .toList(),
-                        selected: {_gender},
-                        showSelectedIcon: false,
-                        onSelectionChanged: (value) => setState(() => _gender = value.first),
+                      // Three equal segments would clip 'Prefer not to say' on a
+                      // narrow phone, so the row keeps its own width and scrolls
+                      // instead of cutting a choice in half.
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SegmentedButton<String>(
+                          segments: ProfileEditorSheet.genders.entries
+                              .map((entry) => ButtonSegment(value: entry.key, label: AppText(entry.value)))
+                              .toList(),
+                          selected: {_gender},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (value) => setState(() => _gender = value.first),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      Text('Interests', style: theme.textTheme.titleMedium),
+                      AppText('Interests', style: theme.textTheme.titleMedium),
                       const SizedBox(height: AppSpacing.sm),
-                      Text(
+                      AppText(
                         'Used to suggest devotion and group content. Up to ${UserProfile.maxInterests}.',
                         style: theme.textTheme.bodySmall,
                       ),
@@ -480,7 +582,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                           children: _interests
                               .map(
                                 (interest) => Chip(
-                                  label: Text(interest),
+                                  label: AppText(interest),
                                   onDeleted: () => setState(() => _interests.remove(interest)),
                                 ),
                               )
@@ -494,10 +596,9 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                               key: const Key('udm.field.interest'),
                               controller: _interest,
                               maxLength: UserProfile.maxInterestLength,
-                              decoration: const InputDecoration(
-                                labelText: 'Add an interest',
+                              decoration: InputDecoration(
+                                labelText: 'Add an interest'.tr,
                                 counterText: '',
-                                border: OutlineInputBorder(),
                               ),
                               onSubmitted: (_) => _addInterest(),
                             ),
@@ -534,7 +635,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
+                          child: const AppText('Cancel'),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -543,7 +644,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         child: FilledButton(
                           key: const Key('udm.saveProfile'),
                           onPressed: _save,
-                          child: const Text('Save changes'),
+                          child: const AppText('Save changes'),
                         ),
                       ),
                     ],

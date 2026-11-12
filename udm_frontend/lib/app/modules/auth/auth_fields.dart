@@ -19,10 +19,9 @@ class EmailField extends StatelessWidget {
         keyboardType: TextInputType.emailAddress,
         textInputAction: TextInputAction.next,
         autofillHints: const [AutofillHints.email],
-        decoration: const InputDecoration(
-          labelText: 'Email',
+        decoration: InputDecoration(
+          labelText: 'Email'.tr,
           hintText: 'you@udm.ac.ug',
-          border: OutlineInputBorder(),
           prefixIcon: Icon(Icons.alternate_email_rounded),
         ),
         validator: AuthValidators.email,
@@ -42,9 +41,8 @@ class NameField extends StatelessWidget {
         autofocus: autofocus,
         textCapitalization: TextCapitalization.words,
         maxLength: AuthValidators.maximumNameLength,
-        decoration: const InputDecoration(
-          labelText: 'Full name',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: 'Full name'.tr,
           prefixIcon: Icon(Icons.person_outline_rounded),
         ),
         validator: AuthValidators.fullName,
@@ -79,13 +77,13 @@ class PasswordField extends StatelessWidget {
           autofillHints: autofillHints,
           maxLength: 128,
           decoration: InputDecoration(
-            labelText: label,
-            border: const OutlineInputBorder(),
+            labelText: label.tr,
+
             prefixIcon: const Icon(Icons.lock_outline_rounded),
             counterText: '',
             suffixIcon: IconButton(
               onPressed: () => revealed.value = !revealed.value,
-              tooltip: revealed.value ? 'Hide password' : 'Show password',
+              tooltip: revealed.value ? 'Hide password'.tr : 'Show password'.tr,
               icon: Icon(revealed.value ? Icons.visibility_off_outlined : Icons.visibility_outlined),
             ),
           ),

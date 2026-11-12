@@ -2,7 +2,8 @@
 /// `kind` choices on `POST /api/v1/progress/`.
 enum ContentKind {
   devotional('devotional'),
-  article('article');
+  article('article'),
+  resourceStep('resource_step');
 
   const ContentKind(this.value);
 

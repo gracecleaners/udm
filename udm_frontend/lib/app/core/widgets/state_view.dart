@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'app_text.dart';
+import 'udm_widgets.dart';
 
 enum ViewState { loading, ready, empty, error }
 
@@ -33,7 +35,7 @@ class StateView extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (state) {
       case ViewState.loading:
-        return const CenteredSlot(child: UdmProgress());
+        return const CenteredSlot(child: _LoadingSkeleton());
       case ViewState.error:
         return CenteredSlot(
           child: MessagePanel(
@@ -60,6 +62,23 @@ class StateView extends StatelessWidget {
         return child;
     }
   }
+}
+
+/// Three rows of shimmer standing in for the content that is on its way.
+class _LoadingSkeleton extends StatelessWidget {
+  const _LoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < 3; i++)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == 2 ? 0 : AppSpacing.md),
+              child: FadeIn(delay: Duration(milliseconds: 90 * i), child: const SkeletonCard()),
+            ),
+        ],
+      );
 }
 
 class CenteredSlot extends StatelessWidget {
@@ -102,6 +121,8 @@ class MessagePanel extends StatelessWidget {
     this.iconColor = AppColors.secondaryText,
     this.actionLabel,
     this.onAction,
+    this.secondaryLabel,
+    this.onSecondary,
   });
 
   final IconData icon;
@@ -110,32 +131,47 @@ class MessagePanel extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: theme.extension<AppSurfaces>()!.scripture,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 30),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(title, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
-        const SizedBox(height: AppSpacing.sm),
-        Text(message, style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color), textAlign: TextAlign.center),
-        if (actionLabel != null && onAction != null) ...[
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconBadge(icon: icon, size: 62, tone: _toneOf(iconColor), filled: iconColor != AppColors.secondaryText),
           const SizedBox(height: AppSpacing.lg),
-          FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          AppText(title, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
+          const SizedBox(height: AppSpacing.sm),
+          AppText(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color),
+            textAlign: TextAlign.center,
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(onPressed: onAction, child: AppText(actionLabel!)),
+            ),
+          ],
+          if (secondaryLabel != null && onSecondary != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            TextButton(onPressed: onSecondary, child: AppText(secondaryLabel!)),
+          ],
         ],
-      ],
+      ),
     );
+  }
+
+  static IconBadgeTone _toneOf(Color color) {
+    if (color == AppColors.warning) return IconBadgeTone.warning;
+    if (color == AppColors.success) return IconBadgeTone.success;
+    if (color == AppColors.danger) return IconBadgeTone.warning;
+    return IconBadgeTone.brand;
   }
 }
 
@@ -149,8 +185,8 @@ class UdmProgress extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 26,
-            height: 26,
+            width: 28,
+            height: 28,
             child: CircularProgressIndicator(
               strokeWidth: 2.6,
               color: Theme.of(context).colorScheme.primary,
@@ -158,7 +194,7 @@ class UdmProgress extends StatelessWidget {
           ),
           if (label != null) ...[
             const SizedBox(height: AppSpacing.md),
-            Text(label!, style: Theme.of(context).textTheme.bodySmall),
+            AppText(label!, style: Theme.of(context).textTheme.bodySmall),
           ],
         ],
       );
@@ -167,29 +203,19 @@ class UdmProgress extends StatelessWidget {
 /// Labels content that came from the device rather than the server. Never rely
 /// on colour alone: the icon and the words both say it.
 class OfflineChip extends StatelessWidget {
-  const OfflineChip({super.key, this.message = 'Offline copy'});
+  const OfflineChip({super.key, this.message = 'Offline copy', this.onDark = false});
 
   final String message;
 
+  /// On the scripture gradient the chip is translucent white instead of amber.
+  final bool onDark;
+
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.warning.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_rounded, size: 14, color: AppColors.warning),
-            const SizedBox(width: 6),
-            Text(
-              message,
-              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.warning),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => MetaPill(
+        label: message,
+        icon: Icons.cloud_off_rounded,
+        onDark: onDark,
+        tone: onDark ? null : AppColors.warning,
       );
 }
 
@@ -209,28 +235,48 @@ class NoticeBanner extends StatelessWidget {
     if (message.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final color = tone == NoticeTone.problem ? AppColors.danger : AppColors.warning;
-    return Container(
-      key: const Key('udm.noticeBanner'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            tone == NoticeTone.problem ? Icons.error_outline_rounded : Icons.info_outline_rounded,
-            color: color,
-            size: 20,
+    return FadeIn(
+      child: Container(
+        key: const Key('udm.noticeBanner'),
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.09),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusField),
+          border: Border.all(color: color.withValues(alpha: 0.30)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: color),
+              // The text has to be the flexible child of this row: an `Expanded`
+              // inside a row that is itself a row child gets unbounded width.
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.md),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        tone == NoticeTone.problem ? Icons.error_outline_rounded : Icons.info_outline_rounded,
+                        color: color,
+                        size: 20,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppText(
+                          message,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodyLarge?.color),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(message, style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodyLarge?.color)),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -38,6 +38,13 @@ ios/.symlinks/
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
+# Node / admin console (admin_ui)
+node_modules/
+dist/
+*.local
+.npm/
+.eslintcache
+
 # IDE / OS
 .idea/
 .vscode/

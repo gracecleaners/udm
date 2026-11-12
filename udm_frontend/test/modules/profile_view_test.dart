@@ -2,7 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
+import 'package:udm_frontend/app/core/storage/local_cache.dart';
+import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
+import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 import 'package:udm_frontend/app/core/routes/app_pages.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
@@ -27,6 +31,14 @@ void main() {
 
   Future<void> openProfile(WidgetTester tester) async {
     Get.put<SessionController>(SessionController(repository, client));
+    // The profile app bar carries the language menu, whose controller the app
+    // registers permanently at startup.
+    SharedPreferences.setMockInitialValues({});
+    Get.put<AppLanguageController>(
+      AppLanguageController(
+        SettingsRepository(LocalCache(await SharedPreferences.getInstance())),
+      ),
+    );
     await tester.pumpWidget(
       GetMaterialApp(
         theme: AppTheme.light,
@@ -64,16 +76,26 @@ void main() {
   /// The sheet scrolls its fields; the save button is pinned outside of it.
   /// Drag until the target's box is actually on screen — a widget that is
   /// merely *built* in a scroll view can still sit past the edge.
-  Finder sheetScrollable() =>
-      find.descendant(of: find.byType(ProfileEditorSheet), matching: find.byType(SingleChildScrollView));
+  /// Only the vertical scroller counts: the gender row carries its own
+  /// horizontal one, and dragging that never reveals a field.
+  Finder sheetScrollable() => find.descendant(
+        of: find.byType(ProfileEditorSheet),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.vertical,
+        ),
+      );
 
+  /// A target only counts as reachable once it is inside the sheet's own
+  /// viewport: the screen is 600px tall but the save row is pinned below the
+  /// scroller, so a widget at the foot of the screen can still be covered.
   bool onScreen(WidgetTester tester, Finder target) {
+    final viewport = tester.getRect(sheetScrollable());
     final rect = tester.getRect(target);
-    return rect.top >= 0 && rect.bottom <= 600;
+    return rect.top >= viewport.top && rect.bottom <= viewport.bottom;
   }
 
   Future<void> revealInSheet(WidgetTester tester, Finder target) async {
-    for (var attempt = 0; attempt < 12 && !onScreen(tester, target); attempt++) {
+    for (var attempt = 0; attempt < 16 && !onScreen(tester, target); attempt++) {
       await tester.drag(sheetScrollable(), const Offset(0, -120));
       await tester.pumpAndSettle();
     }

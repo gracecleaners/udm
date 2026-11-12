@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import PermissionDenied, ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -65,7 +65,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def validate_preferred_translation_code(self, value):
         code = value.strip().lower()
-        allowed = settings.UDM_FEATURED_VERSE_TRANSLATIONS
+        allowed = settings.UDM_MEMORY_VERSE_TRANSLATIONS
         if code not in allowed:
             raise serializers.ValidationError(f"{code} is not an available translation.")
         return code
@@ -128,3 +128,48 @@ class UdmTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSummarySerializer(self.user).data
         return data
+
+
+class StaffTokenObtainPairSerializer(UdmTokenObtainPairSerializer):
+    """The same credentials check, refused for anyone outside the ministry team.
+
+    Signing in through the console with a student account fails here rather than
+    handing out tokens the console could not use, so the two surfaces cannot be
+    confused by a wrong password manager entry.
+    """
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not (self.user.is_staff and self.user.is_active):
+            raise PermissionDenied("This console is for ministry staff accounts.")
+        return data
+
+
+class AdminIdentitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "email", "display_name", "is_staff", "is_superuser")
+        read_only_fields = fields
+
+
+class StudentDirectorySerializer(serializers.ModelSerializer):
+    """Roster columns for the ministry console.
+
+    Identity, the staff flag and two counts of *public* ministry work only.
+    Prayer requests, bookmarks, notes, progress rows and quiz attempts are
+    deliberately absent: staff status is not a licence to read a student's
+    discipleship record, which is the same reason `UserContentProgress` stays
+    out of Django Admin.
+    """
+
+    display_name = serializers.CharField(read_only=True)
+    groups_led = serializers.IntegerField(read_only=True)
+    events_organized = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "id", "email", "display_name", "is_staff", "is_active", "created_at",
+            "groups_led", "events_organized",
+        )
+        read_only_fields = fields

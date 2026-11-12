@@ -190,7 +190,11 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env_list("UDM_CORS_ALLOWED_ORIGINS")
-CORS_ALLOW_CREDENTIALS = False
+# The ministry console authenticates with an HttpOnly refresh cookie, so it
+# needs credentialed cross-origin requests. That is only ever safe against a
+# named list of first-party origins; a wildcard origin plus credentials is a
+# combination browsers refuse, so it is refused here too.
+CORS_ALLOW_CREDENTIALS = bool(CORS_ALLOWED_ORIGINS)
 
 # i18n, static, media ------------------------------------------------------
 
@@ -202,13 +206,49 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BACKEND_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
+# The leading slash is load-bearing: an uploaded file's URL is joined onto this
+# value, and a relative one would resolve against whichever API path the request
+# arrived on rather than the site root.
+MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("UDM_MEDIA_ROOT", str(BACKEND_DIR / "media")))
 
 # Content rules ------------------------------------------------------------
 
-# Featured verses may only come from public-domain or licensed translations.
-UDM_FEATURED_VERSE_TRANSLATIONS = env_list("UDM_FEATURED_VERSE_TRANSLATIONS", "kjv,web,asv")
+# Memory verses that store their own text may only cite these translations.
+UDM_MEMORY_VERSE_TRANSLATIONS = env_list("UDM_MEMORY_VERSE_TRANSLATIONS", "kjv,web,asv")
+
+# Bible passage router -----------------------------------------------------
+
+# Which translation serves a request when the asked-for source fails.
+UDM_BIBLE_DEFAULT_TRANSLATION = env("UDM_BIBLE_DEFAULT_TRANSLATION", "kjv")
+# Ceiling on an explicitly requested verse span. It is above 176 on purpose:
+# that is Psalm 119, the longest chapter, and a whole chapter is one provider
+# request rather than a run on the upstream quota.
+UDM_BIBLE_MAX_VERSES = env_int("UDM_BIBLE_MAX_VERSES", 200)
+
+# Keys stay server-side. Every provider is optional: with a key missing the
+# router serves public-domain text plus an authorized deep link rather than
+# failing, so an unconfigured deployment still reads Scripture.
+ESV_API_KEY = env("ESV_API_KEY", "")
+UDM_ESV_DAILY_QUOTA = env_int("UDM_ESV_DAILY_QUOTA", 5000)
+NLT_API_KEY = env("NLT_API_KEY", "")
+UDM_NLT_API_URL = env("UDM_NLT_API_URL", "https://api.nlt.to/api/text")
+
+# Map a UDM translation code to a bolls.life abbreviation only where the
+# ministry holds redistribution rights, e.g. `nkjv:NKJV,csb:CSB17`. Empty by
+# default: those texts are copyrighted, and bolls.life's NIV is publisher-blocked.
+UDM_BOLLS_TRANSLATIONS = env("UDM_BOLLS_TRANSLATIONS", "")
+# Numeric bible.com Bible ids from this app's own YouVersion licence, e.g.
+# `asv:12,web:206`. They add a second authorized link; nothing is guessed.
+UDM_BIBLE_YOUVERSION_IDS = env("UDM_BIBLE_YOUVERSION_IDS", "")
+
+# Dynamic content can be translated on demand through Google Cloud Translation.
+# Keep the key server-side and leave it blank to use admin-entered translations.
+UDM_TRANSLATION_API_KEY = env("UDM_TRANSLATION_API_KEY", "")
+UDM_TRANSLATION_API_URL = env(
+    "UDM_TRANSLATION_API_URL",
+    "https://translation.googleapis.com/language/translate/v2",
+)
 
 # Logging ------------------------------------------------------------------
 

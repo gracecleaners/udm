@@ -7,8 +7,18 @@ import '../../modules/auth/register_view.dart';
 import '../../modules/auth/sign_in_view.dart';
 import '../../modules/devotion/devotion_binding.dart';
 import '../../modules/devotion/devotion_view.dart';
+import '../../modules/devotions/devotion_series_binding.dart';
+import '../../modules/devotions/devotion_series_view.dart';
+import '../../modules/media/media_collection_binding.dart';
+import '../../modules/media/media_collection_view.dart';
+import '../../modules/media/media_item_binding.dart';
+import '../../modules/media/media_item_view.dart';
 import '../../modules/onboarding/onboarding_binding.dart';
 import '../../modules/onboarding/onboarding_view.dart';
+import '../../modules/resources/resource_step_binding.dart';
+import '../../modules/resources/resource_step_view.dart';
+import '../../modules/resources/resource_topic_binding.dart';
+import '../../modules/resources/resource_topic_view.dart';
 import '../../modules/shell/shell_binding.dart';
 import '../../modules/shell/shell_view.dart';
 import '../../modules/splash/splash_binding.dart';
@@ -56,9 +66,44 @@ abstract class AppPages {
       transitionDuration: transitionDuration,
     ),
     GetPage(
+      name: AppRoutes.devotionSeries,
+      page: () => const DevotionSeriesView(),
+      binding: DevotionSeriesBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
       name: AppRoutes.article,
       page: () => const ArticleView(),
       binding: ArticleBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.resourceTopic,
+      page: () => const ResourceTopicView(),
+      binding: ResourceTopicBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.resourceStep,
+      page: () => const ResourceStepView(),
+      binding: ResourceStepBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.mediaCollection,
+      page: () => const MediaCollectionView(),
+      binding: MediaCollectionBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.mediaItem,
+      page: () => const MediaItemView(),
+      binding: MediaItemBinding(),
       transition: Transition.rightToLeft,
       transitionDuration: transitionDuration,
     ),

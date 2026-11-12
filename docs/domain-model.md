@@ -5,7 +5,7 @@ All records use UUID identifiers where they cross the API boundary and carry `cr
 ## Identity and campus
 
 - **User**: email, password hash, active/staff flags, verification state. Custom Django user; email is the login identifier.
-- **UserProfile** (one-to-one User): name, phone, photo, optional gender/church, country/city, course, year, preferred translation, interests, privacy preferences.
+- **UserProfile** (one-to-one User): name, phone, photo, optional gender/church, country/city, course of study and year (the student's academic programme, unrelated to teaching media), preferred translation, interests, privacy preferences.
 - **University**: name, country, city, website, active status.
 - **Campus**: University, name, location, status.
 - **Fellowship**: Campus, name, description, meeting schedule, leaders, visibility.
@@ -21,13 +21,13 @@ All records use UUID identifiers where they cross the API boundary and carry `cr
 - **BibleBookmark**, **BibleHighlight**, **BibleNote**: user-owned verse reference, selection/color or private note, timestamps. Unique bookmark per user/verse; never public by default.
 - **BibleReadingPlan** and ordered assignments; **BibleReadingProgress**: user, assignment, status and completion.
 
-## Learning and publishing
+## Teaching media and publishing
 
-- **Course** → **CourseModule** → **CourseLesson**: overview, objectives, prerequisites, typed lesson body/media/resources/order.
-- **CourseEnrollment**: user/course/status; **LessonProgress**: user/lesson/status/score/completed_at.
-- **Quiz** → **Question** → **AnswerOption**: ordered questions, answer key protected from learner responses; **QuizAttempt** stores user, responses, score, submission time.
+- **MediaCollection** → **MediaItem**: a shelf of teaching recordings (title, description, artwork, list position, publish window/status) and the recordings on it (title, author, excerpt, write-up, the ministry's YouTube address, an optional link to a file the ministry hosts itself, length in seconds, position within the shelf). A recording with no shelf cannot be reached, so deleting a shelf takes its recordings with it.
+- **MediaNote**: user, recording, text; one per pair. Owner-scoped and absent from every staff listing, admin view, analytic and push payload.
+- **MediaWatch**: user, recording, position in seconds, completion; unique pair, owner-scoped. This is the resume point and the "watched" mark, and it is the reason a shared device shows one student nothing about another.
 - **ArticleCategory** → **Article**: author, rich body, featured image, references, publication metadata, status.
-- **MediaContent**: provider/object key, type, duration, captions, license; **Playlist** orders media; **WatchHistory** stores user position and completion.
+- Video and audio files are not held here. The ministry publishes them on YouTube and the row stores the address the app plays; the only uploads that land on this server are the artwork files, under `MEDIA_ROOT`. Courses, lessons, enrolments and quizzes were removed in migration `0014`, which dropped those tables and created the media models in their place.
 
 ## Community, prayer, and activities
 
@@ -38,14 +38,15 @@ All records use UUID identifiers where they cross the API boundary and carry `cr
 
 ## Progress and governance
 
-- **MemoryVerse**: verse, prompt and schedule; **UserMemoryVerseProgress**: user, verse, review state/schedule.
+- **MemoryVerse**: one row does both jobs — the home feed's verse of the day for its date window, and the verse a student commits to memory. It either points at a synced `BibleVerse` or stores its own text, in which case the translation must be one `UDM_MEMORY_VERSE_TRANSLATIONS` licenses. **UserMemoryVerseProgress**: user, verse, review state/schedule.
+- **ContentVersion**: a single row holding one integer, moved by a signal on every content model the app renders. It is how a device tells a fresh response from its own stale cache.
 - **Achievement** and **UserAchievement**: definition and user award timestamp; unique pair.
 - **AuditLog**: actor, action, target type/id, timestamp, safe metadata (exclude secrets and journal text).
 
 ## Data rules
 
-Index feed status/publication time, campus/group scope, user-owned progress by user and date, and foreign keys used in list filters. Add uniqueness constraints for memberships, enrollments, registrations, progress, and canonical Bible ordering. Store timestamps in UTC and retain an explicit timezone for user/event schedules. Never treat client-supplied ownership, role, score, or campus scope as authoritative.
+Index feed status/publication time, campus/group scope, user-owned progress by user and date, and foreign keys used in list filters. Add uniqueness constraints for memberships, registrations, progress, one note and one watch position per student per recording, and canonical Bible ordering. Store timestamps in UTC and retain an explicit timezone for user/event schedules. Never treat client-supplied ownership, role, or campus scope as authoritative.
 
 ## Implemented today
 
-The entities above are the target model. Migrated and reachable through `/api/v1/` so far: **User**, **UserProfile**, **Devotional**, **Article**, **FeaturedVerse** and **UserContentProgress**. `FeaturedVerse` is a deliberately small, license-checked verse store (public-domain KJV only) that backs the home screen; the full `BibleTranslation`/`Book`/`Chapter`/`Verse` tree arrives with the licensed Scripture work in Phase 3. Publication state lives on a shared `PublishableModel` mixin — `is_published` plus `publish_at` — so every content type hides drafts and future-scheduled rows the same way. Everything else remains specified, not built.
+The entities above are the target model. Migrated and reachable through `/api/v1/` so far: **User**, **UserProfile**, **DevotionalSeries**, **Devotional**, **Article**, **UserContentProgress**, **BibleTranslation**, **BibleBook**, **BibleChapter**, **BibleVerse**, **BibleBookmark**, **BibleNote**, **BibleReadingPlan**, **BibleReadingAssignment**, **BibleReadingProgress**, **MediaCollection**, **MediaItem**, **MediaNote**, **MediaWatch**, **ResourceTopic**, **ResourceStep**, **MemoryVerse**, **UserMemoryVerseProgress**, **University**, **Campus**, **Fellowship**, **DiscipleshipGroup**, **GroupMembership**, **Event**, **EventRegistration** and **PrayerRequest**. FeaturedVerse no longer exists as its own table: migrations 0011 and 0012 moved every row into **MemoryVerse** and dropped it, so the home screen's verse of the day and the verses a student memorises are one license-checked record. Migration 0014 dropped the course, lesson, enrolment, quiz and attempt tables the earlier build had, in the same step as creating the media models — the Learn tab is recordings now, and nothing in the API still answers a lesson or a quiz. Bible translation metadata, attribution and offline permission govern Scripture browsing and caching. Translation and book records may identify an external provider and its stable book ID; the UDM API retrieves YouVersion passages and stores verse rows for existing private bookmark and note relations. The passage router can also serve a verse that has no local row; its response labels each verse with its database id only where one exists, so the app offers save actions on stored verses and reads or links out the rest. A student's note on a recording and their place in it are read and written only by their own account, and neither is ever serialized into a public list or a staff view. Community scopes, event registration, prayer consent, visibility and moderation are enforced server-side. Scripture, teaching media and community models currently live in the `content` Django app; later extraction into the separately described domain apps can happen as operations complexity grows.

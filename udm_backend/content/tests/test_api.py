@@ -6,7 +6,7 @@ from django.utils import timezone
 from core.testing import UdmAPITestCase
 
 from accounts.models import User, UserProfile
-from content.models import Article, Devotional, FeaturedVerse, UserContentProgress
+from content.models import Article, Devotional, MemoryVerse, UserContentProgress
 
 
 def make_devotional(title="Daily bread", **overrides):
@@ -71,46 +71,62 @@ class PublishedVisibilityTests(UdmAPITestCase):
         self.assertEqual(len(response.json()["results"]), 1)
 
 
-class FeaturedVerseTests(UdmAPITestCase):
-    def test_rotation_is_stable_for_a_day_and_skips_inactive_rows(self):
-        first = FeaturedVerse.objects.create(reference="Romans 12:2", text="Be transformed...", translation_code="kjv")
-        second = FeaturedVerse.objects.create(reference="Joshua 1:9", text="Be strong...", translation_code="kjv")
-        day = timezone.localdate()
-        self.assertEqual(FeaturedVerse.for_date(day), FeaturedVerse.for_date(day))
-        self.assertIn(FeaturedVerse.for_date(day), (first, second))
+class MemoryVerseWindowTests(UdmAPITestCase):
+    """The home screen's verse of the day: one model, dated window, stable rotation."""
 
-        second.is_active = False
+    def test_rotation_is_stable_for_a_day_and_skips_unpublished_rows(self):
+        first = MemoryVerse.objects.create(
+            reference="Romans 12:2", text="Be transformed...", translation_code="kjv", is_published=True
+        )
+        second = MemoryVerse.objects.create(
+            reference="Joshua 1:9", text="Be strong...", translation_code="kjv", is_published=True
+        )
+        day = timezone.localdate()
+        self.assertEqual(MemoryVerse.for_date(day), MemoryVerse.for_date(day))
+        self.assertIn(MemoryVerse.for_date(day), (first, second))
+
+        second.is_published = False
         second.save()
-        self.assertEqual(FeaturedVerse.for_date(day), first)
+        self.assertEqual(MemoryVerse.for_date(day), first)
 
     def test_window_limits_when_a_verse_is_shown(self):
         today = timezone.localdate()
-        FeaturedVerse.objects.create(
+        MemoryVerse.objects.create(
             reference="John 15:5",
             text="I am the vine",
             translation_code="kjv",
             start_date=today - timedelta(days=3),
             end_date=today - timedelta(days=1),
+            is_published=True,
         )
-        self.assertIsNone(FeaturedVerse.for_date(today))
+        self.assertIsNone(MemoryVerse.for_date(today))
 
     def test_disallowed_translation_is_rejected_by_full_clean(self):
         with self.assertRaises(ValidationError):
-            FeaturedVerse(reference="1 Corinthians 13:4", text="Love is patient", translation_code="niv").full_clean()
+            MemoryVerse(
+                reference="1 Corinthians 13:4", text="Love is patient", translation_code="niv"
+            ).full_clean()
+
+    def test_a_stored_copy_without_a_reference_is_refused(self):
+        # The either/or rule is what stops the home screen rendering an empty
+        # card, and it lives on the model rather than in a form.
+        with self.assertRaises(ValidationError):
+            MemoryVerse(text="Orphaned line", translation_code="kjv").full_clean()
 
     def test_home_uses_stored_scripture_rather_than_hardcoded_text(self):
-        FeaturedVerse.objects.create(
+        MemoryVerse.objects.create(
             reference="Psalm 119:105",
             text="Thy word is a lamp unto my feet",
             translation_code="kjv",
+            is_published=True,
         )
         payload = self.client.get("/api/v1/home/").json()
-        self.assertEqual(payload["verse"]["reference"], "Psalm 119:105")
-        self.assertNotIn("Romans 12:2", payload["verse"]["text"])
+        self.assertEqual(payload["memory_verse"]["reference"], "Psalm 119:105")
+        self.assertNotIn("Romans 12:2", payload["memory_verse"]["text"])
 
     def test_home_tolerates_missing_content(self):
         payload = self.client.get("/api/v1/home/").json()
-        self.assertIsNone(payload["verse"])
+        self.assertIsNone(payload["memory_verse"])
         self.assertIsNone(payload["devotion"])
         self.assertEqual(payload["articles"], [])
 

@@ -1,8 +1,11 @@
+import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/state_view.dart';
+import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
 import '../reader/reading_progress.dart';
 import 'article_controller.dart';
@@ -14,7 +17,7 @@ class ArticleView extends GetView<ArticleController> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
           title: Obx(
-            () => Text(
+            () => AppText(
               controller.article.value?.category.isNotEmpty == true
                   ? controller.article.value!.category
                   : 'Reading',
@@ -46,44 +49,73 @@ class _ArticleBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bodyColor = theme.textTheme.bodyLarge!.color!;
     final paragraphs = article.body.split(RegExp(r'\n\s*\n')).where((p) => p.trim().isNotEmpty).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
       children: [
-        Text(article.title, style: theme.textTheme.displaySmall),
+        AppText(article.title, style: theme.textTheme.displayMedium),
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          [
-            if (article.author.isNotEmpty) article.author,
-            '${article.readingMinutes} min read',
-            if (article.publishAt != null) _isoDate(article.publishAt!.toLocal()),
-          ].join(' · '),
-          style: theme.textTheme.bodySmall,
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            if (article.author.isNotEmpty)
+              MetaPill(icon: Icons.person_outline_rounded, label: article.author),
+            MetaPill(icon: Icons.schedule_rounded, label: '${article.readingMinutes} min read'),
+            if (article.publishAt != null)
+              MetaPill(
+                icon: Icons.calendar_today_rounded,
+                label: _isoDate(article.publishAt!.toLocal()),
+              ),
+          ],
         ),
+        const SizedBox(height: AppSpacing.md),
+        const GoldRule(width: 72),
         if (article.excerpt.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: theme.extension<AppSurfaces>()!.scripture,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            ),
-            child: Text(
-              article.excerpt,
-              style: theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+          Panel(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 3,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.hero,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: AppText(
+                    article.excerpt,
+                    style: AppTypography.scriptureVerse(bodyColor, size: 17).copyWith(
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w400,
+                      height: 1.55,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
-        for (final paragraph in paragraphs)
-          Padding(
+        ...paragraphs.indexed.map(
+          (entry) => Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Text(
-              paragraph.trim(),
-              style: theme.textTheme.bodyLarge,
+            child: AppText(
+              entry.$2.trim(),
+              // The opening paragraph runs a touch larger, the way a printed
+              // feature leads in.
+              style: entry.$1 == 0
+                  ? AppTypography.scriptureBody(bodyColor).copyWith(fontSize: 19.5)
+                  : AppTypography.scriptureBody(bodyColor),
             ),
           ),
+        ),
         const SizedBox(height: AppSpacing.lg),
         ProgressFooter(reader: controller),
       ],
