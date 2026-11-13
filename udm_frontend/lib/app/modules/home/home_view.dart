@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/content_card.dart';
 import '../../core/widgets/state_view.dart';
@@ -12,8 +13,16 @@ import '../../data/models/article.dart';
 import '../../data/models/home_payload.dart';
 import '../../data/models/resource_topic.dart';
 import '../session/session_controller.dart';
+import '../shell/shell_controller.dart';
 import 'home_controller.dart';
 
+/// The day's feed, in the order the ministry's payload supports it: a greeting,
+/// the verse to keep, the devotion to read, the reading to deepen into, and the
+/// guides that answer the questions students actually ask.
+///
+/// Every section here is server-gated. A section with nothing published is not
+/// rendered as an empty shape, and a shortcut with nowhere to go is not
+/// rendered at all.
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
@@ -28,91 +37,143 @@ class HomeView extends GetView<HomeController> {
           child: RefreshIndicator(
             onRefresh: controller.load,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.sm, AppSpacing.screen, AppSpacing.xl),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
               children: [
-                _BrandRow(offline: controller.isOfflineCopy),
-                const SizedBox(height: AppSpacing.sm),
-                _Hero(payload: controller.data),
-                const SizedBox(height: AppSpacing.lg),
-                if (controller.data?.memoryVerse != null)
-                  FadeIn(
-                    delay: const Duration(milliseconds: 80),
-                    child: Obx(() => ScripturePanel(
-                      reference: controller.data!.memoryVerse!.reference,
-                      text: controller.data!.memoryVerse!.text,
-                      translationCode: controller.data!.memoryVerse!.translationCode,
-                      offline: controller.isOfflineCopy,
-                      ctaLabel: controller.data!.devotion == null ? null : "Open today's devotion",
-                      onTap: controller.data!.devotion == null
-                          ? null
-                          : () => controller.openDevotion(controller.data!.devotion!.id),
-                      onReview: () => controller.markMemorized(),
-                      memorized: controller.verseMemorized,
-                      savingReview: controller.savingVerse.value,
-                    )),
-                  ),
-                const SizedBox(height: AppSpacing.lg),
-                const SectionHeader(
-                  eyebrow: 'For your walk today',
-                  title: 'Today',
-                  subtitle: 'Curated by the ministry team',
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: _BrandRow(offline: controller.isOfflineCopy),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                if (controller.data?.devotion != null)
-                  ContentCard(
-                    icon: Icons.wb_sunny_rounded,
-                    title: controller.data!.devotion!.title,
-                    subtitle: controller.data!.devotion!.scriptureReference,
-                    trailingLabel: '${controller.data!.devotion!.readingMinutes} min',
-                    onTap: () => controller.openDevotion(controller.data!.devotion!.id),
-                  )
-                else
-                  const ContentCard(
-                    icon: Icons.wb_sunny_rounded,
-                    title: 'No devotion scheduled',
-                    subtitle: 'Check back after the next publishing window.',
-                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: _Hero(payload: controller.data),
+                ),
                 const SizedBox(height: AppSpacing.lg),
-                const SectionHeader(eyebrow: 'Deepen', title: 'Latest reading'),
-                const SizedBox(height: AppSpacing.md),
-                ...?controller.data?.articles.map(
-                  (article) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: ContentCard(
-                      icon: Icons.article_rounded,
-                      title: article.title,
-                      subtitle: _byline(article),
-                      trailingLabel: '${article.readingMinutes} min',
-                      onTap: () => controller.openArticle(article.id),
-                    ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: FadeIn(
+                    delay: const Duration(milliseconds: 60),
+                    child: QuickActionGrid(actions: _shortcuts(controller.data)),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                if (controller.data?.resources.isNotEmpty ?? false) ...[
+                if (controller.data?.memoryVerse != null) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  const SectionHeader(
-                    eyebrow: 'Guided reading',
-                    title: 'Find resources on',
-                    subtitle: 'Short guides for the questions students actually ask',
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ...controller.data!.resources.map(
-                    (topic) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: _ResourceRow(
-                        topic: topic,
-                        onOpen: () => controller.openTopic(topic.id),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                    child: FadeIn(
+                      delay: const Duration(milliseconds: 110),
+                      child: Obx(
+                        () => ScripturePanel(
+                          reference: controller.data!.memoryVerse!.reference,
+                          text: controller.data!.memoryVerse!.text,
+                          translationCode: controller.data!.memoryVerse!.translationCode,
+                          offline: controller.isOfflineCopy,
+                          ctaLabel: controller.data!.devotion == null ? null : "Open today's devotion",
+                          onTap: controller.data!.devotion == null
+                              ? null
+                              : () => controller.openDevotion(controller.data!.devotion!.id),
+                          onReview: () => controller.markMemorized(),
+                          memorized: controller.verseMemorized,
+                          savingReview: controller.savingVerse.value,
+                        ),
                       ),
                     ),
                   ),
                 ],
-                const SizedBox(height: AppSpacing.md),
-                const _SignInNudge(),
+                if (controller.data?.devotion != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  RailHeader(
+                    eyebrow: 'For your walk today',
+                    title: 'Today',
+                    subtitle: 'Curated by the ministry team',
+                  ),
+                  FadeIn(
+                    delay: const Duration(milliseconds: 60),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                      child: FeatureCard(
+                        eyebrow: 'Devotion',
+                        title: controller.data!.devotion!.title,
+                        subtitle: controller.data!.devotion!.scriptureReference,
+                        monogram: UdmAvatar.initialsFor(controller.data!.devotion!.title),
+                        pills: [
+                          MetaPill(
+                            label: '${controller.data!.devotion!.readingMinutes} min',
+                            icon: AppIcons.clock,
+                            onDark: true,
+                          ),
+                        ],
+                        onTap: () => controller.openDevotion(controller.data!.devotion!.id),
+                      ),
+                    ),
+                  ),
+                ],
+                if (controller.data?.articles.isNotEmpty ?? false) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  const RailHeader(eyebrow: 'Deepen', title: 'Latest reading'),
+                  DiscoveryRail(
+                    children: controller.data!.articles
+                        .map(
+                          (article) => RailCard(
+                            title: article.title,
+                            subtitle: _byline(article),
+                            monogram: UdmAvatar.initialsFor(article.title),
+                            pill: MetaPill(label: '${article.readingMinutes} min', icon: AppIcons.clock),
+                            onTap: () => controller.openArticle(article.id),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                if (controller.data?.resources.isNotEmpty ?? false) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  const RailHeader(
+                    eyebrow: 'Guided reading',
+                    title: 'Find resources on',
+                    subtitle: 'Short guides for the questions students actually ask',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                    child: Column(
+                      children: [
+                        for (final topic in controller.data!.resources)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: _ResourceRow(topic: topic, onOpen: () => controller.openTopic(topic.id)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: const _SignInNudge(),
+                ),
               ],
             ),
           ),
         ),
       );
+
+  /// The four shortcuts a student reaches for from the feed. The last one is
+  /// the ministry's own lead guide, so the strip changes with what staff
+  /// publish instead of being a fixed set of buttons.
+  List<QuickAction> _shortcuts(HomePayload? payload) {
+    void go(int tab) => Get.find<ShellController>().select(tab);
+    return [
+      QuickAction(label: 'Bible', icon: AppIcons.bible, onTap: () => go(ShellController.bibleTab)),
+      QuickAction(label: 'Devotions', icon: AppIcons.sun, onTap: () => go(ShellController.devotionsTab)),
+      QuickAction(label: 'Learn', icon: AppIcons.learn, onTap: () => go(ShellController.learnTab)),
+      if (payload != null && payload.resources.isNotEmpty)
+        QuickAction(
+          label: 'Guides',
+          icon: AppIcons.steps,
+          tone: IconBadgeTone.gold,
+          onTap: () => controller.openTopic(payload.resources.first.id),
+        ),
+    ];
+  }
 
   static String _byline(Article article) {
     final parts = [
@@ -166,14 +227,26 @@ class _ResourceRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                AppText(
-                  '${topic.stepCount} steps',
-                  style: theme.textTheme.bodySmall,
+                Row(
+                  children: [
+                    MetaPill(label: '${topic.stepCount} steps', icon: AppIcons.steps),
+                    if (topic.summary.isNotEmpty) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: AppText(
+                          topic.summary,
+                          style: theme.textTheme.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: theme.colorScheme.primary, size: 22),
+          Icon(AppIcons.chevron, color: theme.colorScheme.primary, size: 22),
         ],
       ),
     );
@@ -189,10 +262,12 @@ class _SignInNudge extends GetView<SessionController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final surfaces = theme.extension<AppSurfaces>()!;
     return Obx(
       () => controller.isSignedIn
           ? const SizedBox.shrink()
           : Panel(
+              gradient: AppGradients.tint(surfaces.scripture, theme.colorScheme.surface),
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -200,7 +275,7 @@ class _SignInNudge extends GetView<SessionController> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const IconBadge(icon: Icons.volunteer_activism_rounded, size: 40, tone: IconBadgeTone.gold),
+                      const IconBadge(icon: AppIcons.heart, size: 44, tone: IconBadgeTone.gold),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
@@ -218,10 +293,11 @@ class _SignInNudge extends GetView<SessionController> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  FilledButton(
+                  FilledButton.icon(
                     key: const Key('udm.homeSignIn'),
                     onPressed: () => Get.toNamed(AppRoutes.signIn),
-                    child: const AppText('Sign in'),
+                    icon: const Icon(AppIcons.person, size: 18),
+                    label: const AppText('Sign in'),
                   ),
                   TextButton(
                     onPressed: () => Get.toNamed(AppRoutes.register),
@@ -242,9 +318,15 @@ class _BrandRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
         children: [
-          const UdmLogo(size: 42, tagline: 'University Discipleship Mission'),
-          const Spacer(),
-          if (offline) const OfflineChip(),
+          // A non-flex child of a Row is measured with unlimited width, so the
+          // wordmark would run off a 320dp screen instead of ellipsizing.
+          Expanded(
+            child: UdmLogo(size: 42, tagline: 'University Discipleship Mission'),
+          ),
+          if (offline) ...[
+            const SizedBox(width: AppSpacing.sm),
+            const OfflineChip(),
+          ],
         ],
       );
 }
@@ -264,7 +346,7 @@ class _Hero extends StatelessWidget {
       eyebrow: payload?.greeting.isNotEmpty == true ? payload!.greeting : 'Peace be with you',
       title: 'Grow in His Word.',
       subtitle: 'Scripture, devotion and teaching for this day at your campus.',
-      trailing: const Mark(size: 46, icon: Icons.self_improvement_rounded),
+      trailing: const Mark(size: 46, icon: AppIcons.bookOpen),
       children: [
         const SizedBox(height: AppSpacing.lg),
         Wrap(
@@ -274,11 +356,11 @@ class _Hero extends StatelessWidget {
             if (devotion != null)
               MetaPill(
                 label: 'Devotion · ${devotion.readingMinutes} min',
-                icon: Icons.wb_sunny_rounded,
+                icon: AppIcons.sun,
                 onDark: true,
               ),
             if (readings > 0)
-              MetaPill(label: '$readings readings today', icon: Icons.local_library_rounded, onDark: true),
+              MetaPill(label: '$readings readings today', icon: AppIcons.book, onDark: true),
           ],
         ),
       ],

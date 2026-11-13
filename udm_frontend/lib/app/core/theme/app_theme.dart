@@ -11,12 +11,14 @@ class AppSpacing {
   static const double md = 16;
   static const double lg = 24;
   static const double xl = 32;
+  static const double xxl = 48;
   static const double screen = 20;
 
   static const radiusCard = 22.0;
   static const radiusSheet = 28.0;
   static const radiusField = 16.0;
   static const radiusTile = 14.0;
+  static const radiusArt = 18.0;
   static const radiusPill = 999.0;
 
   /// The gradient icon tile shared by content rows and status panels.
@@ -25,6 +27,37 @@ class AppSpacing {
   /// The artwork square on a Learn shelf row: bigger than an icon tile because
   /// it carries the ministry's own cover, not a glyph.
   static const double shelfArt = 72;
+
+  /// Cover art in a discovery rail: wide enough to read a title off the
+  /// picture, narrow enough that two and a half tiles fit on a 360dp phone.
+  static const double railArt = 148;
+  static const double featureArtHeight = 188;
+
+  /// Width a rail card holds so a long series name wraps instead of pushing
+  /// the next card off screen.
+  static const double railCard = 172;
+}
+
+/// Motion vocabulary. A screen that invents its own duration is the reason an
+/// app feels inconsistent, so every animation asks for one of these.
+class AppMotion {
+  const AppMotion._();
+
+  /// Press feedback: fast enough to feel like the finger caused it.
+  static const Duration tap = Duration(milliseconds: 110);
+
+  /// Selection, colour and size changes on a control.
+  static const Duration quick = Duration(milliseconds: 220);
+
+  /// A panel opening, a rail scrolling, anything the eye follows.
+  static const Duration base = Duration(milliseconds: 320);
+
+  /// Entrance of a section that was not on screen before.
+  static const Duration enter = Duration(milliseconds: 420);
+
+  static const Curve standard = Curves.easeOutCubic;
+  static const Curve emphasized = Curves.easeOutQuint;
+  static const Curve springy = Curves.easeOutBack;
 }
 
 /// Bundled families, declared in `pubspec.yaml`. Features ask for these by
@@ -135,6 +168,48 @@ class AppTypography {
         letterSpacing: 1.4,
         color: color,
       );
+
+  /// An article or devotion title set in the reading serif: the eye knows it is
+  /// something to be read, not something to be tapped.
+  static TextStyle editorialTitle(Color primary, {double size = 30}) => TextStyle(
+        fontFamily: AppFonts.scripture,
+        fontSize: size,
+        height: 1.18,
+        fontWeight: FontWeight.w600,
+        color: primary,
+        letterSpacing: -0.35,
+      );
+
+  /// The same title when it is printed over cover art, where the weight has to
+  /// carry the contrast the photograph takes away.
+  static TextStyle editorialTitleOnArt(Color color, {double size = 24}) => TextStyle(
+        fontFamily: AppFonts.scripture,
+        fontSize: size,
+        height: 1.2,
+        fontWeight: FontWeight.w700,
+        color: color,
+        letterSpacing: -0.2,
+        shadows: [Shadow(color: AppColors.darkInk.withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 2))],
+      );
+
+  /// A number that is the point of the tile it sits in — a streak, a count.
+  static TextStyle statValue(Color primary, {double size = 22}) => TextStyle(
+        fontSize: size,
+        height: 1.05,
+        fontWeight: FontWeight.w800,
+        color: primary,
+        letterSpacing: -0.6,
+      );
+
+  /// The superscript a scripture chapter is set with.
+  static TextStyle verseNumber(Color accent) => TextStyle(
+        fontFamily: AppFonts.ui,
+        fontSize: 12,
+        height: 1,
+        fontWeight: FontWeight.w800,
+        color: accent,
+        letterSpacing: 0,
+      );
 }
 
 class AppTheme {
@@ -192,6 +267,8 @@ class AppTheme {
 
     final textTheme = AppTypography.textTheme(text, textSecondary);
     final radius = BorderRadius.circular(AppSpacing.radiusCard);
+    final hairlineStrong = dark ? AppColors.darkHairlineStrong : AppColors.hairlineStrong;
+    final fieldFill = dark ? elevated : AppColors.field;
 
     OutlineInputBorder fieldBorder(Color color, [double width = 1]) => OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusField),
@@ -208,6 +285,26 @@ class AppTheme {
       dividerColor: hairline,
       dividerTheme: DividerThemeData(color: hairline, thickness: 1, space: 1),
       iconTheme: IconThemeData(color: textSecondary, size: 22),
+      // One icon dialect for the whole app: the rounded family is the closest
+      // Material has to the single-weight outline icons the design uses, and a
+      // screen that picks its own variant is what makes a bar look mismatched.
+      primaryIconTheme: IconThemeData(color: text, size: 22),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          // A push fades the new page in over a slight slide, which reads as
+          // one surface moving rather than two screens swapping. iOS keeps the
+          // platform swipe-back it is expected to have.
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+        },
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: colorScheme.primary,
+        selectionColor: colorScheme.primary.withValues(alpha: 0.24),
+        selectionHandleColor: colorScheme.primary,
+      ),
       cardTheme: CardThemeData(
         color: surface,
         surfaceTintColor: Colors.transparent,
@@ -236,6 +333,34 @@ class AppTheme {
         titleTextStyle: textTheme.titleMedium,
         subtitleTextStyle: textTheme.bodySmall,
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: text,
+          highlightColor: colorScheme.primary.withValues(alpha: 0.10),
+          shape: const CircleBorder(),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: AppColors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusField)),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: elevated,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusField)),
+        textStyle: textTheme.bodyMedium,
+      ),
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(elevated),
+          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusField)),
+          ),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
@@ -251,7 +376,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
           minimumSize: const Size(0, 52),
-          side: BorderSide(color: hairline, width: 1.4),
+          side: BorderSide(color: hairlineStrong, width: 1.4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusField)),
           textStyle: textTheme.labelLarge?.copyWith(color: colorScheme.primary),
         ),
@@ -264,7 +389,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? elevated : const Color(0xFFF4F8FC),
+        fillColor: fieldFill,
         hintStyle: textTheme.bodyMedium?.copyWith(color: textSecondary),
         labelStyle: textTheme.bodyMedium?.copyWith(color: textSecondary, fontWeight: FontWeight.w600),
         floatingLabelStyle: textTheme.labelMedium?.copyWith(color: colorScheme.primary),
@@ -282,7 +407,7 @@ class AppTheme {
         side: BorderSide(color: hairline),
         shape: const StadiumBorder(),
         labelStyle: textTheme.labelMedium?.copyWith(color: colorScheme.primary),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: elevated,
@@ -309,6 +434,17 @@ class AppTheme {
           side: WidgetStatePropertyAll(BorderSide(color: hairline)),
           textStyle: WidgetStatePropertyAll(textTheme.labelMedium),
         ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected) ? AppColors.white : textSecondary,
+        ),
+        trackColor: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colorScheme.primary
+              : (dark ? AppColors.darkMist : const Color(0xFFDDE6F0)),
+        ),
+        trackOutlineColor: WidgetStateColor.resolveWith((_) => Colors.transparent),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
@@ -357,6 +493,8 @@ class AppTheme {
           elevated: elevated,
           scripture: scriptureSurface,
           hairline: hairline,
+          hairlineStrong: hairlineStrong,
+          field: fieldFill,
           shadowTint: shadowTint,
           hero: dark ? AppGradients.heroDark : AppGradients.hero,
           scriptureCard: dark ? AppGradients.scriptureDark : AppGradients.scripture,
@@ -373,7 +511,9 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
   const AppSurfaces({
     required this.elevated,
     required this.scripture,
-    this.hairline = const Color(0x14123B63),
+    this.hairline = AppColors.hairline,
+    this.hairlineStrong = AppColors.hairlineStrong,
+    this.field = AppColors.field,
     this.shadowTint = AppColors.deepBlue,
     this.hero = AppGradients.hero,
     this.scriptureCard = AppGradients.scripture,
@@ -383,6 +523,8 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
   final Color elevated;
   final Color scripture;
   final Color hairline;
+  final Color hairlineStrong;
+  final Color field;
   final Color shadowTint;
   final Gradient hero;
   final Gradient scriptureCard;
@@ -392,11 +534,27 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
 
   /// The lifted-card treatment used by every card-like surface: sheen, hairline
   /// and a tinted shadow together, so screens never hand-roll their own.
-  BoxDecoration card({bool border = true}) => BoxDecoration(
+  BoxDecoration card({bool border = true, double radius = AppSpacing.radiusCard}) => BoxDecoration(
         gradient: sheen,
-        borderRadius: radius,
+        borderRadius: BorderRadius.circular(radius),
         boxShadow: AppShadows.card(shadowTint),
         border: border ? Border.all(color: hairline) : null,
+      );
+
+  /// The quiet, borderless variant: same surface, no edge, no lift. Used where
+  /// a panel groups rows inside a card rather than floating on its own.
+  BoxDecoration inset({double radius = AppSpacing.radiusField}) => BoxDecoration(
+        color: scripture,
+        borderRadius: BorderRadius.circular(radius),
+      );
+
+  /// A pill: the selected one carries the brand, the rest stay on the canvas.
+  BoxDecoration pill({required bool selected, double radius = AppSpacing.radiusPill}) => BoxDecoration(
+        gradient: selected ? hero : null,
+        color: selected ? null : field,
+        borderRadius: BorderRadius.circular(radius),
+        border: selected ? null : Border.all(color: hairline),
+        boxShadow: selected ? AppShadows.glow(shadowTint) : null,
       );
 
   @override
@@ -404,6 +562,8 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
     Color? elevated,
     Color? scripture,
     Color? hairline,
+    Color? hairlineStrong,
+    Color? field,
     Color? shadowTint,
     Gradient? hero,
     Gradient? scriptureCard,
@@ -413,6 +573,8 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
         elevated: elevated ?? this.elevated,
         scripture: scripture ?? this.scripture,
         hairline: hairline ?? this.hairline,
+        hairlineStrong: hairlineStrong ?? this.hairlineStrong,
+        field: field ?? this.field,
         shadowTint: shadowTint ?? this.shadowTint,
         hero: hero ?? this.hero,
         scriptureCard: scriptureCard ?? this.scriptureCard,
@@ -426,6 +588,8 @@ class AppSurfaces extends ThemeExtension<AppSurfaces> {
       elevated: Color.lerp(elevated, other.elevated, t)!,
       scripture: Color.lerp(scripture, other.scripture, t)!,
       hairline: Color.lerp(hairline, other.hairline, t)!,
+      hairlineStrong: Color.lerp(hairlineStrong, other.hairlineStrong, t)!,
+      field: Color.lerp(field, other.field, t)!,
       shadowTint: Color.lerp(shadowTint, other.shadowTint, t)!,
       hero: Gradient.lerp(hero, other.hero, t)!,
       scriptureCard: Gradient.lerp(scriptureCard, other.scriptureCard, t)!,

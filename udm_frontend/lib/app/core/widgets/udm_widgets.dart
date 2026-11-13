@@ -51,6 +51,8 @@ class UdmLogo extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: AppText(
                     tagline,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: math.max(9.5, size * 0.21),
                       color: onDark ? Colors.white70 : theme.textTheme.bodySmall?.color,
@@ -700,13 +702,17 @@ class GhostButton extends StatelessWidget {
                 Icon(icon, size: 16, color: AppColors.white),
                 const SizedBox(width: 7),
               ],
-              AppText(
-                label,
-                style: const TextStyle(
-                  fontFamily: AppFonts.ui,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
+              Flexible(
+                child: AppText(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.ui,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.white,
+                  ),
                 ),
               ),
             ],

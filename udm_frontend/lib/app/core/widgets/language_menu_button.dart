@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../modules/settings/app_language_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'app_kit.dart';
 
 class LanguageMenuButton extends GetView<AppLanguageController> {
   const LanguageMenuButton({super.key, this.onDark = false});
@@ -24,7 +25,7 @@ class LanguageMenuButton extends GetView<AppLanguageController> {
         // `AppSurfaces.elevated` rather than in `colorScheme`.
         color: theme.extension<AppSurfaces>()?.elevated ?? theme.colorScheme.surface,
         icon: Icon(
-          Icons.translate_rounded,
+          AppIcons.language,
           color: onDark ? AppColors.white : null,
         ),
         itemBuilder: (_) => [

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
@@ -42,17 +43,10 @@ class ResourceTopicView extends GetView<ResourceTopicController> {
                 const OfflineChip(message: 'Offline copy of this guide'),
                 const SizedBox(height: AppSpacing.md),
               ],
-              if (controller.topic.value?.summary.isNotEmpty ?? false) ...[
-                AppText(
-                  controller.topic.value!.summary,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
-              const Eyebrow('Step order', icon: Icons.format_list_numbered_rounded),
+              const _GuideSummary(),
               const SizedBox(height: AppSpacing.md),
+              Eyebrow('Step order', color: theme.colorScheme.primary, icon: AppIcons.list),
+              const SizedBox(height: AppSpacing.sm),
               ...controller.steps.map(
                 (step) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -63,6 +57,62 @@ class ResourceTopicView extends GetView<ResourceTopicController> {
           ),
         ),
       )),
+    );
+  }
+}
+
+/// What the guide holds, beside the two letters the app draws for it. The name
+/// is already in the bar above, so this carries the length and the line the
+/// ministry wrote under it.
+class _GuideSummary extends GetView<ResourceTopicController> {
+  const _GuideSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final topic = controller.topic.value;
+    if (topic == null) return const SizedBox.shrink();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: AppGradients.hero,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+            boxShadow: AppShadows.glow(AppColors.primaryBlue),
+          ),
+          child: AppText(
+            topic.monogram,
+            style: AppTypography.scriptureVerse(AppColors.white, size: 16),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (topic.summary.isNotEmpty) ...[
+                AppText(
+                  topic.summary,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+              ],
+              MetaPill(
+                label: '${topic.stepCount} ${topic.stepCount == 1 ? 'step' : 'steps'}',
+                icon: AppIcons.steps,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -78,7 +128,7 @@ class _StepRow extends StatelessWidget {
     final theme = Theme.of(context);
     return Panel(
       onTap: onOpen,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
       child: Row(
         children: [
           _StepBadge(step: step),
@@ -94,7 +144,11 @@ class _StepRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 AppText(
                   step.title,
-                  style: theme.textTheme.titleMedium,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFamily: AppFonts.scripture,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 17,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -115,18 +169,18 @@ class _StepRow extends StatelessWidget {
                     // the play mark; the icon is the promise, so it is never decorative.
                     if (step.hasVideo) ...[
                       const SizedBox(width: AppSpacing.sm),
-                      Icon(Icons.play_circle_outline_rounded,
+                      Icon(AppIcons.playCircle,
                           size: 18, color: theme.colorScheme.primary),
                     ],
                     const SizedBox(width: AppSpacing.sm),
-                    MetaPill(label: '${step.readingMinutes} min'),
+                    MetaPill(label: '${step.readingMinutes} min', icon: AppIcons.clock),
                   ],
                 ),
               ],
             ),
           ),
           Icon(
-            Icons.chevron_right_rounded,
+            AppIcons.chevron,
             color: theme.colorScheme.primary,
             size: 22,
           ),
@@ -144,7 +198,7 @@ class _StepBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (step.isStartingPoint) {
-      return const IconBadge(icon: Icons.play_arrow_rounded, size: 46, tone: IconBadgeTone.gold);
+      return const IconBadge(icon: AppIcons.play, size: 46, tone: IconBadgeTone.gold);
     }
     final theme = Theme.of(context);
     return Container(
@@ -153,7 +207,7 @@ class _StepBadge extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: AppGradients.hero,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
         boxShadow: AppShadows.glow(AppColors.primaryBlue),
       ),
       child: AppText(

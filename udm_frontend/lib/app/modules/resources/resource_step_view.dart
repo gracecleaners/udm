@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/resource_step.dart';
@@ -53,24 +54,25 @@ class _StepBody extends StatelessWidget {
             step.isStartingPoint
                 ? '${step.topicTitle} · Starting point'
                 : '${step.topicTitle} · Step ${step.order} of ${step.topicStepCount}',
-            icon: Icons.compass_calibration_outlined,
+            color: theme.colorScheme.primary,
+            icon: AppIcons.steps,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
         ],
+        AppText(step.title, style: AppTypography.editorialTitle(bodyColor, size: 32)),
+        const SizedBox(height: AppSpacing.md),
+        const GoldRule(width: 72),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
             if (step.scriptureReference.isNotEmpty)
-              MetaPill(icon: Icons.book_outlined, label: step.scriptureReference),
-            MetaPill(icon: Icons.schedule_rounded, label: '${step.readingMinutes} min'),
-            if (step.hasVideo) MetaPill(icon: Icons.play_circle_outline_rounded, label: 'Video'),
+              MetaPill(icon: AppIcons.book, label: step.scriptureReference),
+            MetaPill(icon: AppIcons.clock, label: '${step.readingMinutes} min'),
+            if (step.hasVideo) MetaPill(icon: AppIcons.playCircle, label: 'Video'),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        AppText(step.title, style: theme.textTheme.displayMedium),
-        const SizedBox(height: AppSpacing.sm),
-        const GoldRule(width: 72),
         const SizedBox(height: AppSpacing.lg),
         if (step.excerpt.isNotEmpty) ...[
           AppText(
@@ -92,7 +94,7 @@ class _StepBody extends StatelessWidget {
           Panel(
             child: Row(
               children: [
-                const IconBadge(icon: Icons.play_circle_outline_rounded, size: 38, tone: IconBadgeTone.gold),
+                const IconBadge(icon: AppIcons.playCircle, size: 38, tone: IconBadgeTone.gold),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -108,11 +110,13 @@ class _StepBody extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
-                GhostButton(
+                // A light panel needs a light-surface control; the hero's
+                // translucent ghost would be white on white here.
+                OutlinedButton.icon(
                   key: const Key('udm.watchStep'),
-                  label: 'Watch',
-                  icon: Icons.open_in_new_rounded,
-                  onTap: controller.openVideo,
+                  onPressed: controller.openVideo,
+                  icon: const Icon(AppIcons.external, size: 16),
+                  label: const AppText('Watch'),
                 ),
               ],
             ),

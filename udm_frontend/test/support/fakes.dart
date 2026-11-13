@@ -421,6 +421,75 @@ class FakeUdmApi implements UdmApi {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
 }
 
+/// Everything the shell's five tabs ask for at once, including the Bible
+/// reader, so a test can host the whole app without a network. Anything the
+/// shell does not render is left to `noSuchMethod`, which fails loudly instead
+/// of silently answering with null.
+class FakeShellApi implements UdmApi {
+  int contentVersionCalls = 0;
+
+  @override
+  Future<int> contentVersion() async {
+    contentVersionCalls++;
+    return 3;
+  }
+
+  @override
+  Future<HomePayload> home() async => sampleHome();
+
+  @override
+  Future<List<DevotionSeries>> devotionSeries() async => sampleSeriesGrid();
+
+  @override
+  Future<DevotionSeries> devotionSeriesDetail(String id) async => sampleSeriesDetail();
+
+  @override
+  Future<List<ResourceTopic>> resourceTopics() async => sampleResourceTopics();
+
+  @override
+  Future<List<MediaCollection>> mediaCollections() async => sampleMediaShelves();
+
+  @override
+  Future<List<Map<String, dynamic>>> bibleTranslations({String language = 'en'}) async => const [
+    {
+      'id': 't1',
+      'code': 'kjv',
+      'name': 'King James Version',
+      'offline_allowed': true,
+      'attribution': 'King James Version (public domain).',
+    },
+  ];
+
+  @override
+  Future<List<Map<String, dynamic>>> bibleBooks(String code) async => const [
+    {'id': 'b1', 'name': 'John', 'provider_id': 'JHN', 'order': 43, 'testament': 'new', 'chapter_count': 21},
+  ];
+
+  @override
+  Future<List<int>> bibleBookChapters(String code, String book) async => const [1];
+
+  @override
+  Future<Map<String, dynamic>> bibleChapter(String code, String book, int chapter) async => const {
+    'id': 'c1',
+    'book': 'John',
+    'number': 1,
+    'translation': 'kjv',
+    'verses': [
+      {'id': 'v1', 'verse': 1, 'text': 'In the beginning was the Word.'},
+    ],
+  };
+
+  @override
+  Future<List<Map<String, dynamic>>> biblePassageSources() async => const [
+    {'code': 'kjv', 'name': 'King James Version', 'text_available': true, 'offline_allowed': true, 'configured': true},
+  ];
+
+  @override
+  Future<List<Map<String, dynamic>>> biblePlans() async => const [];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError('${invocation.memberName}');
+}
 class FakeHomeRepository implements HomeRepository {
   FakeHomeRepository({this.payload, this.failure, this.memorizeFailure});
 
@@ -586,10 +655,11 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 class FakeContentRepository implements ContentRepository {
-  FakeContentRepository({this.serverDevotional, this.serverStep});
+  FakeContentRepository({this.serverDevotional, this.serverStep, this.serverArticle});
 
   Devotional? serverDevotional;
   ResourceStep? serverStep;
+  Article? serverArticle;
   Failure? failure;
   Failure? progressFailure;
   final List<String> completions = [];
@@ -606,6 +676,13 @@ class FakeContentRepository implements ContentRepository {
     if (failure != null) throw failure!;
     if (serverStep == null) throw StateError('FakeContentRepository has no resource step configured.');
     return serverStep!;
+  }
+
+  @override
+  Future<Article> article(String id) async {
+    if (failure != null) throw failure!;
+    if (serverArticle == null) throw StateError('FakeContentRepository has no article configured.');
+    return serverArticle!;
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
@@ -16,13 +17,9 @@ class ArticleView extends GetView<ArticleController> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: Obx(
-            () => AppText(
-              controller.article.value?.category.isNotEmpty == true
-                  ? controller.article.value!.category
-                  : 'Reading',
-            ),
-          ),
+          // The category opens the page itself as an eyebrow, so the bar is
+          // left with the way back.
+          title: const SizedBox.shrink(),
         ),
         body: Obx(() => StateView(
               state: controller.state.value,
@@ -55,18 +52,22 @@ class _ArticleBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
       children: [
-        AppText(article.title, style: theme.textTheme.displayMedium),
-        const SizedBox(height: AppSpacing.sm),
+        if (article.category.isNotEmpty) ...[
+          AppText(article.category, style: AppTypography.eyebrow(theme.colorScheme.primary)),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        AppText(article.title, style: AppTypography.editorialTitle(bodyColor, size: 32)),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
             if (article.author.isNotEmpty)
-              MetaPill(icon: Icons.person_outline_rounded, label: article.author),
-            MetaPill(icon: Icons.schedule_rounded, label: '${article.readingMinutes} min read'),
+              MetaPill(icon: AppIcons.person, label: article.author),
+            MetaPill(icon: AppIcons.clock, label: '${article.readingMinutes} min read'),
             if (article.publishAt != null)
               MetaPill(
-                icon: Icons.calendar_today_rounded,
+                icon: AppIcons.calendar,
                 label: _isoDate(article.publishAt!.toLocal()),
               ),
           ],

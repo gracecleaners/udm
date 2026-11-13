@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'app_kit.dart';
 import 'app_text.dart';
 import 'udm_widgets.dart';
 
@@ -52,7 +53,7 @@ class FeatureStatusView extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
+                          const Icon(AppIcons.checkCircle, size: 18, color: AppColors.success),
                           const SizedBox(width: AppSpacing.md),
                           Expanded(child: AppText(workingToday[i], style: theme.textTheme.bodyMedium)),
                         ],
@@ -75,7 +76,7 @@ class FeatureStatusView extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
                 children: [
-                  const IconBadge(icon: Icons.flag_outlined, size: 42, tone: IconBadgeTone.gold),
+                  const IconBadge(icon: AppIcons.target, size: 42, tone: IconBadgeTone.gold),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(

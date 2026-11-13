@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../core/widgets/language_menu_button.dart';
@@ -28,7 +29,7 @@ class ProfileView extends GetView<SessionController> {
                   ? IconButton(
                       key: const Key('udm.signOutAction'),
                       tooltip: 'Sign out'.tr,
-                      icon: const Icon(Icons.logout_rounded),
+                      icon: const Icon(AppIcons.logout),
                       onPressed: () => _confirmSignOut(context, controller),
                     )
                   : const SizedBox.shrink(),
@@ -62,7 +63,7 @@ class _SignedOut extends GetView<SessionController> {
             Obx(() => NoticeBanner(message: controller.error.value, tone: NoticeTone.problem)),
             Obx(() => NoticeBanner(message: controller.notice.value)),
             MessagePanel(
-              icon: Icons.person_outline_rounded,
+              icon: AppIcons.person,
               title: 'Not signed in',
               message: 'Devotions, verses and articles stay readable without an account. '
                   'Sign in to save your campus details and your reading progress.',
@@ -70,11 +71,14 @@ class _SignedOut extends GetView<SessionController> {
               onAction: () => Get.toNamed(AppRoutes.signIn),
             ),
             const SizedBox(height: AppSpacing.md),
-            OutlinedButton.icon(
-              key: const Key('udm.registerFromProfile'),
-              onPressed: () => Get.toNamed(AppRoutes.register),
-              icon: const Icon(Icons.person_add_alt_rounded, size: 18),
-              label: const AppText('Create an account'),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('udm.registerFromProfile'),
+                onPressed: () => Get.toNamed(AppRoutes.register),
+                icon: const Icon(AppIcons.personAdd, size: 18),
+                label: const AppText('Create an account'),
+              ),
             ),
           ],
         ),
@@ -104,6 +108,7 @@ class _ProfileBody extends StatelessWidget {
     // save changes that without changing `status`. Observing only the fields
     // read by the outer switch would leave the old values on screen.
     return Obx(() {
+      final theme = Theme.of(context);
       final profile = session.profile.value;
       final notice = session.notice.value;
       final error = session.error.value;
@@ -131,22 +136,22 @@ class _ProfileBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             child: Column(
               children: [
-                _DetailRow(icon: Icons.school_outlined, label: 'University', value: profile.university),
-                _DetailRow(icon: Icons.place_outlined, label: 'Campus', value: profile.campus),
-                _DetailRow(icon: Icons.menu_book_outlined, label: 'Course', value: profile.course),
+                _DetailRow(icon: AppIcons.school, label: 'University', value: profile.university),
+                _DetailRow(icon: AppIcons.location, label: 'Campus', value: profile.campus),
+                _DetailRow(icon: AppIcons.book, label: 'Course', value: profile.course),
                 _DetailRow(
-                  icon: Icons.stairs_outlined,
+                  icon: AppIcons.list,
                   label: 'Year of study',
                   value: profile.yearOfStudy == null ? '' : 'Year ${profile.yearOfStudy}',
                 ),
-                _DetailRow(icon: Icons.church_outlined, label: 'Church', value: profile.church),
+                _DetailRow(icon: AppIcons.church, label: 'Church', value: profile.church),
                 _DetailRow(
-                  icon: Icons.location_city_outlined,
+                  icon: AppIcons.home,
                   label: 'Where you live',
                   value: [profile.city, profile.country].where((part) => part.isNotEmpty).join(', '),
                 ),
                 _DetailRow(
-                  icon: Icons.translate_rounded,
+                  icon: AppIcons.language,
                   label: 'Bible version',
                   value: ProfileEditorSheet.translationLabel(profile.preferredTranslationCode),
                   last: true,
@@ -155,12 +160,14 @@ class _ProfileBody extends StatelessWidget {
             ),
           ),
           if (profile.interests.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Eyebrow('Interests', color: theme.colorScheme.primary, icon: AppIcons.sparkles),
             const SizedBox(height: AppSpacing.md),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: profile.interests
-                  .map((interest) => MetaPill(icon: Icons.star_rounded, label: interest, tone: AppColors.gold))
+                  .map((interest) => MetaPill(icon: AppIcons.check, label: interest, tone: AppColors.gold))
                   .toList(),
             ),
           ],
@@ -168,15 +175,19 @@ class _ProfileBody extends StatelessWidget {
           FilledButton.icon(
             key: const Key('udm.editProfile'),
             onPressed: () => _edit(context),
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const Icon(AppIcons.edit, size: 18),
             label: const AppText('Edit details'),
           ),
-          const SizedBox(height: AppSpacing.md),
-          OutlinedButton.icon(
-            key: const Key('udm.signOut'),
-            onPressed: () => _confirmSignOut(context, session),
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const AppText('Sign out'),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const Key('udm.signOut'),
+              onPressed: () => _confirmSignOut(context, session),
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
+              icon: const Icon(AppIcons.logout, size: 18),
+              label: const AppText('Sign out'),
+            ),
           ),
         ],
       );
@@ -204,6 +215,7 @@ class _IdentityCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
+          const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.sheen))),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -230,12 +242,14 @@ class _IdentityCard extends StatelessWidget {
                             profile.displayName,
                             style: const TextStyle(
                               fontFamily: AppFonts.ui,
-                              fontSize: 20,
+                              fontSize: 21,
                               height: 1.25,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
+                              letterSpacing: -0.3,
                               color: AppColors.white,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
                           AppText(
@@ -255,25 +269,33 @@ class _IdentityCard extends StatelessWidget {
                   ],
                 ),
                 if (!profile.emailVerified) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.info_outline_rounded, size: 14, color: Colors.white70),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: AppText(
-                          'Email verification is not available in this build yet.',
-                          style: const TextStyle(
-                            fontFamily: AppFonts.ui,
-                            fontSize: 11.5,
-                            height: 1.45,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
+                  const SizedBox(height: AppSpacing.lg),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusField),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(AppIcons.info, size: 14, color: Colors.white70),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: AppText(
+                            'Email verification is not available in this build yet.',
+                            style: TextStyle(
+                              fontFamily: AppFonts.ui,
+                              fontSize: 11.5,
+                              height: 1.45,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ],
@@ -431,6 +453,60 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
         _ => '',
       };
 
+  /// The fields in the order the sheet shows them, which is the API's own
+  /// order with the year of study set beside the course it belongs to.
+  static const List<String> _order = [
+    'full_name',
+    'phone_number',
+    'university',
+    'campus',
+    'course',
+    'year_of_study',
+    'church',
+    'city',
+    'country',
+  ];
+
+  /// The heading each group opens with, keyed by the first field under it.
+  static const Map<String, String> _groupHeads = {
+    'full_name': 'Who you are',
+    'university': 'Where you study',
+    'church': 'Where you gather',
+  };
+
+  static const Map<String, IconData> _groupIcons = {
+    'full_name': AppIcons.person,
+    'university': AppIcons.school,
+    'church': AppIcons.church,
+  };
+
+  Widget _field(String key, ThemeData theme) {
+    if (key == 'year_of_study') {
+      return TextFormField(
+        key: const Key('udm.field.year_of_study'),
+        controller: _year,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: 'Year of study'.tr,
+          counterText: '',
+        ),
+        validator: _validateYear,
+      );
+    }
+    final field = ProfileEditorSheet.textFields.firstWhere((entry) => entry.key == key);
+    return TextFormField(
+      key: Key('udm.field.$key'),
+      controller: _fields[key],
+      maxLength: field.maxLength,
+      keyboardType: field.keyboard,
+      textCapitalization: TextCapitalization.words,
+      decoration: InputDecoration(
+        labelText: field.label.tr,
+        counterText: '',
+      ),
+    );
+  }
+
   @override
   void dispose() {
     for (final controller in _fields.values) {
@@ -500,7 +576,10 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.sm),
-              child: AppText('Edit your details', style: theme.textTheme.titleLarge),
+              child: AppText(
+                'Edit your details',
+                style: AppTypography.editorialTitle(theme.textTheme.bodyLarge!.color!, size: 26),
+              ),
             ),
             // The fields scroll; the decision to save or drop stays reachable.
             Flexible(
@@ -511,31 +590,21 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (final field in ProfileEditorSheet.textFields) ...[
-                        TextFormField(
-                          key: Key('udm.field.${field.key}'),
-                          controller: _fields[field.key],
-                          maxLength: field.maxLength,
-                          keyboardType: field.keyboard,
-                          textCapitalization: TextCapitalization.words,
-                          decoration: InputDecoration(
-                            labelText: field.label.tr,
-                            counterText: '',
+                      // The fields are the server's, in the server's order; the
+                      // headings only say what each handful of them is for.
+                      for (final key in _order) ...[
+                        if (_groupHeads.containsKey(key)) ...[
+                          Eyebrow(
+                            _groupHeads[key]!,
+                            color: theme.colorScheme.primary,
+                            icon: _groupIcons[key]!,
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        _field(key, theme),
                         const SizedBox(height: AppSpacing.md),
                       ],
-                      TextFormField(
-                        key: const Key('udm.field.year_of_study'),
-                        controller: _year,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: 'Year of study'.tr,
-                          counterText: '',
-                        ),
-                        validator: _validateYear,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       // Full width, not half a row: 'American Standard Version'
                       // needs the space on a 320dp phone.
                       DropdownButtonFormField<String>(
@@ -551,7 +620,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         onChanged: (value) => setState(() => _translation = value ?? _translation),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      AppText('Gender', style: theme.textTheme.titleMedium),
+                      Eyebrow('Gender', color: theme.colorScheme.primary, icon: AppIcons.person),
                       const SizedBox(height: AppSpacing.sm),
                       // Three equal segments would clip 'Prefer not to say' on a
                       // narrow phone, so the row keeps its own width and scrolls
@@ -568,7 +637,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      AppText('Interests', style: theme.textTheme.titleMedium),
+                      Eyebrow('Interests', color: theme.colorScheme.primary, icon: AppIcons.sparkles),
                       const SizedBox(height: AppSpacing.sm),
                       AppText(
                         'Used to suggest devotion and group content. Up to ${UserProfile.maxInterests}.',
@@ -607,7 +676,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                           IconButton.filled(
                             key: const Key('udm.addInterest'),
                             onPressed: _addInterest,
-                            icon: const Icon(Icons.add),
+                            icon: const Icon(AppIcons.add),
                           ),
                         ],
                       ),

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../session/session_controller.dart';
@@ -44,17 +45,10 @@ class CommunityView extends GetView<CommunityController> {
                   const SizedBox(height: AppSpacing.md),
                   // Four short sections fit on one line at 390dp and two at
                   // 320dp; a scroller would hide that the list is finite.
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: List.generate(
-                      sections.length,
-                      (index) => ChoiceChip(
-                        label: AppText(sections[index]),
-                        selected: controller.selectedSection.value == index,
-                        onSelected: (_) => controller.selectedSection.value = index,
-                      ),
-                    ),
+                  PillSelector(
+                    options: sections,
+                    selectedIndex: controller.selectedSection.value,
+                    onSelect: (index) => controller.selectedSection.value = index,
                   ),
                 ],
               ),
@@ -93,7 +87,7 @@ class CommunityView extends GetView<CommunityController> {
       widgets.add(Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: _Tile(
-          icon: Icons.account_balance_outlined,
+          icon: AppIcons.building,
           title: university['name'] as String,
           subtitle: [university['city'], university['country']]
               .whereType<String>()
@@ -102,7 +96,7 @@ class CommunityView extends GetView<CommunityController> {
           children: campusRows
               .map((campus) => ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    leading: const Icon(Icons.location_on_outlined, color: AppColors.primaryBlue),
+                    leading: const Icon(AppIcons.pin, color: AppColors.primaryBlue),
                     title: AppText(campus['name'] as String),
                     subtitle: AppText(campus['location'] as String? ?? ''),
                   ))
@@ -121,7 +115,7 @@ class CommunityView extends GetView<CommunityController> {
           child: Panel(
             child: Row(
               children: [
-                const IconBadge(icon: Icons.groups_2_outlined, size: 40, filled: false),
+                const IconBadge(icon: AppIcons.community, size: 40, filled: false),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -161,7 +155,7 @@ class CommunityView extends GetView<CommunityController> {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: _Tile(
-          icon: Icons.groups_outlined,
+          icon: AppIcons.community,
           title: group['name'] as String,
           subtitle: '${group['campus'] ?? 'Community group'} · ${facts.join(' · ')}',
           children: [
@@ -175,18 +169,18 @@ class CommunityView extends GetView<CommunityController> {
                 padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
                 child: FilledButton.icon(
                   onPressed: () => controller.joinGroup(group),
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                  icon: const Icon(AppIcons.personAdd, size: 18),
                   label: const AppText('Request to join'),
                 ),
               )
             else if (membership == 'requested')
               ListTile(
-                leading: const Icon(Icons.schedule_rounded, color: AppColors.warning),
+                leading: const Icon(AppIcons.clock, color: AppColors.warning),
                 title: const AppText('Membership request sent'),
               )
             else if (membership == 'approved')
               ListTile(
-                leading: const Icon(Icons.check_circle_outline_rounded, color: AppColors.success),
+                leading: const Icon(AppIcons.checkCircle, color: AppColors.success),
                 title: const AppText('You are a member'),
               ),
             if (isLeader && requests.isNotEmpty) ...[
@@ -197,12 +191,12 @@ class CommunityView extends GetView<CommunityController> {
                 trailing: Wrap(spacing: 4, children: [
                   IconButton(
                     tooltip: 'Approve'.tr,
-                    icon: const Icon(Icons.check, color: AppColors.success),
+                    icon: const Icon(AppIcons.check, color: AppColors.success),
                     onPressed: () => controller.decideMembership(id, request['id'] as String, 'approved'),
                   ),
                   IconButton(
                     tooltip: 'Decline'.tr,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                     onPressed: () => controller.decideMembership(id, request['id'] as String, 'rejected'),
                   ),
                 ]),
@@ -216,12 +210,12 @@ class CommunityView extends GetView<CommunityController> {
                 trailing: Wrap(spacing: 4, children: [
                   IconButton(
                     tooltip: 'Share with group'.tr,
-                    icon: const Icon(Icons.check, color: AppColors.success),
+                    icon: const Icon(AppIcons.check, color: AppColors.success),
                     onPressed: () => controller.moderatePrayer(id, prayer['id'] as String, 'approved'),
                   ),
                   IconButton(
                     tooltip: 'Decline'.tr,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                     onPressed: () => controller.moderatePrayer(id, prayer['id'] as String, 'rejected'),
                   ),
                 ]),
@@ -270,16 +264,16 @@ class CommunityView extends GetView<CommunityController> {
                               // The block gives the day; this gives the month and
                               // year, in the format the device's locale expects.
                               MetaPill(
-                                icon: Icons.calendar_today_rounded,
+                                icon: AppIcons.calendar,
                                 label: MaterialLocalizations.of(context).formatMonthYear(start),
                               ),
                               MetaPill(
-                                icon: Icons.schedule_rounded,
+                                icon: AppIcons.clock,
                                 label: '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}',
                               ),
                             ],
                             if (where.isNotEmpty)
-                              MetaPill(icon: Icons.place_outlined, label: where),
+                              MetaPill(icon: AppIcons.location, label: where),
                           ],
                         ),
                       ],
@@ -296,7 +290,7 @@ class CommunityView extends GetView<CommunityController> {
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: () => controller.openEventLink(event['online_url'] as String),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    icon: const Icon(AppIcons.external, size: 16),
                     label: const AppText('Join online event'),
                   ),
                 ),
@@ -305,7 +299,7 @@ class CommunityView extends GetView<CommunityController> {
                 child: event['registered'] == true
                     ? OutlinedButton.icon(
                         onPressed: null,
-                        icon: Icon(Icons.check_rounded, size: 18, color: AppColors.success),
+                        icon: Icon(AppIcons.check, size: 18, color: AppColors.success),
                         label: AppText('Registered'),
                       )
                     : FilledButton(
@@ -328,7 +322,7 @@ class CommunityView extends GetView<CommunityController> {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: FilledButton.icon(
             onPressed: () => _newPrayer(context),
-            icon: const Icon(Icons.add_rounded, size: 18),
+            icon: const Icon(AppIcons.add, size: 18),
             label: const AppText('Write a prayer request'),
           ),
         )
@@ -338,7 +332,7 @@ class CommunityView extends GetView<CommunityController> {
           child: Panel(
             child: Row(
               children: [
-                const IconBadge(icon: Icons.lock_outline_rounded, size: 38, filled: false),
+                const IconBadge(icon: AppIcons.lock, size: 38, filled: false),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: AppText(
@@ -362,7 +356,7 @@ class CommunityView extends GetView<CommunityController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconBadge(
-                  icon: isPrivate ? Icons.lock_outline_rounded : Icons.volunteer_activism_outlined,
+                  icon: isPrivate ? AppIcons.lock : AppIcons.heart,
                   size: 36,
                   filled: false,
                   tone: isPrivate ? IconBadgeTone.neutral : IconBadgeTone.success,
@@ -383,7 +377,7 @@ class CommunityView extends GetView<CommunityController> {
                             tone: isPrivate ? AppColors.secondaryText : AppColors.success,
                           ),
                           if (prayer['moderation_state'] == 'pending')
-                            const MetaPill(label: 'Waiting for review', icon: Icons.schedule_rounded),
+                            const MetaPill(label: 'Waiting for review', icon: AppIcons.clock),
                         ],
                       ),
                     ],
@@ -392,7 +386,7 @@ class CommunityView extends GetView<CommunityController> {
                 if (isOwner)
                   IconButton(
                     tooltip: 'Delete my request'.tr,
-                    icon: const Icon(Icons.delete_outline),
+                    icon: const Icon(AppIcons.delete),
                     onPressed: () => controller.deletePrayer(id),
                   ),
               ],
@@ -472,7 +466,7 @@ class CommunityView extends GetView<CommunityController> {
         child: Panel(
           child: Row(
             children: [
-              const IconBadge(icon: Icons.inbox_rounded, size: 36, filled: false),
+              const IconBadge(icon: AppIcons.inbox, size: 36, filled: false),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: AppText(message, style: Theme.of(context).textTheme.bodyMedium)),
             ],

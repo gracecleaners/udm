@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/language_menu_button.dart';
 import '../../core/widgets/udm_widgets.dart';
@@ -90,7 +91,7 @@ class _BrandMark extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.10),
           border: Border.all(color: Colors.white.withValues(alpha: 0.22), width: 1.4),
         ),
-        child: const Center(child: Mark(size: 78, icon: Icons.auto_stories_rounded)),
+        child: const Center(child: Mark(size: 78, icon: AppIcons.bookOpen)),
       );
 }
 

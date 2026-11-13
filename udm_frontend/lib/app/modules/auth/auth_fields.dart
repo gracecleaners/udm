@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/widgets/app_kit.dart';
 import 'validators.dart';
 
 /// The two forms share their fields so a label, a rule and an error read the
@@ -22,7 +23,7 @@ class EmailField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: 'Email'.tr,
           hintText: 'you@udm.ac.ug',
-          prefixIcon: Icon(Icons.alternate_email_rounded),
+          prefixIcon: const Icon(AppIcons.mail),
         ),
         validator: AuthValidators.email,
       );
@@ -43,7 +44,7 @@ class NameField extends StatelessWidget {
         maxLength: AuthValidators.maximumNameLength,
         decoration: InputDecoration(
           labelText: 'Full name'.tr,
-          prefixIcon: Icon(Icons.person_outline_rounded),
+          prefixIcon: const Icon(AppIcons.person),
         ),
         validator: AuthValidators.fullName,
       );
@@ -79,12 +80,12 @@ class PasswordField extends StatelessWidget {
           decoration: InputDecoration(
             labelText: label.tr,
 
-            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            prefixIcon: const Icon(AppIcons.lock),
             counterText: '',
             suffixIcon: IconButton(
               onPressed: () => revealed.value = !revealed.value,
               tooltip: revealed.value ? 'Hide password'.tr : 'Show password'.tr,
-              icon: Icon(revealed.value ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              icon: Icon(revealed.value ? AppIcons.eyeOff : AppIcons.eye),
             ),
           ),
           validator: validator ?? AuthValidators.password,

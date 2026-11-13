@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'app_kit.dart';
 import 'app_text.dart';
 import 'state_view.dart';
 import 'udm_widgets.dart';
@@ -59,7 +60,7 @@ class ContentCard extends StatelessWidget {
                     ),
                     if (trailingLabel != null) ...[
                       const SizedBox(width: AppSpacing.sm),
-                      MetaPill(label: trailingLabel!, icon: Icons.schedule_rounded),
+                      MetaPill(label: trailingLabel!, icon: AppIcons.clock),
                     ],
                   ],
                 ),
@@ -181,20 +182,20 @@ class ScripturePanel extends StatelessWidget {
                             if (memorized)
                               const MetaPill(
                                 label: 'Memorized',
-                                icon: Icons.check_circle_rounded,
+                                icon: AppIcons.checkCircle,
                                 onDark: true,
                               )
                             else
                               GhostButton(
                                 key: const Key('udm.markMemorized'),
                                 label: savingReview ? 'Saving…' : 'Mark memorized',
-                                icon: Icons.fact_check_outlined,
+                                icon: AppIcons.verify,
                                 onTap: savingReview ? null : onReview,
                               ),
                           if (ctaLabel != null && onTap != null)
                             GhostButton(
                               label: ctaLabel!,
-                              icon: Icons.bookmark_border_rounded,
+                              icon: AppIcons.bookmarkBorder,
                               onTap: onTap,
                             ),
                         ],

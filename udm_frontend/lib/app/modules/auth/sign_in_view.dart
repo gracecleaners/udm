@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import 'auth_controllers.dart';
@@ -50,7 +51,19 @@ class SignInView extends GetView<SignInController> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            AppText('Welcome back', style: theme.textTheme.headlineMedium),
+                            Eyebrow(
+                              'Your account',
+                              color: theme.colorScheme.primary,
+                              icon: AppIcons.profile,
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            AppText(
+                              'Welcome back',
+                              style: AppTypography.editorialTitle(
+                                theme.textTheme.bodyLarge!.color!,
+                                size: 30,
+                              ),
+                            ),
                             const SizedBox(height: AppSpacing.sm),
                             AppText(
                               'Sign in to keep your reading progress and profile in step across your devices. '
@@ -75,12 +88,9 @@ class SignInView extends GetView<SignInController> {
                               () => FilledButton.icon(
                                 key: const Key('udm.signIn'),
                                 onPressed: controller.session.busy.value ? null : controller.submit,
-                                icon: Icon(
-                                  controller.session.busy.value
-                                      ? Icons.hourglass_top_rounded
-                                      : Icons.arrow_forward_rounded,
-                                  size: 18,
-                                ),
+                                icon: controller.session.busy.value
+                                    ? const BusyMark()
+                                    : const Icon(AppIcons.next, size: 18),
                                 label: AppText(controller.session.busy.value ? 'Signing in…' : 'Sign in'),
                               ),
                             ),
@@ -105,3 +115,4 @@ class SignInView extends GetView<SignInController> {
     );
   }
 }
+

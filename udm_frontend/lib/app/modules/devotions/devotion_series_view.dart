@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
@@ -42,16 +43,9 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
                 const OfflineChip(message: 'Offline copy of this series'),
                 const SizedBox(height: AppSpacing.md),
               ],
-              if (controller.series.value?.description.isNotEmpty ?? false) ...[
-                AppText(
-                  controller.series.value!.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
-              const Eyebrow('Reading order', icon: Icons.auto_stories_outlined),
+              const _SeriesSummary(),
+              const SizedBox(height: AppSpacing.lg),
+              Eyebrow('Reading order', color: theme.colorScheme.primary, icon: AppIcons.bookOpen),
               const SizedBox(height: AppSpacing.md),
               ...controller.days.map(
                 (day) => Padding(
@@ -63,6 +57,54 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
           ),
         ),
       )),
+    );
+  }
+}
+
+/// What the series is, next to the art the ministry put on it. The name is
+/// already in the bar above, so this carries the rest: the cover, the length,
+/// and the one-line description staff wrote for it.
+class _SeriesSummary extends GetView<DevotionSeriesController> {
+  const _SeriesSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final series = controller.series.value;
+    if (series == null) return const SizedBox.shrink();
+    final days = series.dayCount;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CoverArt(
+          url: series.coverImageUrl,
+          monogram: series.monogram,
+          width: 64,
+          height: 64,
+          monogramSize: 20,
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (series.description.isNotEmpty) ...[
+                AppText(
+                  series.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              MetaPill(
+                label: '$days ${days == 1 ? 'day' : 'days'} to read',
+                icon: AppIcons.list,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -94,7 +136,11 @@ class _DayRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 AppText(
                   day.title,
-                  style: theme.textTheme.titleMedium,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFamily: AppFonts.scripture,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 17,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -112,17 +158,13 @@ class _DayRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    MetaPill(label: '${day.readingMinutes} min'),
+                    MetaPill(label: '${day.readingMinutes} min', icon: AppIcons.clock),
                   ],
                 ),
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: theme.colorScheme.primary,
-            size: 22,
-          ),
+          Icon(AppIcons.chevron, color: theme.colorScheme.primary, size: 22),
         ],
       ),
     );
@@ -137,7 +179,7 @@ class _DayBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (day.isIntroduction) {
-      return const IconBadge(icon: Icons.play_arrow_rounded, size: 46, tone: IconBadgeTone.gold);
+      return const IconBadge(icon: AppIcons.play, size: 46, tone: IconBadgeTone.gold);
     }
     final theme = Theme.of(context);
     return Container(
@@ -146,7 +188,7 @@ class _DayBadge extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: AppGradients.hero,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
         boxShadow: AppShadows.glow(AppColors.primaryBlue),
       ),
       child: AppText(

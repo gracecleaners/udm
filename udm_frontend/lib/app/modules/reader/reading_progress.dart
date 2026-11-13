@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/network/failure.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -65,13 +66,13 @@ class ProgressFooter extends StatelessWidget {
           () => reader.markedRead.value
               ? OutlinedButton.icon(
                   onPressed: null,
-                  icon: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 18),
+                  icon: const Icon(AppIcons.checkCircle, color: AppColors.success, size: 18),
                   label: const AppText('Marked as read'),
                 )
               : FilledButton.icon(
                   key: const Key('udm.markRead'),
                   onPressed: reader.savingProgress.value ? null : reader.markRead,
-                  icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                  icon: const Icon(AppIcons.bookmarkAdd, size: 18),
                   label: AppText(reader.savingProgress.value ? 'Saving…' : 'Mark as read'),
                 ),
         ),

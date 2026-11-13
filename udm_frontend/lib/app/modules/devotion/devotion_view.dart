@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/devotional.dart';
@@ -15,7 +16,9 @@ class DevotionView extends GetView<DevotionController> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const AppText('Today\'s devotion')),
+        // The page opens with its own title set in the reading serif, so the
+        // bar carries only the way back.
+        appBar: AppBar(),
         body: Obx(() => StateView(
               state: controller.state.value,
               failureMessage: controller.failureMessage.value,
@@ -44,19 +47,27 @@ class _DevotionBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
       children: [
+        AppText(
+          'Today\'s devotion',
+          style: AppTypography.eyebrow(theme.colorScheme.primary),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        AppText(
+          devotional.title,
+          style: AppTypography.editorialTitle(bodyColor, size: 32),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const GoldRule(width: 72),
+        const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
-            MetaPill(icon: Icons.book_outlined, label: devotional.scriptureReference),
-            MetaPill(icon: Icons.schedule_rounded, label: '${devotional.readingMinutes} min'),
-            if (devotional.author.isNotEmpty) MetaPill(icon: Icons.person_outline_rounded, label: devotional.author),
+            MetaPill(icon: AppIcons.book, label: devotional.scriptureReference),
+            MetaPill(icon: AppIcons.clock, label: '${devotional.readingMinutes} min'),
+            if (devotional.author.isNotEmpty) MetaPill(icon: AppIcons.person, label: devotional.author),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        AppText(devotional.title, style: theme.textTheme.displayMedium),
-        const SizedBox(height: AppSpacing.sm),
-        const GoldRule(width: 72),
         const SizedBox(height: AppSpacing.lg),
         for (final paragraph in paragraphs)
           Padding(
@@ -82,7 +93,7 @@ class _DevotionBody extends StatelessWidget {
         if (devotional.application.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
           _Block(
-            icon: Icons.check_circle_outline_rounded,
+            icon: AppIcons.checkCircle,
             eyebrow: 'Live it out',
             body: devotional.application,
             tone: IconBadgeTone.success,
@@ -91,7 +102,7 @@ class _DevotionBody extends StatelessWidget {
         if (devotional.prayer.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
           _Block(
-            icon: Icons.volunteer_activism_outlined,
+            icon: AppIcons.heart,
             eyebrow: 'Pray',
             body: devotional.prayer,
             tone: IconBadgeTone.brand,
@@ -100,7 +111,7 @@ class _DevotionBody extends StatelessWidget {
         if (devotional.memoryScriptureReference.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
           _Block(
-            icon: Icons.psychology_outlined,
+            icon: AppIcons.memory,
             eyebrow: 'Memorise',
             body: devotional.memoryScriptureReference,
             tone: IconBadgeTone.gold,

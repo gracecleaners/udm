@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import 'auth_controllers.dart';
@@ -43,7 +44,19 @@ class RegisterView extends GetView<RegisterController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        AppText('Start your journey', style: theme.textTheme.headlineMedium),
+                        Eyebrow(
+                          'New here',
+                          color: theme.colorScheme.primary,
+                          icon: AppIcons.sparkles,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        AppText(
+                          'Start your journey',
+                          style: AppTypography.editorialTitle(
+                            theme.textTheme.bodyLarge!.color!,
+                            size: 30,
+                          ),
+                        ),
                         const SizedBox(height: AppSpacing.sm),
                         AppText(
                           'An email address and a password are enough. Your campus details, reading '
@@ -82,12 +95,9 @@ class RegisterView extends GetView<RegisterController> {
                           () => FilledButton.icon(
                             key: const Key('udm.register'),
                             onPressed: controller.session.busy.value ? null : controller.submit,
-                            icon: Icon(
-                              controller.session.busy.value
-                                  ? Icons.hourglass_top_rounded
-                                  : Icons.person_add_alt_1_rounded,
-                              size: 18,
-                            ),
+                            icon: controller.session.busy.value
+                                ? const BusyMark()
+                                : const Icon(AppIcons.personAdd, size: 18),
                             label: AppText(
                               controller.session.busy.value ? 'Creating account…' : 'Create account',
                             ),
@@ -114,3 +124,4 @@ class RegisterView extends GetView<RegisterController> {
     );
   }
 }
+
