@@ -5,6 +5,7 @@ import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
 import 'package:udm_frontend/app/data/models/devotion_series.dart';
+import 'package:udm_frontend/app/data/models/devotional.dart';
 import 'package:udm_frontend/app/data/repositories/devotions_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/devotions/devotion_series_binding.dart';
@@ -22,12 +23,14 @@ void main() {
     WidgetTester tester, {
     List<DevotionSeries> rows = const [],
     List<DevotionSeries>? cachedRows,
+    List<Devotional> devotionals = const [],
     Failure? failure,
     DevotionSeries? seriesRow,
   }) async {
     final repository = FakeDevotionsRepository(
       gridRows: rows,
       cachedRows: cachedRows,
+      devotionalRows: devotionals,
       seriesRow: seriesRow,
       failure: failure,
     );
@@ -128,13 +131,61 @@ void main() {
   testWidgets('an unpublished library says so instead of showing nothing', (tester) async {
     await pumpGrid(tester);
 
-    expect(find.text('No series published yet'), findsOneWidget);
+    expect(find.text('Nothing published to read yet'), findsOneWidget);
     expect(
       find.text(
-        'When the ministry team publishes a set of devotionals it appears here as a series.',
+        'When the ministry team publishes a devotional or a set of them as a series, it appears here.',
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the tab opens on the day’s devotional, then what is behind it', (tester) async {
+    final repository = await pumpGrid(
+      tester,
+      rows: sampleSeriesGrid(),
+      devotionals: sampleDevotionalFeed(),
+    );
+
+    // The hero is the newest row the ministry published; the server's own
+    // order decides that, so the app never picks a day for a student.
+    expect(find.text('TODAY\'S DEVOTIONAL'), findsOneWidget);
+    expect(find.text('Trust God in Every Season'), findsOneWidget);
+    expect(find.text('To every thing there is a season.'), findsOneWidget);
+    expect(find.text('4 min'), findsWidgets);
+
+    // The rows behind it are the rest of the feed, in the same order.
+    expect(find.text('KEEP READING'), findsOneWidget);
+    expect(find.text('Recent devotionals'), findsOneWidget);
+    expect(find.text('A Heart That Listens'), findsOneWidget);
+    expect(find.text('Salt and Light'), findsOneWidget);
+
+    // The library the tab has always shown still sits underneath, below the
+    // day's page — so it is reached the way a student reaches it.
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -360));
+    await tester.pumpAndSettle();
+    expect(find.text('Reading series'), findsOneWidget);
+    expect(find.text('The Book of James'), findsOneWidget);
+    expect(repository.devotionalCalls, 1);
+  });
+
+  testWidgets('the day’s devotional opens the reading it points at', (tester) async {
+    await pumpGrid(tester, devotionals: sampleDevotionalFeed());
+
+    await tester.tap(find.text('Trust God in Every Season'));
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.devotion);
+    expect(find.text('DEVOTION SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('a single devotional is the day’s reading with nothing behind it', (tester) async {
+    await pumpGrid(tester, devotionals: sampleDevotionalFeed().take(1).toList());
+
+    expect(find.text('Trust God in Every Season'), findsOneWidget);
+    // One row is the day. There is no list of nothing, and no rail beside it.
+    expect(find.text('Recent devotionals'), findsNothing);
+    expect(find.text('Reading series'), findsNothing);
   });
 
   testWidgets('a ministry edit reloads the grid while the tab is open', (tester) async {

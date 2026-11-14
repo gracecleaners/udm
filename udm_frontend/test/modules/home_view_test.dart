@@ -46,9 +46,13 @@ void main() {
   /// The feed is a lazy list and the test font is far wider than the bundled
   /// one, so the day's cards start below the fold. Reach them the way a
   /// student would: scroll, then look.
+  ///
+  /// The scroll looks for any match — a lazy list has not built the row yet —
+  /// then settles on the first, because the feed names a devotion twice on
+  /// purpose: once as the plan row to tick off, once as the card to read.
   Future<void> scrollToCard(WidgetTester tester, Finder finder) async {
     await tester.dragUntilVisible(finder, find.byType(ListView), const Offset(0, -200));
-    await tester.ensureVisible(finder);
+    await tester.ensureVisible(finder.first);
     await tester.pumpAndSettle();
   }
 
@@ -65,11 +69,14 @@ void main() {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
 
     expect(find.text('Good morning, Grace'), findsOneWidget);
+    expect(find.text("Today's plan"), findsOneWidget);
     expect(find.textContaining('Be not conformed to this world.'), findsOneWidget);
     await scrollToCard(tester, find.text('A Heart That Listens'));
-    expect(find.text('A Heart That Listens'), findsOneWidget);
+    // The day's devotion is both the row to tick and the card to read, so the
+    // title is on the screen twice rather than once.
+    expect(find.text('A Heart That Listens'), findsWidgets);
     await scrollToCard(tester, find.text('How to Study a Chapter'));
-    expect(find.text('How to Study a Chapter'), findsOneWidget);
+    expect(find.text('How to Study a Chapter'), findsWidgets);
     expect(find.text('Offline copy'), findsNothing);
   });
 
@@ -105,7 +112,7 @@ void main() {
 
     expect(repository.loadCalls, 2);
     await scrollToCard(tester, find.text('A Heart That Listens'));
-    expect(find.text('A Heart That Listens'), findsOneWidget);
+    expect(find.text('A Heart That Listens'), findsWidgets);
   });
 
   testWidgets('the card a student memorises is the memory verse', (tester) async {
@@ -120,8 +127,7 @@ void main() {
   testWidgets('the guides are listed in the order the ministry set', (tester) async {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
 
-    await scrollToCard(tester, find.text('Find resources on'));
-    expect(find.text('Find resources on'), findsOneWidget);
+    await scrollToCard(tester, find.text('GUIDED READING'));
     expect(find.text('GUIDED READING'), findsOneWidget);
     expect(find.text('Receive Christ'), findsOneWidget);
     expect(
@@ -155,7 +161,10 @@ void main() {
     );
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: payload), fakeSession()));
 
-    expect(find.text('Find resources on'), findsNothing);
+    // The shortcut to the Courses screen is always a door; the feed's own list
+    // of guides is content, and content that is not published is not drawn.
+    expect(find.text('GUIDED READING'), findsNothing);
+    expect(find.text('Receive Christ'), findsNothing);
   });
 
   testWidgets('marking the verse memorized goes to the account, not the device', (tester) async {

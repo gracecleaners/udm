@@ -81,6 +81,8 @@ class ScripturePanel extends StatelessWidget {
     required this.reference,
     required this.text,
     this.translationCode = '',
+    this.artUrl = '',
+    this.artAsset = '',
     this.offline = false,
     this.onTap,
     this.ctaLabel,
@@ -92,6 +94,12 @@ class ScripturePanel extends StatelessWidget {
   final String reference;
   final String text;
   final String translationCode;
+
+  /// A picture behind the verse. Staff upload `artUrl`; `artAsset` is the
+  /// ministry's own bundled scene for when they have not. With neither, the
+  /// card keeps its brand gradient.
+  final String artUrl;
+  final String artAsset;
   final bool offline;
   final VoidCallback? onTap;
 
@@ -110,6 +118,7 @@ class ScripturePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasArt = artUrl.isNotEmpty || artAsset.isNotEmpty;
     return PressableScale(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
@@ -123,7 +132,21 @@ class ScripturePanel extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.14)),
+            if (hasArt) ...[
+              Positioned.fill(
+                child: CoverArt(
+                  url: artUrl,
+                  asset: artAsset,
+                  monogram: '',
+                  radius: 0,
+                  gradient: AppGradients.scripture,
+                ),
+              ),
+              // The verse is written over somebody else's picture, so the scrim
+              // is what makes the card readable rather than a decoration.
+              const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim))),
+            ] else
+              Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.14)),
             // Oversized open-quote set in the reading serif: decoration, not text.
             PositionedDirectional(
               top: -18,

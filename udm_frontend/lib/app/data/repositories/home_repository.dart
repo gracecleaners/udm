@@ -1,6 +1,8 @@
 import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
 import '../models/home_payload.dart';
+import '../models/resume_item.dart';
+import '../models/walk_summary.dart';
 import '../providers/udm_api.dart';
 
 /// Home feed with one cached payload so a student without data still sees the
@@ -48,6 +50,20 @@ class HomeRepository {
   /// device: whoever holds the phone should not find what another student
   /// learned on it.
   Future<void> markVerseMemorized(String verseId) => _api.reviewMemoryVerse(verseId);
+
+  /// Where this student stopped in the ministry's recordings. Read straight
+  /// from the account and never cached, for the same reason the verse review
+  /// is not: the next person to hold the phone is not this student.
+  Future<List<ResumeItem>> resume() => _api.mediaResume();
+
+  /// What this student has finished, newest first. Home reads it for the ticks
+  /// on today's list, and Profile prints it as the history the row promises.
+  Future<List<ReadHistoryRow>> history() => _api.readHistory();
+
+  /// The counts of this student's own walk, worked out by the server in one
+  /// pass. Never cached: these numbers belong to an account, and the next
+  /// person to hold the phone is not this student.
+  Future<WalkSummary> summary() => _api.walkSummary();
 
   HomePayload? cached() {
     final raw = _cache.readJson(_cacheKey);

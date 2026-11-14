@@ -12,6 +12,8 @@ import '../../core/widgets/udm_widgets.dart';
 import '../../core/widgets/language_menu_button.dart';
 import '../../data/models/user_profile.dart';
 import '../session/session_controller.dart';
+import '../shell/shell_controller.dart';
+import 'profile_controller.dart';
 
 /// The Profile tab: who the student is on the server's copy, an editor for the
 /// fields the API lets them write, and the only way to sign out.
@@ -124,7 +126,11 @@ class _ProfileBody extends StatelessWidget {
         children: [
           NoticeBanner(message: notice),
           NoticeBanner(message: error, tone: NoticeTone.problem),
-          _IdentityCard(profile: profile),
+          _IdentityCard(profile: profile, onEdit: () => _edit(context)),
+          const SizedBox(height: AppSpacing.lg),
+          const _WalkTiles(),
+          const SizedBox(height: AppSpacing.lg),
+          const _AccountRows(),
           const SizedBox(height: AppSpacing.lg),
           SectionHeader(
             eyebrow: 'On your account',
@@ -195,12 +201,162 @@ class _ProfileBody extends StatelessWidget {
   }
 }
 
+/// The three numbers the server keeps about this student's own walk.
+///
+/// Every one is counted from rows the app could also list — the devotionals
+/// marked read, the guides finished — so a tile and the screen behind it can
+/// never disagree. They belong to an account, so a visitor is shown the sign-in
+/// path instead of three zeroes dressed up as progress.
+class _WalkTiles extends GetView<ProfileController> {
+  const _WalkTiles();
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final theme = Theme.of(context);
+    final numbers = controller.summary.value;
+    if (numbers == null) {
+      if (!controller.loadingPrivate.value) return const SizedBox.shrink();
+      // The account's numbers are on their way, so the space is kept and
+      // filled with the shimmer the rest of the app uses for a first load.
+      return Panel(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        child: const Row(
+          children: [
+            Expanded(child: Center(child: SkeletonBox(height: 46, width: 64))),
+            Expanded(child: Center(child: SkeletonBox(height: 46, width: 64))),
+            Expanded(child: Center(child: SkeletonBox(height: 46, width: 64))),
+          ],
+        ),
+      );
+    }
+    return Panel(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Tile(
+            value: '${numbers.dayStreak}',
+            label: 'day streak',
+            icon: AppIcons.sun,
+            color: AppColors.gold,
+          ),
+          _Tile(
+            value: '${numbers.guidesCompleted}',
+            label: numbers.guidesCompleted == 1 ? 'guide finished' : 'guides finished',
+            icon: AppIcons.school,
+            color: theme.colorScheme.primary,
+          ),
+          _Tile(
+            value: '${numbers.readingsCompleted}',
+            label: numbers.readingsCompleted == 1 ? 'devotional read' : 'devotionals read',
+            icon: AppIcons.bookOpen,
+            color: AppColors.success,
+            last: true,
+          ),
+        ],
+      ),
+    );
+  });
+}
+
+/// One number, big, with the word that says what it counts.
+class _Tile extends StatelessWidget {
+  const _Tile({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.color,
+    this.last = false,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 6),
+          AppText(value, style: AppTypography.statValue(theme.textTheme.bodyLarge!.color!)),
+          const SizedBox(height: 2),
+          AppText(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The four places a student goes from their own name.
+///
+/// Bookmarks are not a screen of their own: the saved verses and notes are read
+/// and written in the Bible tab, where the chapter they came from is still on
+/// the stack. This row moves the tab rather than opening a second copy.
+class _AccountRows extends StatelessWidget {
+  const _AccountRows();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Eyebrow('Your things', color: theme.colorScheme.primary, icon: AppIcons.bookmark),
+        const SizedBox(height: AppSpacing.sm),
+        Panel(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          child: Column(
+            children: [
+              NavRow(
+                icon: AppIcons.bookmarks,
+                label: 'My bookmarks',
+                subtitle: 'Saved verses and private notes, in the Bible tab.',
+                onTap: () => Get.find<ShellController>().select(ShellController.bibleTab),
+              ),
+              NavRow(
+                icon: AppIcons.history,
+                label: 'Reading history',
+                subtitle: 'What you have finished, by the day you did it.',
+                onTap: () => Get.toNamed(AppRoutes.readingHistory),
+              ),
+              NavRow(
+                icon: AppIcons.school,
+                label: 'My courses',
+                subtitle: 'The ministry\'s guided reading, one step at a time.',
+                onTap: () => Get.toNamed(AppRoutes.courses),
+              ),
+              NavRow(
+                icon: AppIcons.settings,
+                label: 'Settings',
+                subtitle: 'Light, text size and language on this device.',
+                onTap: () => Get.toNamed(AppRoutes.settings),
+                last: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// The one card on this screen that should look like the brand: the student's
 /// own initials on the gradient, name and email over it.
 class _IdentityCard extends StatelessWidget {
-  const _IdentityCard({required this.profile});
+  const _IdentityCard({required this.profile, required this.onEdit});
 
   final UserProfile profile;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +421,16 @@ class _IdentityCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                    ),
+                    // The same sheet the button underneath opens, at the name
+                    // a student is already reading.
+                    AppIconButton(
+                      icon: AppIcons.edit,
+                      tooltip: 'Edit details',
+                      tone: AppIconButtonTone.onDark,
+                      size: 38,
+                      iconSize: 18,
+                      onTap: onEdit,
                     ),
                   ],
                 ),

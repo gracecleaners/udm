@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
+import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import 'package:udm_frontend/app/data/providers/udm_api.dart';
 import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/bible/bible_controller.dart';
 import 'package:udm_frontend/app/modules/bible/bible_view.dart';
+import 'package:udm_frontend/app/modules/bible/verse_detail_view.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
 import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
@@ -146,12 +148,17 @@ void main() {
       permanent: true,
     );
     Get.put<ContentVersionController>(FakeContentVersionController(), permanent: true);
+    putAppearance(cache);
     Get.put(BibleController(api, cache, Get.find<SessionController>()));
     // The shell hosts every tab inside a Scaffold, and a focused text field
     // needs that Material ancestor; pumping the view bare would test a shape
     // the app never renders.
     await tester.pumpWidget(
-      GetMaterialApp(theme: AppTheme.light, home: const Scaffold(body: BibleView())),
+      GetMaterialApp(
+        theme: AppTheme.light,
+        getPages: [GetPage(name: AppRoutes.verse, page: () => const VerseDetailView())],
+        home: const Scaffold(body: BibleView()),
+      ),
     );
     await tester.pumpAndSettle();
     return api;
@@ -160,6 +167,13 @@ void main() {
   Future<void> search(WidgetTester tester, String reference) async {
     await tester.enterText(find.byType(TextField), reference);
     await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+  }
+
+  /// A bar that is still closing holds its timer past the widget tree, and the
+  /// next case inherits it. See the same note in `home_view_test.dart`.
+  Future<void> dismissSnackbars(WidgetTester tester) async {
+    Get.closeAllSnackbars();
     await tester.pumpAndSettle();
   }
 
@@ -203,9 +217,10 @@ void main() {
     expect(find.text('Open New International Version on Bible Gateway'), findsOneWidget);
   });
 
-  testWidgets('only a verse with a stored row offers the private save menu', (tester) async {
-    // No catalog means the passage below is the only verse on screen, so the
-    // menu count says exactly which rows the app may save against.
+  testWidgets('a tapped verse gets its own screen, and only a stored one can be kept', (tester) async {
+    // No catalog means the passage below is the only scripture on screen, so
+    // what the verse screen offers says exactly which rows the app may save
+    // against.
     await pumpBible(
       tester,
       translations: const [],
@@ -214,8 +229,34 @@ void main() {
 
     await search(tester, 'John 3:16-18');
 
-    expect(find.text('For God so loved the world, that he gave his only begotten Son.'), findsOneWidget);
-    expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+    final storedVerse = find.text('For God so loved the world, that he gave his only begotten Son.');
+    await tester.ensureVisible(storedVerse);
+    await tester.pumpAndSettle();
+    await tester.tap(storedVerse);
+    await tester.pumpAndSettle();
+
+    expect(find.text('John 3:16'), findsOneWidget);
+    expect(find.text('Keep'), findsOneWidget);
+    expect(find.text('Note'), findsOneWidget);
+
+    Get.back();
+    await tester.pumpAndSettle();
+
+    // The next row exists only at the provider: nothing here can point a
+    // bookmark at it, so the screen says so instead of saving and failing.
+    final routedVerse = find.text('He that believeth on him is not condemned.');
+    await tester.ensureVisible(routedVerse);
+    await tester.pumpAndSettle();
+    await tester.tap(routedVerse);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Note'), findsNothing);
+
+    await tester.tap(find.text('Keep'));
+    await tester.pumpAndSettle();
+    expect(find.text('This verse cannot be kept'), findsOneWidget);
+
+    await dismissSnackbars(tester);
   });
 
   testWidgets('lookup works with an empty catalog, chapter browsing does not', (tester) async {

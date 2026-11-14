@@ -36,6 +36,12 @@ const config: ResourceConfig = {
         ),
     },
     { header: "Scripture", cell: (row) => String(row.scripture_reference ?? "—") },
+    {
+      header: "Cover",
+      cell: (row) => (
+        <span className="console-cell-sub">{row.image_url ? "Image uploaded" : "No cover image"}</span>
+      ),
+    },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
     { header: "Publish date", cell: (row) => dateText(row.publish_at) },
     { header: "Length", cell: (row) => countText(row.reading_minutes, "min") },
@@ -78,6 +84,12 @@ const config: ResourceConfig = {
       help: "A reference the reader may take as a memory verse.",
     },
     { name: "reading_minutes", label: "Reading time", type: "number", default: 5, help: "Minutes shown to the reader." },
+    {
+      name: "image",
+      label: "Cover image",
+      type: "image",
+      help: "Optional artwork shown with the reading. Uploading a picture replaces the one on the server.",
+    },
     {
       name: "publish_at",
       label: "Publish date",

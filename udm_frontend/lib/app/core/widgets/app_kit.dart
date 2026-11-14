@@ -17,6 +17,8 @@ abstract class AppIcons {
 
   static const home = Icons.home_rounded;
   static const book = Icons.menu_book_rounded;
+  /// The "Aa" a reader asks for when the text is too small to sit in.
+  static const textSize = Icons.format_size_rounded;
   static const bookOpen = Icons.auto_stories_rounded;
   static const bible = Icons.import_contacts_rounded;
   static const learn = Icons.smart_display_rounded;
@@ -68,6 +70,8 @@ abstract class AppIcons {
   static const sparkles = Icons.auto_awesome_rounded;
   static const target = Icons.flag_rounded;
   static const heart = Icons.volunteer_activism_rounded;
+  /// The word somebody leaves under a prayer on the community wall.
+  static const comment = Icons.chat_bubble_outline_rounded;
   static const school = Icons.school_rounded;
   static const church = Icons.church_rounded;
   static const building = Icons.account_balance_rounded;
@@ -82,6 +86,62 @@ abstract class AppIcons {
   static const save = Icons.save_rounded;
 }
 
+/// How many cover tiles fit across a screen. One rule for every grid of art in
+/// the app, so the Devotions library and the Learn shelves keep the same
+/// proportions from a small Android phone to a tablet.
+int coverColumns(double width) {
+  if (width >= 900) return 4;
+  if (width >= 600) return 3;
+  return 2;
+}
+
+/// The pixel budget a picture should be decoded to, from the width of the box
+/// it is drawn in. Returns null when the box has no width yet, which leaves the
+/// decode at the file's own size.
+///
+/// A codec is free to answer with more pixels than this asks for — a JPEG is
+/// only stepped down in halves, so a budget of 700 against a 1024-wide file
+/// still decodes at 1024 — but it will never answer with fewer. Asking is
+/// therefore safe at any screen size: it buys memory back on the phones that
+/// paint small, and costs nothing in sharpness on the ones that paint large.
+int? decodedWidthFor(double pixels) => pixels.isFinite && pixels > 0 ? pixels.ceil() : null;
+
+/// A bundled picture of the ministry's own, drawn to fill whatever it is given.
+///
+/// The full-bleed scenes — the opening screen, an onboarding slide, a verse set
+/// on a hillside — are the largest images the app carries, and each one is
+/// asked to cover the whole screen. Sizing the decode to the screen in hand is
+/// what keeps a small Android phone from holding a flagship's bitmap in memory
+/// while it paints them.
+class BackdropArt extends StatelessWidget {
+  const BackdropArt({
+    super.key,
+    required this.asset,
+    this.errorBuilder,
+  });
+
+  final String asset;
+
+  /// Shown when the file cannot be read, in place of the picture. The scenes are
+  /// decoration behind a scrim and words, so a brand tile is a complete answer.
+  final Widget Function(BuildContext, Object, StackTrace?)? errorBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+
+    return LayoutBuilder(
+      builder: (context, box) => Image.asset(
+        asset,
+        fit: BoxFit.cover,
+        cacheWidth: decodedWidthFor(box.maxWidth * dpr),
+        filterQuality: FilterQuality.low,
+        errorBuilder: errorBuilder,
+      ),
+    );
+  }
+}
+
 /// Cover art the ministry uploaded, with the brand tile underneath it.
 ///
 /// Artwork lives on the ministry's own host, so a series, shelf or recording
@@ -94,6 +154,7 @@ class CoverArt extends StatelessWidget {
     super.key,
     required this.url,
     required this.monogram,
+    this.asset = '',
     this.icon,
     this.width,
     this.height,
@@ -104,6 +165,11 @@ class CoverArt extends StatelessWidget {
   });
 
   final String url;
+
+  /// A bundled picture of the ministry's own, used when the server has no
+  /// upload for this item. Only ever the fallback under `url`, so staff art
+  /// always wins.
+  final String asset;
 
   /// What the tile falls back to when there is no picture: the initials the
   /// server derived from the title.
@@ -122,7 +188,7 @@ class CoverArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.circular(radius);
-    if (url.isEmpty) {
+    if (url.isEmpty && asset.isEmpty) {
       return _Fallback(
         width: width,
         height: height,
@@ -142,35 +208,57 @@ class CoverArt extends StatelessWidget {
       child: SizedBox(
         width: width,
         height: height,
-        child: Image.network(
-          url,
-          fit: fit,
-          width: width,
-          height: height,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stack) => _Fallback(
-            borderRadius: borderRadius,
-            gradient: gradient,
-            child: icon != null
-                ? Icon(icon, color: AppColors.white, size: monogramSize * 1.15)
-                : AppText(
-                    monogram,
-                    style: AppTypography.scriptureVerse(AppColors.white, size: monogramSize),
-                    maxLines: 1,
-                  ),
-          ),
-          loadingBuilder: (context, child, progress) => progress == null
-              ? child
-              : _Fallback(
-                  borderRadius: borderRadius,
-                  gradient: gradient,
-                  dimmed: true,
-                  child: const SizedBox.shrink(),
-                ),
-        ),
+        child: url.isNotEmpty || asset.isEmpty
+            ? Image.network(
+                url,
+                fit: fit,
+                width: width,
+                height: height,
+                gaplessPlayback: true,
+                errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : _Fallback(
+                        borderRadius: borderRadius,
+                        gradient: gradient,
+                        dimmed: asset.isEmpty,
+                        child: asset.isEmpty
+                            ? const SizedBox.shrink()
+                            : _photo(context, fit, borderRadius),
+                      ),
+              )
+            : _photo(context, fit, borderRadius),
       ),
     );
   }
+
+  Widget _photo(BuildContext context, BoxFit fit, BorderRadius borderRadius) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+
+    return LayoutBuilder(
+      builder: (context, box) => Image.asset(
+        asset,
+        fit: fit,
+        cacheWidth: decodedWidthFor(box.maxWidth * dpr),
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
+      ),
+    );
+  }
+
+  Widget _brandedArt(BorderRadius borderRadius) => _Fallback(
+        width: width,
+        height: height,
+        borderRadius: borderRadius,
+        gradient: gradient,
+        child: icon != null
+            ? Icon(icon, color: AppColors.white, size: monogramSize * 1.15)
+            : AppText(
+                monogram,
+                style: AppTypography.scriptureVerse(AppColors.white, size: monogramSize),
+                maxLines: 1,
+              ),
+      );
 }
 
 class _Fallback extends StatelessWidget {
@@ -220,6 +308,7 @@ class FeatureCard extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.artUrl = '',
+    this.artAsset = '',
     this.monogram = '',
     this.artIcon,
     this.pills = const [],
@@ -233,6 +322,11 @@ class FeatureCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String artUrl;
+
+  /// The ministry's own picture for this kind of card, used when staff have not
+  /// uploaded one. Never a placeholder: the brand tile is what appears when
+  /// both are empty.
+  final String artAsset;
   final String monogram;
   final IconData? artIcon;
 
@@ -264,6 +358,7 @@ class FeatureCard extends StatelessWidget {
             Positioned.fill(
               child: CoverArt(
                 url: artUrl,
+                asset: artAsset,
                 monogram: monogram,
                 icon: artIcon,
                 radius: AppSpacing.radiusSheet,
@@ -338,6 +433,7 @@ class RailCard extends StatelessWidget {
     required this.title,
     required this.monogram,
     this.artUrl = '',
+    this.artAsset = '',
     this.artIcon,
     this.eyebrow,
     this.subtitle,
@@ -352,6 +448,9 @@ class RailCard extends StatelessWidget {
   final String title;
   final String monogram;
   final String artUrl;
+
+  /// The ministry's bundled picture for when staff have not uploaded one.
+  final String artAsset;
   final IconData? artIcon;
   final String? eyebrow;
   final String? subtitle;
@@ -381,12 +480,24 @@ class RailCard extends StatelessWidget {
             if (useArtRatio)
               AspectRatio(
                 aspectRatio: artRatio,
-                child: CoverArt(url: artUrl, monogram: monogram, icon: artIcon, radius: AppSpacing.radiusArt),
+                child: CoverArt(
+                  url: artUrl,
+                  asset: artAsset,
+                  monogram: monogram,
+                  icon: artIcon,
+                  radius: AppSpacing.radiusArt,
+                ),
               )
             else
               SizedBox(
                 height: artHeight,
-                child: CoverArt(url: artUrl, monogram: monogram, icon: artIcon, radius: AppSpacing.radiusArt),
+                child: CoverArt(
+                  url: artUrl,
+                  asset: artAsset,
+                  monogram: monogram,
+                  icon: artIcon,
+                  radius: AppSpacing.radiusArt,
+                ),
               ),
             const SizedBox(height: AppSpacing.sm),
             if (eyebrow != null) ...[
@@ -720,6 +831,65 @@ class AppIconButton extends StatelessWidget {
 }
 
 enum AppIconButtonTone { quiet, brand, onDark }
+
+/// One row of a stacked list inside a `Panel`: a mark, a name, one line of
+/// plain-English reason, and where it goes.
+///
+/// Profile, Settings and any future account list all draw the same thing, so
+/// the hairline and the chevron are decided once here rather than per screen.
+class NavRow extends StatelessWidget {
+  const NavRow({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.destructive = false,
+    this.last = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  /// A row that takes something away is not a row that leads somewhere: it gets
+  /// the warning colour and no chevron.
+  final bool destructive;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.extension<AppSurfaces>()!;
+    final color = destructive ? AppColors.danger : theme.colorScheme.primary;
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          onTap: onTap,
+          leading: IconBadge(icon: icon, size: 38, filled: false),
+          title: AppText(
+            label,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: destructive ? AppColors.danger : null,
+            ),
+          ),
+          subtitle: subtitle == null
+              ? null
+              : AppText(subtitle!, style: theme.textTheme.bodySmall, maxLines: 2),
+          trailing: trailing ??
+              (destructive
+                  ? null
+                  : Icon(AppIcons.chevron, color: color, size: 22)),
+        ),
+        if (!last) Divider(height: 1, thickness: 1, color: surfaces.hairline),
+      ],
+    );
+  }
+}
 
 /// A button's own waiting state. The label already says what is happening, so
 /// the mark only has to keep moving while the request is open.

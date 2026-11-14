@@ -112,7 +112,7 @@ class _ArticleBody extends StatelessWidget {
               // The opening paragraph runs a touch larger, the way a printed
               // feature leads in.
               style: entry.$1 == 0
-                  ? AppTypography.scriptureBody(bodyColor).copyWith(fontSize: 19.5)
+                  ? AppTypography.scriptureBody(bodyColor, baseSize: 19.5)
                   : AppTypography.scriptureBody(bodyColor),
             ),
           ),

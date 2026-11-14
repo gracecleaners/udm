@@ -46,6 +46,17 @@ void main() {
           _respond(request, refreshStatus, refreshStatus == 200 ? _freshPair : _unauthorizedBody);
         case '/api/v1/auth/token/':
           _respond(request, 401, _unauthorizedBody);
+        case '/api/v1/devotions/06aba6e9-7af5-484e-aec7-ef45e0d9d4b9/':
+          // Mirrors the real server, which weighs the credentials on a request
+          // before it asks the view whether that request needed any: carrying a
+          // bad token turns published, sign-in-free content into a 401.
+          final anonymous =
+              request.headers.value(HttpHeaders.authorizationHeader) == null;
+          _respond(
+            request,
+            anonymous ? 200 : 401,
+            anonymous ? _devotionalBody : _unauthorizedBody,
+          );
         default:
           _respond(request, 404, _notFoundBody);
       }
@@ -104,6 +115,19 @@ void main() {
 
     await expectLater(api.profile(), throwsA(isA<Failure>()));
 
+    expect(await store.read(), isNull);
+    expect(expiredEvents, 1);
+  });
+
+  test('a dead session does not hide content the ministry publishes free', () async {
+    refreshStatus = 401;
+
+    // The reading screens are not signed-in-only surfaces, so losing a session
+    // must not be allowed to answer a devotion request with a failure.
+    final devotional = await api.devotion('06aba6e9-7af5-484e-aec7-ef45e0d9d4b9');
+
+    expect(devotional.title, 'A Heart That Listens');
+    expect(devotional.body, isNotEmpty);
     expect(await store.read(), isNull);
     expect(expiredEvents, 1);
   });
@@ -168,6 +192,22 @@ const Map<String, dynamic> _unauthorizedBody = {
   'code': 'token_not_valid',
   'status': 401,
   'errors': {},
+};
+
+const Map<String, dynamic> _devotionalBody = {
+  'id': '06aba6e9-7af5-484e-aec7-ef45e0d9d4b9',
+  'title': 'A Heart That Listens',
+  'scripture_reference': '1 Samuel 3:1-10',
+  'body': 'Eli was asleep in the place the ark stood, and the lamp of God had not yet gone out.',
+  'author': 'UDM Ministry Team',
+  'excerpt': 'Listening is taught, not inherited.',
+  'reflection_questions': ['What is God saying here?'],
+  'application': 'Read this chapter slowly once before you speak to anyone about it.',
+  'prayer': 'Speak, Lord; your servant is listening.',
+  'memory_scripture_reference': '1 Samuel 3:9',
+  'reading_minutes': 5,
+  'image_url': null,
+  'publish_at': '2026-11-02T06:00:00Z',
 };
 
 const Map<String, dynamic> _notFoundBody = {

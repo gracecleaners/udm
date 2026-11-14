@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../core/theme/app_art.dart';
 import '../../data/repositories/settings_repository.dart';
 
 class OnboardingSlide {
-  const OnboardingSlide(this.icon, this.eyebrow, this.title, this.body);
+  const OnboardingSlide(this.eyebrow, this.title, this.body, this.art);
 
-  final IconData icon;
   final String eyebrow;
   final String title;
   final String body;
+
+  /// The scene drawn for this slide, bundled so the set reads the same with no
+  /// signal.
+  final String art;
 }
 
 class OnboardingController extends GetxController {
@@ -18,25 +22,25 @@ class OnboardingController extends GetxController {
 
   static const List<OnboardingSlide> slides = [
     OnboardingSlide(
-      Icons.menu_book_rounded,
       'Know Christ',
       'Scripture you actually finish',
       'Read a licensed Bible, take today\'s devotion, and memorise a verse. Notes and highlights stay yours.',
+      AppArt.onboardingWord,
     ),
     OnboardingSlide(
-      Icons.smart_display_rounded,
       'Grow in Christ',
       'Discipleship, not downloads',
       'Work through the ministry\'s teaching recordings, write what each one '
           'brought you, and follow a guided resource on the questions you '
           'actually ask.',
+      AppArt.onboardingHabits,
     ),
     OnboardingSlide(
-      Icons.send_rounded,
       'Make Disciples',
       'Sent to your campus',
       'Share a teaching with a friend, work through a guide with someone new '
           'to the faith, and keep a verse ready for the day they ask you why.',
+      AppArt.onboardingCommunity,
     ),
   ];
 

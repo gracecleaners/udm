@@ -15,6 +15,7 @@ import '../data/repositories/settings_repository.dart';
 import '../modules/content_version/content_version_controller.dart';
 import '../modules/session/session_controller.dart';
 import '../modules/settings/app_language_controller.dart';
+import '../modules/settings/appearance_controller.dart';
 
 /// App-wide singletons. Resolved before `runApp` because the cache needs an
 /// already-loaded `SharedPreferences` handle.
@@ -23,6 +24,9 @@ Future<void> configureDependencies() async {
   Get.put<LocalCache>(LocalCache(prefs), permanent: true);
   Get.put<SettingsRepository>(SettingsRepository(Get.find<LocalCache>()), permanent: true);
   Get.put<AppLanguageController>(AppLanguageController(Get.find<SettingsRepository>()), permanent: true);
+  // Registered before the first frame because the theme is read straight off
+  // it: an app that opens light then flicks dark has simply loaded late.
+  Get.put<AppearanceController>(AppearanceController(Get.find<SettingsRepository>()), permanent: true);
 
   final tokens = SecureTokenStore();
   Get.put<TokenStore>(tokens, permanent: true);

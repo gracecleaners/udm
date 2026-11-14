@@ -133,8 +133,8 @@ class OnboardingView extends GetView<OnboardingController> {
   }
 }
 
-/// The gradient panel a slide is remembered by: its mark, the line it carries,
-/// and where the student is in the set.
+/// The scene a slide is remembered by: the ministry's own drawing, the line it
+/// carries, and where the student is in the set.
 class _SlideArt extends StatelessWidget {
   const _SlideArt({required this.slide, required this.page});
 
@@ -153,35 +153,24 @@ class _SlideArt extends StatelessWidget {
         boxShadow: AppShadows.float,
       ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
-          Align(
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 104,
-                  height: 104,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.14),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Icon(slide.icon, size: 48, color: AppColors.white),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: AppText(
-                    slide.eyebrow,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.scriptureReference(Colors.white.withValues(alpha: 0.85))
-                        .copyWith(fontSize: 16),
-                  ),
-                ),
-              ],
+          BackdropArt(
+            asset: slide.art,
+            errorBuilder: (context, error, stack) =>
+                Mark.backdrop(tint: AppColors.white, alpha: 0.16),
+          ),
+          // The drawing is light, so the words sit on the brand's own scrim
+          // rather than on whatever the picture happens to put there.
+          const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrimSide))),
+          PositionedDirectional(
+            top: AppSpacing.md,
+            start: AppSpacing.md,
+            end: AppSpacing.md,
+            child: AppText(
+              slide.eyebrow,
+              style: AppTypography.scriptureReference(Colors.white.withValues(alpha: 0.92))
+                  .copyWith(fontSize: 16),
             ),
           ),
           PositionedDirectional(

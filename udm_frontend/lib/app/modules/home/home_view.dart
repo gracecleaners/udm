@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
@@ -11,14 +12,15 @@ import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
 import '../../data/models/home_payload.dart';
+import '../../data/models/resume_item.dart';
 import '../../data/models/resource_topic.dart';
 import '../session/session_controller.dart';
 import '../shell/shell_controller.dart';
 import 'home_controller.dart';
 
-/// The day's feed, in the order the ministry's payload supports it: a greeting,
-/// the verse to keep, the devotion to read, the reading to deepen into, and the
-/// guides that answer the questions students actually ask.
+/// The day's feed, in the order a student actually works through it: who is
+/// greeting them, the verse to keep, where they left off, what today asks of
+/// them, and the four doors they use most.
 ///
 /// Every section here is server-gated. A section with nothing published is not
 /// rendered as an empty shape, and a shortcut with nowhere to go is not
@@ -39,34 +41,19 @@ class HomeView extends GetView<HomeController> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: _BrandRow(offline: controller.isOfflineCopy),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: _Hero(payload: controller.data),
-                ),
+                const _Greeting(),
                 const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: FadeIn(
-                    delay: const Duration(milliseconds: 60),
-                    child: QuickActionGrid(actions: _shortcuts(controller.data)),
-                  ),
-                ),
                 if (controller.data?.memoryVerse != null) ...[
-                  const SizedBox(height: AppSpacing.lg),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                     child: FadeIn(
-                      delay: const Duration(milliseconds: 110),
                       child: Obx(
                         () => ScripturePanel(
                           reference: controller.data!.memoryVerse!.reference,
                           text: controller.data!.memoryVerse!.text,
                           translationCode: controller.data!.memoryVerse!.translationCode,
+                          artUrl: controller.data!.memoryVerse!.imageUrl,
+                          artAsset: AppArt.verseSunrise,
                           offline: controller.isOfflineCopy,
                           ctaLabel: controller.data!.devotion == null ? null : "Open today's devotion",
                           onTap: controller.data!.devotion == null
@@ -79,7 +66,35 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.xl),
+                ] else ...[
+                  const SizedBox(height: AppSpacing.sm),
                 ],
+                if (controller.resume.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                    child: FadeIn(
+                      delay: const Duration(milliseconds: 60),
+                      child: _ContinueWatching(items: controller.resume.toList()),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: FadeIn(
+                    delay: const Duration(milliseconds: 90),
+                    child: const _TodaysPlan(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                  child: FadeIn(
+                    delay: const Duration(milliseconds: 120),
+                    child: QuickActionGrid(actions: _shortcuts(controller.data)),
+                  ),
+                ),
                 if (controller.data?.devotion != null) ...[
                   const SizedBox(height: AppSpacing.xl),
                   RailHeader(
@@ -95,6 +110,8 @@ class HomeView extends GetView<HomeController> {
                         eyebrow: 'Devotion',
                         title: controller.data!.devotion!.title,
                         subtitle: controller.data!.devotion!.scriptureReference,
+                        artUrl: controller.data!.devotion!.imageUrl,
+                        artAsset: AppArt.devotionalSeason,
                         monogram: UdmAvatar.initialsFor(controller.data!.devotion!.title),
                         pills: [
                           MetaPill(
@@ -118,6 +135,7 @@ class HomeView extends GetView<HomeController> {
                             title: article.title,
                             subtitle: _byline(article),
                             monogram: UdmAvatar.initialsFor(article.title),
+                            artUrl: article.imageUrl,
                             pill: MetaPill(label: '${article.readingMinutes} min', icon: AppIcons.clock),
                             onTap: () => controller.openArticle(article.id),
                           ),
@@ -129,8 +147,9 @@ class HomeView extends GetView<HomeController> {
                   const SizedBox(height: AppSpacing.xl),
                   const RailHeader(
                     eyebrow: 'Guided reading',
-                    title: 'Find resources on',
+                    title: 'Courses',
                     subtitle: 'Short guides for the questions students actually ask',
+                    onSeeAll: _openCourses,
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
@@ -156,24 +175,31 @@ class HomeView extends GetView<HomeController> {
         ),
       );
 
-  /// The four shortcuts a student reaches for from the feed. The last one is
-  /// the ministry's own lead guide, so the strip changes with what staff
-  /// publish instead of being a fixed set of buttons.
+  /// The four doors a student reaches for from the feed: the Bible, the day's
+  /// devotion, the guides the ministry writes, and the people they walk with.
+  /// Learn has its own place in the bar below, so it is not a shortcut too.
   List<QuickAction> _shortcuts(HomePayload? payload) {
     void go(int tab) => Get.find<ShellController>().select(tab);
     return [
       QuickAction(label: 'Bible', icon: AppIcons.bible, onTap: () => go(ShellController.bibleTab)),
       QuickAction(label: 'Devotions', icon: AppIcons.sun, onTap: () => go(ShellController.devotionsTab)),
-      QuickAction(label: 'Learn', icon: AppIcons.learn, onTap: () => go(ShellController.learnTab)),
-      if (payload != null && payload.resources.isNotEmpty)
-        QuickAction(
-          label: 'Guides',
-          icon: AppIcons.steps,
-          tone: IconBadgeTone.gold,
-          onTap: () => controller.openTopic(payload.resources.first.id),
-        ),
+      QuickAction(
+        label: 'Courses',
+        icon: AppIcons.school,
+        onTap: _openCourses,
+      ),
+      QuickAction(
+        label: 'Community',
+        icon: AppIcons.community,
+        tone: IconBadgeTone.gold,
+        onTap: () => Get.toNamed(AppRoutes.community),
+      ),
     ];
   }
+
+  /// Courses is a screen of its own, not a section of the feed, so both doors
+  /// into it go to the same route.
+  static void _openCourses() => Get.toNamed(AppRoutes.courses);
 
   static String _byline(Article article) {
     final parts = [
@@ -184,9 +210,300 @@ class HomeView extends GetView<HomeController> {
   }
 }
 
-/// One row of the "Find resources on" list. The row is the guide's own name,
-/// not a generic button, because the ministry writes the list and reorders it
-/// without an app release.
+/// Greeting, name and the face that belongs to them. The sentence is the
+/// server's, the name is the account's, and the avatar is the Profile tab: a
+/// student who taps their own face expects to land on their own details.
+class _Greeting extends GetView<HomeController> {
+  const _Greeting();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final session = Get.find<SessionController>();
+    return Obx(() {
+      final greeting = controller.data?.greeting;
+      final profile = session.profile.value;
+      final firstName = profile?.displayName.trim().split(RegExp(r'\s+')).first ?? '';
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppText(
+                    [
+                      if (greeting != null && greeting.isNotEmpty) greeting else 'Peace be with you',
+                      if (firstName.isNotEmpty) firstName,
+                    ].join(', '),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (controller.isOfflineCopy) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    const OfflineChip(),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // A signed-out student has no face to show, so the door to sign in
+            // takes the avatar's place instead of an invented silhouette.
+            if (profile == null)
+              GhostButton(
+                key: const Key('udm.homeGreetingSignIn'),
+                label: 'Sign in',
+                icon: AppIcons.person,
+                onTap: () => Get.toNamed(AppRoutes.signIn),
+              )
+            else
+              PressableScale(
+                onTap: () => Get.find<ShellController>().select(ShellController.profileTab),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                child: UdmAvatar(initials: profile.initials, size: 44),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// Where the student left off in the ministry's recordings. One card per
+/// recording, each opening on the place the server says they stopped.
+class _ContinueWatching extends StatelessWidget {
+  const _ContinueWatching({required this.items});
+
+  final List<ResumeItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AppText(
+                'Continue watching',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Get.find<ShellController>().select(ShellController.learnTab),
+              child: const AppText('See all'),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        SizedBox(
+          height: 132,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (context, _) => const SizedBox(width: AppSpacing.sm),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return SizedBox(
+                width: 216,
+                child: Panel(
+                  onTap: () => Get.toNamed(
+                    AppRoutes.mediaItem,
+                    arguments: {RouteArgs.mediaItemId: item.id},
+                  ),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CoverArt(
+                            url: item.imageUrl,
+                            monogram: UdmAvatar.initialsFor(item.title),
+                            icon: AppIcons.play,
+                            width: 44,
+                            height: 44,
+                            radius: AppSpacing.radiusTile,
+                            monogramSize: 18,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                AppText(
+                                  item.title,
+                                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (item.collectionTitle.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  AppText(
+                                    item.collectionTitle,
+                                    style: theme.textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: UdmProgressBar(
+                              fraction: item.progress,
+                              height: 5,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          AppText(
+                            item.remainingLabel,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(AppIcons.playCircle, size: 22, color: theme.colorScheme.primary),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Today, as a list a student can finish. Each row is real content the server
+/// published for this day, and the tick is the server's own record that this
+/// student has done it — not a streak the app guessed.
+class _TodaysPlan extends GetView<HomeController> {
+  const _TodaysPlan();
+
+  @override
+  Widget build(BuildContext context) => Obx(() => _rows(context));
+
+  Widget _rows(BuildContext context) {
+    final theme = Theme.of(context);
+    final payload = controller.data;
+    final rows = <_PlanRow>[
+      if (payload?.devotion != null)
+        _PlanRow(
+          label: 'Daily devotional',
+          title: payload!.devotion!.title,
+          icon: AppIcons.sun,
+          done: controller.isDone(payload.devotion!.id),
+          onTap: () => controller.openDevotion(payload.devotion!.id),
+        ),
+      if (payload?.memoryVerse != null)
+        _PlanRow(
+          label: 'Verse to keep',
+          title: payload!.memoryVerse!.reference,
+          icon: AppIcons.memory,
+          done: controller.verseMemorized,
+          onTap: controller.markMemorized,
+        ),
+      if (payload?.articles.isNotEmpty ?? false)
+        _PlanRow(
+          label: 'Reading for today',
+          title: payload!.articles.first.title,
+          icon: AppIcons.book,
+          done: controller.isDone(payload.articles.first.id),
+          onTap: () => controller.openArticle(payload.articles.first.id),
+        ),
+    ];
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppText(
+            "Today's plan",
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final row in rows)
+            PressableScale(
+              onTap: row.onTap,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm, horizontal: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    IconBadge(icon: row.icon, size: 38, tone: row.done ? IconBadgeTone.success : IconBadgeTone.brand),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            row.label,
+                            style: AppTypography.eyebrow(theme.colorScheme.primary),
+                          ),
+                          const SizedBox(height: 2),
+                          AppText(
+                            row.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      row.done ? AppIcons.checkCircle : AppIcons.circle,
+                      size: 22,
+                      color: row.done
+                          ? AppColors.success
+                          : (theme.textTheme.bodySmall?.color ?? AppColors.secondaryText).withValues(alpha: 0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanRow {
+  const _PlanRow({
+    required this.label,
+    required this.title,
+    required this.icon,
+    required this.done,
+    required this.onTap,
+  });
+
+  final String label;
+  final String title;
+  final IconData icon;
+  final bool done;
+  final VoidCallback onTap;
+}
+
+/// One row of the "Courses" list. The row is the guide's own name, not a
+/// generic button, because the ministry writes the list and reorders it without
+/// an app release.
 class _ResourceRow extends StatelessWidget {
   const _ResourceRow({required this.topic, required this.onOpen});
 
@@ -229,7 +546,12 @@ class _ResourceRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    MetaPill(label: '${topic.stepCount} steps', icon: AppIcons.steps),
+                    MetaPill(
+                      label: topic.stepsCompleted > 0
+                          ? '${topic.stepsCompleted} of ${topic.stepCount} done'
+                          : '${topic.stepCount} steps',
+                      icon: AppIcons.steps,
+                    ),
                     if (topic.summary.isNotEmpty) ...[
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
@@ -243,6 +565,16 @@ class _ResourceRow extends StatelessWidget {
                     ],
                   ],
                 ),
+                // The bar is about the reader, not the guide, so it only
+                // appears once there is something the student has read.
+                if (topic.stepsCompleted > 0) ...[
+                  const SizedBox(height: 7),
+                  UdmProgressBar(
+                    fraction: topic.fractionComplete,
+                    height: 5,
+                    gradient: AppGradients.hero,
+                  ),
+                ],
               ],
             ),
           ),
@@ -306,64 +638,6 @@ class _SignInNudge extends GetView<SessionController> {
                 ],
               ),
             ),
-    );
-  }
-}
-
-class _BrandRow extends StatelessWidget {
-  const _BrandRow({required this.offline});
-
-  final bool offline;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          // A non-flex child of a Row is measured with unlimited width, so the
-          // wordmark would run off a 320dp screen instead of ellipsizing.
-          Expanded(
-            child: UdmLogo(size: 42, tagline: 'University Discipleship Mission'),
-          ),
-          if (offline) ...[
-            const SizedBox(width: AppSpacing.sm),
-            const OfflineChip(),
-          ],
-        ],
-      );
-}
-
-/// The greeting comes from the API, so the header is server-driven content in a
-/// brand shell rather than a hardcoded banner.
-class _Hero extends StatelessWidget {
-  const _Hero({required this.payload});
-
-  final HomePayload? payload;
-
-  @override
-  Widget build(BuildContext context) {
-    final devotion = payload?.devotion;
-    final readings = payload?.articles.length ?? 0;
-    return HeroPanel(
-      eyebrow: payload?.greeting.isNotEmpty == true ? payload!.greeting : 'Peace be with you',
-      title: 'Grow in His Word.',
-      subtitle: 'Scripture, devotion and teaching for this day at your campus.',
-      trailing: const Mark(size: 46, icon: AppIcons.bookOpen),
-      children: [
-        const SizedBox(height: AppSpacing.lg),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            if (devotion != null)
-              MetaPill(
-                label: 'Devotion · ${devotion.readingMinutes} min',
-                icon: AppIcons.sun,
-                onDark: true,
-              ),
-            if (readings > 0)
-              MetaPill(label: '$readings readings today', icon: AppIcons.book, onDark: true),
-          ],
-        ),
-      ],
     );
   }
 }

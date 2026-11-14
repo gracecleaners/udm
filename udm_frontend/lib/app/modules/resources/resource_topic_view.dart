@@ -106,9 +106,22 @@ class _GuideSummary extends GetView<ResourceTopicController> {
                 const SizedBox(height: 6),
               ],
               MetaPill(
-                label: '${topic.stepCount} ${topic.stepCount == 1 ? 'step' : 'steps'}',
+                label: topic.stepsCompleted > 0
+                    ? '${topic.stepsCompleted} of ${topic.stepCount} '
+                        '${topic.stepCount == 1 ? 'step' : 'steps'} done'
+                    : '${topic.stepCount} ${topic.stepCount == 1 ? 'step' : 'steps'}',
                 icon: AppIcons.steps,
               ),
+              // The same numbers the Courses screen drew the row with, so a
+              // student opening a guide sees the bar they left behind.
+              if (topic.stepsCompleted > 0) ...[
+                const SizedBox(height: AppSpacing.sm),
+                UdmProgressBar(
+                  fraction: topic.fractionComplete,
+                  height: 6,
+                  gradient: AppGradients.hero,
+                ),
+              ],
             ],
           ),
         ),
@@ -201,6 +214,21 @@ class _StepBadge extends StatelessWidget {
       return const IconBadge(icon: AppIcons.play, size: 46, tone: IconBadgeTone.gold);
     }
     final theme = Theme.of(context);
+    // A step the server says this student finished is ticked where the number
+    // sits, so the list reads as a checklist rather than a table of contents.
+    if (step.completed) {
+      return Container(
+        width: AppSpacing.iconTile,
+        height: AppSpacing.iconTile,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.14),
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.success, width: 1.4),
+        ),
+        child: Icon(AppIcons.check, color: AppColors.success, size: 22),
+      );
+    }
     return Container(
       width: AppSpacing.iconTile,
       height: AppSpacing.iconTile,

@@ -85,6 +85,7 @@ void main() {
     final api = _ShellApi();
     Get.put<LocalCache>(cache, permanent: true);
     Get.put<AppLanguageController>(AppLanguageController(SettingsRepository(cache)), permanent: true);
+    putAppearance(cache);
     Get.put<UdmApi>(api, permanent: true);
     Get.put<ContentVersionController>(ContentVersionController(api), permanent: true);
     Get.put<HomeRepository>(FakeHomeRepository(payload: sampleHome()), permanent: true);

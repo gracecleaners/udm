@@ -71,8 +71,14 @@ class ResourceTopicController extends GetxController with RefetchesOnContentChan
     }
   }
 
-  void openStep(ResourceStep step) => Get.toNamed(
-    AppRoutes.resourceStep,
-    arguments: {RouteArgs.resourceStepId: step.id},
-  );
+  /// The tick on a step row is the server's answer, and the page this student
+  /// just left is where they may have changed it, so the guide is asked again
+  /// on the way back rather than left showing the list they walked in on.
+  Future<void> openStep(ResourceStep step) async {
+    await Get.toNamed(
+      AppRoutes.resourceStep,
+      arguments: {RouteArgs.resourceStepId: step.id},
+    );
+    load();
+  }
 }

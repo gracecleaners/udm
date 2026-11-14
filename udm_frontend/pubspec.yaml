@@ -66,6 +66,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # The ministry's own art, bundled for the same reason as the typefaces: the
+  # opening screens render before any request comes back. Server-side pictures
+  # are uploaded by staff and arrive as URLs, so they are not in here.
+  assets:
+    - assets/images/
+
   # Bundled rather than fetched at runtime: a student in a campus basement with
   # no signal still gets the same typography. Both families are OFL — see
   # assets/fonts/licenses. The static instances are generated from the upstream

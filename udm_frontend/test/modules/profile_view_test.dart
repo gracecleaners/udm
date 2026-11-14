@@ -4,9 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
+import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/storage/local_cache.dart';
+import 'package:udm_frontend/app/data/models/walk_summary.dart';
+import 'package:udm_frontend/app/data/repositories/home_repository.dart';
 import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
+import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
+import 'package:udm_frontend/app/modules/profile/profile_controller.dart';
 import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
+import 'package:udm_frontend/app/modules/shell/shell_controller.dart';
 import 'package:udm_frontend/app/core/routes/app_pages.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
@@ -29,16 +35,28 @@ void main() {
     client.close();
   });
 
-  Future<void> openProfile(WidgetTester tester) async {
+  Future<FakeHomeRepository> openProfile(
+    WidgetTester tester, {
+    WalkSummary numbers = const WalkSummary(),
+    Failure? summaryFailure,
+  }) async {
     Get.put<SessionController>(SessionController(repository, client));
     // The profile app bar carries the language menu, whose controller the app
     // registers permanently at startup.
     SharedPreferences.setMockInitialValues({});
-    Get.put<AppLanguageController>(
-      AppLanguageController(
-        SettingsRepository(LocalCache(await SharedPreferences.getInstance())),
-      ),
-    );
+    final cache = LocalCache(await SharedPreferences.getInstance());
+    Get.put<AppLanguageController>(AppLanguageController(SettingsRepository(cache)));
+    // The two controllers the shell registers around this tab: the student's
+    // own numbers, and the bar the bookmarks row moves.
+    final home = FakeHomeRepository(payload: sampleHome())
+      ..numbers = numbers
+      ..summaryFailure = summaryFailure;
+    Get.put<HomeRepository>(home, permanent: true);
+    // Moving to the Bible tab is a content-version poll, so the bar and the
+    // stamp it looks up both have to be on the deck.
+    Get.put<ContentVersionController>(FakeContentVersionController(), permanent: true);
+    Get.put(ShellController());
+    Get.put(ProfileController(home, Get.find<SessionController>()));
     await tester.pumpWidget(
       GetMaterialApp(
         theme: AppTheme.light,
@@ -47,11 +65,20 @@ void main() {
           ...AppPages.pages.where(
             (page) => page.name == AppRoutes.signIn || page.name == AppRoutes.register,
           ),
+          // The three screens the account rows lead to, as stubs: this file is
+          // about the rows, and each destination has its own test.
+          GetPage(
+            name: AppRoutes.readingHistory,
+            page: () => const Center(child: Text('HISTORY SCREEN')),
+          ),
+          GetPage(name: AppRoutes.courses, page: () => const Center(child: Text('COURSES SCREEN'))),
+          GetPage(name: AppRoutes.settings, page: () => const Center(child: Text('SETTINGS SCREEN'))),
         ],
         initialRoute: AppRoutes.shell,
       ),
     );
     await tester.pumpAndSettle();
+    return home;
   }
 
   /// The profile body is a lazy list, and the test font renders every row
@@ -68,6 +95,15 @@ void main() {
     final button = find.byKey(key);
     await scrollTo(tester, button);
     await tester.tap(button);
+    await tester.pumpAndSettle();
+  }
+
+  /// The same reveal-then-tap for a target named by its text — the account rows
+  /// carry no keys of their own, because there is only ever one of each.
+  Future<void> tapRow(WidgetTester tester, String label) async {
+    final row = find.text(label);
+    await scrollTo(tester, row);
+    await tester.tap(row);
     await tester.pumpAndSettle();
   }
 
@@ -136,6 +172,16 @@ void main() {
 
       expect(find.text('Start your journey'), findsOneWidget);
     });
+
+    testWidgets('never asks the service for an account\'s numbers', (tester) async {
+      final home = await openProfile(
+        tester,
+        numbers: const WalkSummary(dayStreak: 24, devotionalsCompleted: 12),
+      );
+
+      expect(home.summaryCalls, 0);
+      expect(find.text('day streak'), findsNothing);
+    });
   });
 
   group('signed in', () {
@@ -147,7 +193,83 @@ void main() {
       expect(find.text('Grace Nabukeera'), findsWidgets);
       expect(find.text('grace@udm.ac.ug'), findsOneWidget);
       expect(find.textContaining('Email verification is not available'), findsOneWidget);
+      // The details now sit below the numbers and the account rows, and a
+      // lazy list has not built what the student has not scrolled to. The
+      // scroll stops on the group's own heading, which is named once.
+      await scrollTo(tester, find.text('University'));
       expect(find.text('Not added'), findsWidgets);
+    });
+
+    testWidgets('prints the counts the service keeps about this walk', (tester) async {
+      final home = await openProfile(
+        tester,
+        numbers: const WalkSummary(
+          dayStreak: 24,
+          devotionalsCompleted: 12,
+          articlesCompleted: 1,
+          guidesCompleted: 2,
+          stepsCompleted: 9,
+        ),
+      );
+
+      expect(home.summaryCalls, 1);
+      expect(find.text('24'), findsOneWidget);
+      expect(find.text('day streak'), findsOneWidget);
+      expect(find.text('13'), findsOneWidget);
+      expect(find.text('devotionals read'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('guides finished'), findsOneWidget);
+    });
+
+    testWidgets('a student who has finished nothing is told so', (tester) async {
+      await openProfile(tester);
+
+      expect(find.text('0'), findsNWidgets(3));
+      expect(find.text('guides finished'), findsOneWidget);
+    });
+
+    testWidgets('one finished guide is not pluralised past the server', (tester) async {
+      await openProfile(tester, numbers: const WalkSummary(guidesCompleted: 1, devotionalsCompleted: 1));
+
+      expect(find.text('guide finished'), findsOneWidget);
+      expect(find.text('devotional read'), findsOneWidget);
+    });
+
+    testWidgets('no numbers from the service means no tiles, not guessed ones', (tester) async {
+      await openProfile(
+        tester,
+        summaryFailure: const Failure(FailureKind.offline, 'No connection to the UDM service.'),
+      );
+
+      expect(find.text('day streak'), findsNothing);
+    });
+
+    testWidgets('the account rows reach the screens they name', (tester) async {
+      await openProfile(tester);
+
+      await tapRow(tester, 'Reading history');
+      expect(find.text('HISTORY SCREEN'), findsOneWidget);
+      Get.back();
+      await tester.pumpAndSettle();
+
+      await tapRow(tester, 'My courses');
+      expect(find.text('COURSES SCREEN'), findsOneWidget);
+      Get.back();
+      await tester.pumpAndSettle();
+
+      await tapRow(tester, 'Settings');
+      expect(find.text('SETTINGS SCREEN'), findsOneWidget);
+      Get.back();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('bookmarks move the bar to the Bible, where they are read', (tester) async {
+      await openProfile(tester);
+
+      await tapRow(tester, 'My bookmarks');
+
+      expect(Get.find<ShellController>().tab.value, ShellController.bibleTab);
+      expect(find.text('HISTORY SCREEN'), findsNothing);
     });
 
     testWidgets('editing saves through the session and shows the new value', (tester) async {

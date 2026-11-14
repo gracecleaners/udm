@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/app_config.dart';
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
@@ -13,65 +15,71 @@ class SplashView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppGradients.scripture),
-        child: Stack(
-          children: [
-            Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
-            SafeArea(
-              child: Stack(
-                children: [
-                  const Align(
-                    alignment: AlignmentDirectional.topEnd,
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.sm),
-                      child: _GhostLanguageMenu(),
-                    ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // The whole opening screen is one photograph with the brand written on
+          // it, so the app's first impression is the ministry's own art rather
+          // than a gradient. The gradient stays underneath: a first launch
+          // paints before the asset decodes, and a dark photo needs the scrim
+          // to keep white text legible on any phone.
+          const ColoredBox(color: AppColors.darkInk),
+          Positioned.fill(child: BackdropArt(asset: AppArt.splash)),
+          const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim))),
+          Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.10)),
+          SafeArea(
+            child: Stack(
+              children: [
+                const Align(
+                  alignment: AlignmentDirectional.topEnd,
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.sm),
+                    child: _GhostLanguageMenu(),
                   ),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const FadeIn(
-                          child: _BrandMark(),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const FadeIn(
+                        child: _BrandMark(),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      FadeIn(
+                        delay: const Duration(milliseconds: 140),
+                        child: AppText(
+                          'University Discipleship Mission',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.white,
+                                letterSpacing: 0.6,
+                              ),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: AppSpacing.lg),
-                        FadeIn(
-                          delay: const Duration(milliseconds: 140),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      FadeIn(
+                        delay: const Duration(milliseconds: 240),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                           child: AppText(
-                            'University Discipleship Mission',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: AppColors.white,
-                                  letterSpacing: 0.6,
-                                ),
+                            AppConfig.tagline,
                             textAlign: TextAlign.center,
+                            style: AppTypography.scriptureReference(Colors.white70).copyWith(fontSize: 15.5),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        FadeIn(
-                          delay: const Duration(milliseconds: 240),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                            child: AppText(
-                              'Know Christ. Grow in Christ. Make Disciples.',
-                              textAlign: TextAlign.center,
-                              style: AppTypography.scriptureReference(Colors.white70).copyWith(fontSize: 15.5),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl + AppSpacing.md),
-                        const FadeIn(
-                          delay: Duration(milliseconds: 340),
-                          child: _LoadingRule(),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl + AppSpacing.md),
+                      const FadeIn(
+                        delay: Duration(milliseconds: 340),
+                        child: _LoadingRule(),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

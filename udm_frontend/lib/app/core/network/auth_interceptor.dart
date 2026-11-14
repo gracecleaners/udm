@@ -63,6 +63,18 @@ class AuthInterceptor extends Interceptor {
     if (outcome.expired) {
       await store.clear();
       onSessionExpired?.call();
+      // The server weighs the credentials before it asks whether the endpoint
+      // needs any, so a dead token can refuse a published devotion to a student
+      // who was never signed in to read it. With the session gone, replay the
+      // request as the anonymous reader the app is allowed to be; a private
+      // endpoint still answers 401, and `retriedKey` stops a loop.
+      options.headers.remove(authorizationHeader);
+      options.extra[retriedKey] = true;
+      try {
+        return handler.resolve(await retryClient.fetch(options));
+      } on DioException catch (retryError) {
+        return handler.next(retryError);
+      }
     }
     // A refresh that failed for network reasons says nothing about the session,
     // so the original 401 is reported and the student stays signed in.

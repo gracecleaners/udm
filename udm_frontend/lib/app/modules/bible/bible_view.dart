@@ -9,6 +9,9 @@ import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
+import '../../data/models/verse_focus.dart';
+import '../settings/appearance_controller.dart';
+import '../settings/reading_size_sheet.dart';
 import 'bible_controller.dart';
 
 /// Scripture in three motions: look a reference up, choose a book and chapter
@@ -98,8 +101,7 @@ class BibleView extends GetView<BibleController> {
                           heading: chapterHeading(controller),
                           translationCode: '${translation['code'] ?? ''}',
                           verses: verses,
-                          onSave: controller.bookmark,
-                          onNote: controller.note,
+                          attribution: '${translation['attribution'] ?? ''}',
                         ),
                 ),
               ],
@@ -448,6 +450,18 @@ class _ChapterChip extends StatelessWidget {
   }
 }
 
+/// The address of one verse inside a block.
+///
+/// A stored passage answers with a reference per verse. A looked-up passage
+/// only has its range as a heading, and a range is not a chapter: "John
+/// 3:16-18" is read in John 3, so its sixteenth verse is John 3:16 rather than
+/// the nonsense of John 3:16-18:16.
+String _verseReference({required String heading, required String number, String? fromServer}) {
+  if (fromServer != null && fromServer.isNotEmpty) return fromServer;
+  final chapter = RegExp(r'^(.*?\s\d{1,3})(?::|$)').firstMatch(heading)?.group(1) ?? heading;
+  return '$chapter:$number';
+}
+
 /// The chapter as one passage, not as a stack of cards: a single surface, a
 /// verse gutter, and scripture set in the reading serif all the way down.
 class _ScriptureBlock extends StatelessWidget {
@@ -455,15 +469,16 @@ class _ScriptureBlock extends StatelessWidget {
     required this.heading,
     required this.translationCode,
     required this.verses,
-    required this.onSave,
-    required this.onNote,
+    this.attribution = '',
   });
 
   final String heading;
   final String translationCode;
   final List<dynamic> verses;
-  final ValueChanged<String> onSave;
-  final ValueChanged<String> onNote;
+
+  /// The license line the passage came with, carried to the verse screen so a
+  /// kept verse still says where its words came from.
+  final String attribution;
 
   @override
   Widget build(BuildContext context) {
@@ -501,6 +516,16 @@ class _ScriptureBlock extends StatelessWidget {
               Expanded(
                 child: AppText(heading, style: AppTypography.scriptureReference(theme.colorScheme.primary)),
               ),
+              // One "Aa" for the passage rather than a control per verse: the
+              // size is a way of reading, not a property of one verse.
+              AppIconButton(
+                icon: AppIcons.textSize,
+                tooltip: 'Reading size',
+                size: 36,
+                iconSize: 18,
+                onTap: () => ReadingSizeSheet.show(context),
+              ),
+              const SizedBox(width: AppSpacing.sm),
               if (translationCode.isNotEmpty) MetaPill(label: translationCode.toUpperCase()),
             ],
           ),
@@ -512,8 +537,10 @@ class _ScriptureBlock extends StatelessWidget {
               number: '${(raw as Map<String, dynamic>)['number'] ?? raw['verse']}',
               text: '${raw['text'] ?? ''}',
               verseId: '${raw['id'] ?? ''}',
-              onSave: onSave,
-              onNote: onNote,
+              reference: '${raw['reference'] ?? ''}',
+              heading: heading,
+              translationCode: translationCode,
+              attribution: attribution,
             ),
         ],
       ),
@@ -521,60 +548,74 @@ class _ScriptureBlock extends StatelessWidget {
   }
 }
 
+/// One verse of the passage. The row is the door to the verse's own screen,
+/// where it can be kept, sized, sent on or written on.
 class _VerseLine extends StatelessWidget {
   const _VerseLine({
     required this.number,
     required this.text,
     required this.verseId,
-    required this.onSave,
-    required this.onNote,
+    required this.reference,
+    required this.heading,
+    required this.translationCode,
+    required this.attribution,
   });
 
   final String number;
   final String text;
   final String verseId;
-  final ValueChanged<String> onSave;
-  final ValueChanged<String> onNote;
+
+  /// The server's own address for this verse. A looked-up passage carries one
+  /// per verse; a chapter builds it from the heading the block already shows.
+  final String reference;
+  final String heading;
+  final String translationCode;
+  final String attribution;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Private saves need a stored verse, so a row that only exists at a
-    // provider carries no menu rather than promising what cannot be kept.
-    final savable = verseId.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 26,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: AppText(number, style: AppTypography.verseNumber(AppColors.gold)),
+    final appearance = Get.find<AppearanceController>();
+    return Obx(
+      () => PressableScale(
+        onTap: () => Get.toNamed(
+          AppRoutes.verse,
+          arguments: {
+            RouteArgs.verse: VerseFocus(
+              verseId: verseId,
+              reference: _verseReference(heading: heading, number: number, fromServer: reference),
+              text: text,
+              translationCode: translationCode,
+              attribution: attribution,
             ),
+          },
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 26,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: AppText(number, style: AppTypography.verseNumber(AppColors.gold)),
+                ),
+              ),
+              Expanded(
+                child: AppText(
+                  text,
+                  style: AppTypography.scriptureBody(
+                    theme.textTheme.bodyLarge!.color!,
+                    baseSize: 17.5,
+                    scale: appearance.readingScale.value,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: AppText(
-              text,
-              style: AppTypography.scriptureBody(theme.textTheme.bodyLarge!.color!).copyWith(fontSize: 17.5),
-            ),
-          ),
-          if (savable)
-            PopupMenuButton<String>(
-              tooltip: 'Verse actions'.tr,
-              offset: const Offset(0, 34),
-              icon: Icon(AppIcons.more, size: 18, color: theme.textTheme.bodySmall?.color),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-              position: PopupMenuPosition.under,
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'bookmark', child: AppText('Bookmark')),
-                PopupMenuItem(value: 'note', child: AppText('Add private note')),
-              ],
-              onSelected: (action) => action == 'bookmark' ? onSave(verseId) : onNote(verseId),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -793,9 +834,7 @@ class _PassageResult extends StatelessWidget {
           heading: '${passage['reference'] ?? ''}',
           translationCode: '${passage['translation'] ?? ''}',
           verses: verses.toList(),
-          onSave: controller.bookmark,
-          // A searched verse carries `verse`; the note dialog wants the stored id.
-          onNote: (id) => controller.note(id),
+          attribution: '${passage['attribution'] ?? ''}',
         ),
         if ((passage['attribution'] as String? ?? '').isNotEmpty)
           AppText(passage['attribution'] as String, style: theme.textTheme.bodySmall),

@@ -2,11 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/routes/app_pages.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
+import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
+import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/devotion/devotion_controller.dart';
 import 'package:udm_frontend/app/modules/devotion/devotion_view.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
@@ -47,6 +50,17 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the prose is set at the size this device reads at', (tester) async {
+    SharedPreferences.setMockInitialValues({SettingsRepository.readingScaleKey: '1.30'});
+    putAppearance(LocalCache(await SharedPreferences.getInstance()));
+    await openReader(tester);
+
+    expect(
+      tester.widget<Text>(find.text('Listening is taught.')).style!.fontSize,
+      closeTo(18.5 * 1.3, 0.01),
+    );
+  });
 
   testWidgets('marking a devotion read sends it to the server and says so', (tester) async {
     auth = FakeAuthRepository(profile: sampleProfile(), hasSessionValue: true);

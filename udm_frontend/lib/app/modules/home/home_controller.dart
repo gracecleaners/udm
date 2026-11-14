@@ -6,6 +6,8 @@ import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/widgets/state_view.dart';
 import '../../data/models/home_payload.dart';
+import '../../data/models/resume_item.dart';
+import '../../data/models/walk_summary.dart';
 import '../../data/repositories/home_repository.dart';
 import '../content_version/content_version_controller.dart';
 import '../session/session_controller.dart';
@@ -22,6 +24,12 @@ class HomeController extends GetxController with RefetchesOnContentChange {
   final RxString failureMessage = ''.obs;
   final RxBool savingVerse = false.obs;
 
+  /// Where the student stopped in the recordings, and what they have finished.
+  /// Both belong to an account, so both stay empty until there is one, and a
+  /// section that is empty is not drawn.
+  final RxList<ResumeItem> resume = <ResumeItem>[].obs;
+  final RxList<ReadHistoryRow> history = <ReadHistoryRow>[].obs;
+
   HomePayload? get data => payload.value;
 
   bool get isOfflineCopy => payload.value?.fromCache ?? false;
@@ -29,6 +37,9 @@ class HomeController extends GetxController with RefetchesOnContentChange {
   /// The home card's one private action. The verse itself is public copy and
   /// reads without an account; marking it memorized belongs to a person.
   bool get verseMemorized => payload.value?.memoryVerse?.completed ?? false;
+
+  /// Today's list ticks the items this student has already finished.
+  bool isDone(String contentId) => history.any((row) => row.contentId == contentId);
 
   @override
   void onInit() {
@@ -57,6 +68,30 @@ class HomeController extends GetxController with RefetchesOnContentChange {
     } on Failure catch (failure) {
       failureMessage.value = failure.message;
       state.value = ViewState.error;
+    }
+    await loadPrivate();
+  }
+
+  /// The two account-owned rows under the public feed. A failure here is not
+  /// the screen failing: the devotion and the verse still read, so the sections
+  /// simply stay undrawn.
+  Future<void> loadPrivate() async {
+    if (!session.isSignedIn) {
+      resume.clear();
+      history.clear();
+      return;
+    }
+    try {
+      final started = await _home.resume();
+      resume.assignAll(started);
+    } on Failure {
+      resume.clear();
+    }
+    try {
+      final finished = await _home.history();
+      history.assignAll(finished);
+    } on Failure {
+      history.clear();
     }
   }
 

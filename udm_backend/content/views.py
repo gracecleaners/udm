@@ -1,18 +1,17 @@
 from django.db import InterfaceError, OperationalError, connection, transaction
-from django.db.models import Count
-from django.db.models import Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import APIException, NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from .models import (Article, BibleBookmark, BibleBook, BibleChapter, BibleNote, BibleReadingPlan,
                      BibleReadingProgress, BibleTranslation, BibleVerse, ContentVersion,
                      Devotional, DevotionalSeries, DiscipleshipGroup, Event, EventRegistration, Fellowship, GroupMembership,
                      MediaCollection, MediaItem, MediaNote, MediaWatch,
-                     MemoryVerse, PrayerRequest, University, Campus, UserContentProgress,
+                     MemoryVerse, PrayerAffirmation, PrayerComment, PrayerRequest, University, Campus, UserContentProgress,
                      UserMemoryVerseProgress, ResourceStep, ResourceTopic)
 from .serializers import (ArticleSerializer, BibleBookSerializer, BibleBookmarkSerializer,
                           BibleChapterSerializer, BibleNoteSerializer, BiblePlanSerializer,
@@ -20,13 +19,15 @@ from .serializers import (ArticleSerializer, BibleBookSerializer, BibleBookmarkS
                           DevotionalSeriesDetailSerializer, DevotionalSeriesSerializer,
                           HomeSerializer, ProgressSerializer,
                           MediaCollectionDetailSerializer, MediaCollectionSerializer,
-                          MediaItemDetailSerializer, MediaNoteWriteSerializer, MediaWatchWriteSerializer,
+                          MediaItemDetailSerializer, MediaNoteWriteSerializer, MediaResumeSerializer,
+                          MediaWatchWriteSerializer,
                           MemoryVerseSerializer,
                           MemoryVerseProgressSerializer, UniversitySerializer, CampusSerializer,
                           FellowshipSerializer, GroupSerializer, GroupMembershipSerializer,
-                          EventSerializer, PrayerRequestSerializer, PrayerModerationSerializer,
+                          EventSerializer, PrayerRequestSerializer, PrayerCommentSerializer,
+                          PrayerModerationSerializer,
                           ResourceStepSerializer, ResourceTopicDetailSerializer, ResourceTopicSerializer)
-from .services import home_payload, live_media_collections, live_resource_topics
+from .services import day_streak, guide_progress, home_payload, live_media_collections, live_resource_topics
 from .bible_passages import (
     MissingCredential,
     PassageNotFound,
@@ -120,7 +121,10 @@ class HomeView(APIView):
 
     def get(self, request):
         language = request.query_params.get("language", "en")
-        return Response(HomeSerializer(home_payload(request.user, language=language), context={"request": request}).data)
+        return Response(HomeSerializer(
+            home_payload(request.user, language=language),
+            context={"request": request, "guide_progress": guide_progress(request.user)},
+        ).data)
 
 
 class PublishedContentMixin:
@@ -207,12 +211,26 @@ class ResourceTopicListView(PublishedContentMixin, generics.ListAPIView):
         # empty folder, so the home list only ever holds something to open.
         return live_resource_topics()
 
+    def get_serializer_context(self):
+        return {
+            **super().get_serializer_context(),
+            "guide_progress": guide_progress(self.request.user),
+        }
+
 
 class ResourceTopicDetailView(PublishedContentMixin, generics.RetrieveAPIView):
     serializer_class = ResourceTopicDetailSerializer
 
     def get_queryset(self):
         return live_resource_topics()
+
+    def get_serializer_context(self):
+        # The same single pass answers both halves of the screen: the guide's
+        # own bar and which of its steps are already ticked.
+        return {
+            **super().get_serializer_context(),
+            "guide_progress": guide_progress(self.request.user),
+        }
 
 
 class ResourceStepDetailView(PublishedContentMixin, generics.RetrieveAPIView):
@@ -228,6 +246,36 @@ class ProgressView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         return UserContentProgress.objects.filter(user=self.request.user)
+
+
+class ProgressSummaryView(APIView):
+    """The numbers a student sees about their own walk, counted where they live.
+
+    Every figure is a count of rows the app could also list. The streak is the
+    one assembled in `services.day_streak`, because it is a property of the
+    dates rather than of any single table.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        rows = UserContentProgress.objects.filter(user=user)
+        kinds = {row["kind"]: row["count"] for row in rows.values("kind").annotate(count=Count("id"))}
+        progress = guide_progress(user, timezone.now())
+        return Response({
+            "day_streak": day_streak(user),
+            "devotionals_completed": kinds.get(UserContentProgress.Kind.DEVOTIONAL, 0),
+            "articles_completed": kinds.get(UserContentProgress.Kind.ARTICLE, 0),
+            "steps_completed": kinds.get(UserContentProgress.Kind.RESOURCE_STEP, 0),
+            "guides_completed": sum(
+                1 for total, finished in progress.per_topic.values() if total == finished > 0
+            ),
+            "videos_watched": MediaWatch.objects.filter(user=user, completed_at__isnull=False).count(),
+            "bookmarks": BibleBookmark.objects.filter(user=user).count(),
+            "notes": BibleNote.objects.filter(user=user).count(),
+            "plan_days_completed": BibleReadingProgress.objects.filter(user=user).count(),
+        })
 
 
 class BibleTranslationsView(generics.ListAPIView):
@@ -575,6 +623,28 @@ class MediaWatchView(MediaItemOwnedMixin, APIView):
         })
 
 
+class MediaResumeView(APIView):
+    """Recordings this student started and has not finished, most recent first.
+
+    A watch row whose recording has since been unpublished is skipped rather
+    than offered: the app would open on a recording the ministry withdrew.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        watches = (
+            MediaWatch.objects.filter(
+                user=request.user, completed_at__isnull=True, item__in=MediaItem.objects.published()
+            )
+            .select_related("item", "item__collection")
+            .order_by("-updated_at")[:6]
+        )
+        return Response(
+            MediaResumeSerializer(watches, many=True, context={"request": request}).data
+        )
+
+
 class MemoryVerseListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MemoryVerseSerializer
@@ -738,6 +808,30 @@ class EventRegistrationListView(generics.ListAPIView):
         return Event.objects.filter(registrations__user=self.request.user).select_related("campus").distinct()
 
 
+def visible_prayers(user):
+    """Every request this student may read: the wall, their groups, their own.
+
+    The feed, the affirmations and the comments all ask the same question, so
+    the rule is stated once and nothing can be affirmed or answered behind the
+    moderation queue's back.
+    """
+    shared = Q(
+        visibility=PrayerRequest.Visibility.PUBLIC,
+        moderation_state=PrayerRequest.ModerationState.APPROVED,
+        share_consent=True,
+    )
+    if user.is_authenticated:
+        shared |= Q(
+            visibility=PrayerRequest.Visibility.GROUP,
+            moderation_state=PrayerRequest.ModerationState.APPROVED,
+            share_consent=True,
+            group__memberships__user=user,
+            group__memberships__status=GroupMembership.Status.APPROVED,
+        )
+        shared |= Q(owner=user)
+    return PrayerRequest.objects.filter(shared)
+
+
 class PrayerRequestListCreateView(generics.ListCreateAPIView):
     serializer_class = PrayerRequestSerializer
 
@@ -747,17 +841,26 @@ class PrayerRequestListCreateView(generics.ListCreateAPIView):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        shared = Q(visibility=PrayerRequest.Visibility.PUBLIC, moderation_state=PrayerRequest.ModerationState.APPROVED, share_consent=True)
+        # `?category=` is the feed's filter row. A value the model does not
+        # know is refused rather than silently answering with everything.
+        queryset = visible_prayers(self.request.user).select_related("owner", "group")
+        category = self.request.query_params.get("category")
+        if category:
+            if category not in PrayerRequest.Category.values:
+                raise ValidationError({"category": "Choose a wall the ministry knows about."})
+            queryset = queryset.filter(category=category)
         if self.request.user.is_authenticated:
-            shared |= Q(
-                visibility=PrayerRequest.Visibility.GROUP,
-                moderation_state=PrayerRequest.ModerationState.APPROVED,
-                share_consent=True,
-                group__memberships__user=self.request.user,
-                group__memberships__status=GroupMembership.Status.APPROVED,
+            queryset = queryset.annotate(
+                viewer_affirmed=Exists(
+                    PrayerAffirmation.objects.filter(prayer=OuterRef("pk"), user=self.request.user)
+                )
             )
-            shared |= Q(owner=self.request.user)
-        return PrayerRequest.objects.filter(shared).select_related("group").distinct()
+        return queryset.annotate(
+            affirmation_count=Count("affirmations", distinct=True),
+            comment_count=Count("comments", distinct=True),
+            # An aggregate query discards the model's default ordering, so the
+            # wall's own order is restated here.
+        ).order_by("-created_at")
 
 
 class PrayerRequestDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -766,6 +869,71 @@ class PrayerRequestDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return PrayerRequest.objects.filter(owner=self.request.user)
+
+
+class PrayerAffirmationView(APIView):
+    """"I am praying for this", once per person per request.
+
+    Recording the same promise twice would not make it stronger, so the write
+    is idempotent and both verbs answer with the pair of numbers the wall
+    shows, which lets the app update the card without refetching the feed.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        prayer = get_object_or_404(visible_prayers(request.user), pk=pk)
+        PrayerAffirmation.objects.get_or_create(prayer=prayer, user=request.user)
+        return self._answer(prayer, affirmed=True)
+
+    def delete(self, request, pk):
+        prayer = get_object_or_404(visible_prayers(request.user), pk=pk)
+        PrayerAffirmation.objects.filter(prayer=prayer, user=request.user).delete()
+        return self._answer(prayer, affirmed=False)
+
+    def _answer(self, prayer, affirmed):
+        return Response({"affirmed": affirmed, "count": prayer.affirmations.count()})
+
+
+class PrayerCommentListView(APIView):
+    """The words under a request, for whoever can see the request at all."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        prayer = get_object_or_404(visible_prayers(request.user), pk=pk)
+        comments = prayer.comments.select_related("user").order_by("-created_at")
+        return Response(PrayerCommentSerializer(comments, many=True, context={"request": request}).data)
+
+    def post(self, request, pk):
+        prayer = get_object_or_404(visible_prayers(request.user), pk=pk)
+        serializer = PrayerCommentSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        comment = PrayerComment.objects.create(
+            prayer=prayer, user=request.user, body=serializer.validated_data["body"]
+        )
+        return Response(
+            PrayerCommentSerializer(comment, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PrayerCommentDetailView(APIView):
+    """Only the writer takes their own word back.
+
+    Staff act on the request through the moderation queue, which is the same
+    level of control they have over the prayer itself; a comment on an approved
+    request is not separately censored.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk, comment_id):
+        comment = get_object_or_404(PrayerComment.objects.filter(prayer_id=pk), pk=comment_id)
+        if comment.user_id != request.user.id:
+            raise PermissionDenied("Only the person who wrote this can remove it.")
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PrayerModerationView(APIView):

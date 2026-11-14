@@ -1,11 +1,23 @@
 """Content business rules, kept out of serializers and views."""
 
 import logging
+from collections import namedtuple
+from datetime import timedelta
 
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from .models import Article, Devotional, MediaCollection, MemoryVerse, ResourceTopic
+from .models import (
+    Article,
+    BibleReadingProgress,
+    Devotional,
+    MediaCollection,
+    MediaWatch,
+    MemoryVerse,
+    ResourceStep,
+    ResourceTopic,
+    UserContentProgress,
+)
 
 logger = logging.getLogger("udm")
 
@@ -36,6 +48,30 @@ def greeting_for(user, now=None, language="en"):
     if user is not None and user.is_authenticated:
         return f"{base}, {user.display_name}"
     return base
+
+
+def day_streak(user, on_now=None):
+    """Consecutive days this student has done something with the app's content.
+
+    A streak counts any of the three ways a day can be a study day — a finished
+    reading, a recording watched through, a plan day ticked — because the point
+    is the habit, not which table it landed in. A day that has just started is
+    not yet a break: yesterday still holds the streak until today is missed too.
+    """
+    days = set()
+    for model in (UserContentProgress, MediaWatch, BibleReadingProgress):
+        for value in model.objects.filter(user=user).values_list("completed_at", flat=True):
+            if value is not None:
+                days.add(timezone.localdate(value))
+    if not days:
+        return 0
+    today = on_now or timezone.localdate()
+    cursor = today if today in days else today - timedelta(days=1)
+    streak = 0
+    while cursor in days:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
 
 
 def todays_devotional(on_now=None):
@@ -77,6 +113,36 @@ def live_resource_topics(on_now=None):
         .filter(step_count__gt=0)
         .order_by("order", "created_at")
     )
+
+
+GuideProgress = namedtuple("GuideProgress", "per_topic finished_steps")
+
+
+def guide_progress(user, on_now=None):
+    """How far each live guide has been read, for one student.
+
+    One pass over the published steps rather than a query per guide: a campus
+    with a hundred guides should not cost a hundred round trips to answer one
+    number. `per_topic` maps a guide id to its `[live, finished]` pair and
+    `finished_steps` holds the step ids this student has ticked, which is what
+    lets a guide's own step list say which rows are done without another read.
+    An anonymous visitor has finished nothing, so the pairs stay honest totals.
+    """
+    now = on_now or timezone.now()
+    finished = set()
+    if user is not None and user.is_authenticated:
+        finished = set(
+            UserContentProgress.objects.filter(
+                user=user, kind=UserContentProgress.Kind.RESOURCE_STEP
+            ).values_list("content_id", flat=True)
+        )
+    per_topic = {}
+    for step_id, topic_id in ResourceStep.objects.published(now).values_list("id", "topic_id"):
+        counts = per_topic.setdefault(topic_id, [0, 0])
+        counts[0] += 1
+        if step_id in finished:
+            counts[1] += 1
+    return GuideProgress(per_topic=per_topic, finished_steps=finished)
 
 
 def media_file_url(upload, request):

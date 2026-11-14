@@ -134,15 +134,28 @@ class AppTypography {
 
   /// Reading faces. Scripture and devotion bodies are set in a serif on purpose:
   /// the eye treats it differently from chrome, and the app should too.
-  static TextStyle scriptureBody(Color primary) => TextStyle(
+  ///
+  /// The student's reading size lives here as one number that
+  /// `AppearanceController` writes, rather than being asked for by every screen
+  /// that sets prose: a reader view then needs no dependency to be sized, and
+  /// prose in the reading face can never quietly skip the preference.
+  static double readingScale = 1;
+
+  /// Body prose. This is the one style the reading-size setting reaches, so
+  /// anything set with it is something the student is meant to settle into and
+  /// read for a while.
+  static TextStyle scriptureBody(Color primary, {double baseSize = 18.5, double? scale}) => TextStyle(
         fontFamily: AppFonts.scripture,
-        fontSize: 18.5,
+        fontSize: baseSize * (scale ?? readingScale),
         height: 1.75,
         fontWeight: FontWeight.w400,
         color: primary,
         letterSpacing: 0.1,
       );
 
+  /// Display scripture — a pulled verse, a monogram, a card title. Set at a
+  /// fixed size on purpose: these sit inside artwork and boxes that were
+  /// proofed at that size, and a card is glanced at, not read through.
   static TextStyle scriptureVerse(Color primary, {double size = 22}) => TextStyle(
         fontFamily: AppFonts.scripture,
         fontSize: size,

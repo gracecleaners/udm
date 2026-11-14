@@ -13,6 +13,7 @@ class ResourceTopic {
     this.summary = '',
     this.order = 1,
     this.stepCount = 0,
+    this.stepsCompleted = 0,
     this.steps = const [],
     this.cachedAt,
     this.fromCache = false,
@@ -24,10 +25,18 @@ class ResourceTopic {
   final String summary;
   final int order;
   final int stepCount;
+
+  /// How many of those steps this student has finished, counted by the server
+  /// against the same live rows `stepCount` promises. Zero for anybody who has
+  /// not started and for a visitor with no account at all.
+  final int stepsCompleted;
   final List<ResourceStep> steps;
   final DateTime? cachedAt;
   final bool fromCache;
   final int? contentVersion;
+
+  double get fractionComplete =>
+      stepCount <= 0 ? 0 : (stepsCompleted / stepCount).clamp(0.0, 1.0);
 
   /// Two letters for the row badge; the guides are named, not photographed.
   String get monogram => title
@@ -43,6 +52,7 @@ class ResourceTopic {
         summary: json['summary'] as String? ?? '',
         order: (json['order'] as num?)?.toInt() ?? 1,
         stepCount: (json['step_count'] as num?)?.toInt() ?? 0,
+        stepsCompleted: (json['steps_completed'] as num?)?.toInt() ?? 0,
         steps: (json['steps'] as List<dynamic>? ?? [])
             .whereType<Map<String, dynamic>>()
             .map(ResourceStep.fromJson)
@@ -60,6 +70,7 @@ class ResourceTopic {
         'summary': summary,
         'order': order,
         'step_count': stepCount,
+        'steps_completed': stepsCompleted,
         'steps': steps.map((step) => step.toJson()).toList(),
         'cached_at': cachedAt?.toIso8601String(),
         'from_cache': fromCache,
@@ -72,6 +83,7 @@ class ResourceTopic {
         summary: summary,
         order: order,
         stepCount: stepCount,
+        stepsCompleted: stepsCompleted,
         steps: steps,
         cachedAt: moment,
         contentVersion: version,
@@ -83,6 +95,7 @@ class ResourceTopic {
         summary: summary,
         order: order,
         stepCount: stepCount,
+        stepsCompleted: stepsCompleted,
         steps: steps,
         cachedAt: cachedAt,
         fromCache: true,

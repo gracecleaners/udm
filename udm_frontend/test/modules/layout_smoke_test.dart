@@ -57,6 +57,7 @@ void main() {
       AppLanguageController(SettingsRepository(cache)),
       permanent: true,
     );
+    putAppearance(cache);
     Get.put<ContentVersionController>(ContentVersionController(api), permanent: true);
     Get.put<SettingsRepository>(SettingsRepository(cache), permanent: true);
     Get.put<HomeRepository>(FakeHomeRepository(payload: sampleHome()), permanent: true);
@@ -68,7 +69,10 @@ void main() {
       FakeMediaRepository(
         shelfRows: sampleMediaShelves(),
         shelfRow: sampleMediaShelves().first,
-        itemRow: sampleRecording(),
+        // No embed id: the recording's player needs a platform WebView, which a
+        // widget test never has. What is judged here is the screen the student
+        // sees when there is nothing to embed.
+        itemRow: sampleRecording(youtubeVideoId: null),
       ),
       permanent: true,
     );
@@ -104,7 +108,7 @@ void main() {
   /// A screen is only laid out as far as the student has scrolled, and these
   /// lists build their rows lazily, so every scroller on the page is walked to
   /// its end before the page is judged.
-  Future<void> scrollEverything(WidgetTester tester) async {
+  Future<void> scrollEverything(WidgetTester tester, String label) async {
     for (var pass = 0; pass < 2; pass++) {
       final scrollers = find.byType(Scrollable);
       final count = scrollers.evaluate().length;
@@ -117,13 +121,12 @@ void main() {
           }
         } catch (_) {
           // A scroller that has left the tree mid-walk is not a layout
-          // failure. The assertion after this walk is the verdict.
+          // failure; the assertion after the walk is the verdict.
         }
       }
     }
     await tester.pumpAndSettle();
-    // The layout error, if any, is left unhandled on purpose: the test then
-    // fails with the rendering library's own report of the widget at fault.
+    expect(tester.takeException(), isNull, reason: '$label could not be laid out');
   }
 
   /// Opens one screen the way the feed does — pushed by name with its id —
@@ -134,59 +137,64 @@ void main() {
     Map<String, dynamic> arguments,
     String label,
   ) async {
-    debugPrint('layout: $label');
     Get.toNamed(route, arguments: arguments);
     await tester.pumpAndSettle();
-    await scrollEverything(tester);
+    await scrollEverything(tester, label);
     Get.back();
     await tester.pumpAndSettle();
   }
 
   for (final theme in [AppTheme.light, AppTheme.dark]) {
     for (final size in [smallPhone, largePhone]) {
-      final where = '${size.width.toInt()}dp ${theme.brightness.name}';
+      final where = 'on ${size.width.toInt()}dp ${theme.brightness.name}';
 
-      testWidgets('every tab lays out on $where', (tester) async {
+      testWidgets('every tab lays out $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
         for (var tab = 0; tab < ShellView.tabs.length; tab++) {
-          debugPrint('layout: tab $tab');
           Get.find<ShellController>().select(tab);
           await tester.pumpAndSettle();
-          await scrollEverything(tester);
+          await scrollEverything(tester, 'tab $tab $where');
         }
       });
 
-      testWidgets('the reading screens keep their shape on $where', (tester) async {
+      testWidgets('the reading screens keep their shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
-        await visit(tester, AppRoutes.devotion, {RouteArgs.devotionId: 'd1'}, 'devotion');
-        await visit(tester, AppRoutes.devotionSeries, {RouteArgs.seriesId: 's1'}, 'series');
-        await visit(tester, AppRoutes.article, {RouteArgs.articleId: 'a1'}, 'article');
+        await visit(tester, AppRoutes.devotion, {RouteArgs.devotionId: 'd1'}, 'devotion $where');
+        await visit(tester, AppRoutes.devotionSeries, {RouteArgs.seriesId: 's1'}, 'series $where');
+        await visit(tester, AppRoutes.article, {RouteArgs.articleId: 'a1'}, 'article $where');
       });
 
-      testWidgets('a guide and its steps keep their shape on $where', (tester) async {
+      testWidgets('a guide and its steps keep their shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
-        await visit(tester, AppRoutes.resourceTopic, {RouteArgs.resourceTopicId: 'r1'}, 'guide');
-        await visit(tester, AppRoutes.resourceStep, {RouteArgs.resourceStepId: 's2'}, 'step');
+        await visit(tester, AppRoutes.resourceTopic, {RouteArgs.resourceTopicId: 'r1'}, 'guide $where');
+        await visit(tester, AppRoutes.resourceStep, {RouteArgs.resourceStepId: 's2'}, 'step $where');
       });
 
-      testWidgets('a shelf and its recording keep their shape on $where', (tester) async {
+      testWidgets('a shelf and its recording keep their shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
-        await visit(tester, AppRoutes.mediaCollection, {RouteArgs.mediaCollectionId: 'c1'}, 'shelf');
-        await visit(tester, AppRoutes.mediaItem, {RouteArgs.mediaItemId: 'm1'}, 'recording');
+        await visit(tester, AppRoutes.mediaCollection, {RouteArgs.mediaCollectionId: 'c1'}, 'shelf $where');
+        await visit(tester, AppRoutes.mediaItem, {RouteArgs.mediaItemId: 'm1'}, 'recording $where');
       });
 
-      testWidgets('sign in and registration keep their shape on $where', (tester) async {
+      testWidgets('sign in and registration keep their shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
-        await visit(tester, AppRoutes.signIn, const {}, 'sign in');
-        await visit(tester, AppRoutes.register, const {}, 'register');
+        await visit(tester, AppRoutes.signIn, const {}, 'sign in $where');
+        await visit(tester, AppRoutes.register, const {}, 'register $where');
       });
 
-      testWidgets('onboarding keeps its shape on $where', (tester) async {
+      testWidgets('the account screens keep their shape $where', (tester) async {
+        await openApp(tester, size: size, theme: theme);
+
+        await visit(tester, AppRoutes.readingHistory, const {}, 'reading history $where');
+        await visit(tester, AppRoutes.settings, const {}, 'settings $where');
+      });
+
+      testWidgets('onboarding keeps its shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
         Get.toNamed(AppRoutes.onboarding);
@@ -194,18 +202,18 @@ void main() {
         for (var slide = 0; slide < OnboardingController.slides.length; slide++) {
           Get.find<OnboardingController>().next();
           await tester.pumpAndSettle();
-          await scrollEverything(tester);
+          await scrollEverything(tester, 'slide $slide $where');
         }
       });
 
-      testWidgets('a signed-out profile keeps its shape on $where', (tester) async {
+      testWidgets('a signed-out profile keeps its shape $where', (tester) async {
         await openApp(tester, size: size, theme: theme);
 
         Get.find<ShellController>().select(ShellController.profileTab);
         await tester.pumpAndSettle();
         await Get.find<SessionController>().signOut();
         await tester.pumpAndSettle();
-        await scrollEverything(tester);
+        await scrollEverything(tester, 'signed-out profile $where');
       });
     }
   }

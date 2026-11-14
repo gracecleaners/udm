@@ -127,6 +127,12 @@ class Devotional(PublishableModel):
         help_text="Day number within the series. Empty sorts first, which is where an Introduction belongs.",
     )
     scripture_reference = models.CharField(max_length=120)
+    image = models.ImageField(
+        upload_to="devotionals/",
+        null=True,
+        blank=True,
+        help_text="The picture this devotion opens on. Leave empty and the app paints its brand tile.",
+    )
     reflection_questions = models.JSONField(default=list, blank=True)
     application = models.TextField(blank=True)
     prayer = models.TextField(blank=True)
@@ -149,6 +155,12 @@ class Devotional(PublishableModel):
 
 class Article(PublishableModel):
     category = models.CharField(max_length=80, blank=True)
+    image = models.ImageField(
+        upload_to="articles/",
+        null=True,
+        blank=True,
+        help_text="The picture on this article's card. Leave empty and the app paints its brand tile.",
+    )
     localized_fields = PublishableModel.localized_fields + ("category",)
 
     class Meta:
@@ -281,6 +293,12 @@ class MemoryVerse(LocalizedModel):
     translation_code = models.CharField(max_length=16, default="kjv")
     attribution = models.CharField(max_length=200, blank=True)
     prompt = models.CharField(max_length=220, blank=True)
+    image = models.ImageField(
+        upload_to="memory_verses/",
+        null=True,
+        blank=True,
+        help_text="The scene this verse is set over on the home feed and the share card.",
+    )
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     is_published = models.BooleanField(default=False)
@@ -786,9 +804,21 @@ class PrayerRequest(TimestampedModel):
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Not approved"
 
+    class Category(models.TextChoices):
+        """Which wall of the community a shared request belongs on.
+
+        The app filters its feed by these, and staff can correct a mis-filed
+        request without editing the student's words.
+        """
+
+        PRAYER = "prayer", "Prayer"
+        TESTIMONY = "testimony", "Testimony"
+        ENCOURAGEMENT = "encouragement", "Encouragement"
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="prayer_requests")
     group = models.ForeignKey(DiscipleshipGroup, on_delete=models.SET_NULL, null=True, blank=True, related_name="prayer_requests")
     body = models.TextField()
+    category = models.CharField(max_length=16, choices=Category.choices, default=Category.PRAYER)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PRIVATE)
     share_consent = models.BooleanField(default=False)
     moderation_state = models.CharField(max_length=12, choices=ModerationState.choices, default=ModerationState.PENDING)
@@ -804,6 +834,43 @@ class PrayerRequest(TimestampedModel):
             raise ValidationError({"group": "Choose the group that may see this request."})
         if self.visibility != self.Visibility.GROUP and self.group_id is not None:
             raise ValidationError({"group": "A group can only be selected for group sharing."})
+
+
+class PrayerAffirmation(TimestampedModel):
+    """One student saying "I am praying for this" about one request.
+
+    It is deliberately not a like: the count is a promise kept for somebody, and
+    a person can only make it once per request.
+    """
+
+    prayer = models.ForeignKey(PrayerRequest, on_delete=models.CASCADE, related_name="affirmations")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="prayer_affirmations")
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["prayer", "user"], name="unique_prayer_affirmation"),
+        ]
+
+
+class PrayerComment(TimestampedModel):
+    """A word of encouragement under a shared request, from someone who can see it.
+
+    Only the author can take one back. Staff act on the request itself through
+    the moderation queue, which is the same rule the request follows.
+    """
+
+    prayer = models.ForeignKey(PrayerRequest, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="prayer_comments")
+    body = models.TextField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        super().clean()
+        if not self.body.strip():
+            raise ValidationError({"body": "Write a word before posting it."})
 
 
 class ContentVersion(models.Model):

@@ -300,6 +300,7 @@ div.console-child-dialog { max-width: min(1180px, calc(100vw - 3rem)); }
 .console-prayer-body { margin: 0; color: #25303c; font-size: 14px; line-height: 1.68; overflow-wrap: anywhere; }
 .console-prayer-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .console-prayer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button.console-prayer-wall-select { width: 176px; height: 34px; border-color: #dce5ee; background: #fff; color: #25303c; font-size: 12.5px; font-weight: 600; }
 
 /* Account page (native controls) */
 .console-definition { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 18px; margin: 0; }

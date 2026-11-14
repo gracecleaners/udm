@@ -21,6 +21,12 @@ const config: ResourceConfig = {
       ),
     },
     { header: "Category", cell: (row) => String(row.category || "—") },
+    {
+      header: "Cover",
+      cell: (row) => (
+        <span className="console-cell-sub">{row.image_url ? "Image uploaded" : "No cover image"}</span>
+      ),
+    },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
     { header: "Publish date", cell: (row) => dateText(row.publish_at) },
     { header: "Length", cell: (row) => countText(row.reading_minutes, "min") },
@@ -38,6 +44,12 @@ const config: ResourceConfig = {
     { name: "excerpt", label: "Excerpt", type: "textarea" },
     { name: "body", label: "Body", type: "textarea", required: true },
     { name: "reading_minutes", label: "Reading time", type: "number", default: 5 },
+    {
+      name: "image",
+      label: "Cover image",
+      type: "image",
+      help: "Optional artwork shown with the article. Uploading a picture replaces the one on the server.",
+    },
     {
       name: "publish_at",
       label: "Publish date",

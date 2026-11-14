@@ -11,6 +11,7 @@ class Devotional {
     this.prayer = '',
     this.memoryScriptureReference = '',
     this.readingMinutes = 5,
+    this.imageUrl = '',
     this.publishAt,
   });
 
@@ -25,6 +26,10 @@ class Devotional {
   final String prayer;
   final String memoryScriptureReference;
   final int readingMinutes;
+
+  /// Artwork the ministry chose for this devotion. Empty means none was
+  /// uploaded, which the cards read as the brand tile, not a broken image.
+  final String imageUrl;
   final DateTime? publishAt;
 
   bool get hasQuestions => reflectionQuestions.isNotEmpty;
@@ -43,6 +48,7 @@ class Devotional {
         prayer: json['prayer'] as String? ?? '',
         memoryScriptureReference: json['memory_scripture_reference'] as String? ?? '',
         readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 5,
+        imageUrl: json['image_url'] as String? ?? '',
         publishAt: json['publish_at'] == null ? null : DateTime.tryParse(json['publish_at'] as String),
       );
 
@@ -58,6 +64,7 @@ class Devotional {
         'prayer': prayer,
         'memory_scripture_reference': memoryScriptureReference,
         'reading_minutes': readingMinutes,
+        'image_url': imageUrl,
         'publish_at': publishAt?.toIso8601String(),
       };
 }

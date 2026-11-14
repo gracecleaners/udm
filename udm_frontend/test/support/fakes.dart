@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
+import 'package:get/get.dart';
+import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/storage/token_store.dart';
 import 'package:udm_frontend/app/data/models/article.dart';
@@ -13,8 +15,10 @@ import 'package:udm_frontend/app/data/models/home_payload.dart';
 import 'package:udm_frontend/app/data/models/memory_verse.dart';
 import 'package:udm_frontend/app/data/models/resource_step.dart';
 import 'package:udm_frontend/app/data/models/resource_topic.dart';
+import 'package:udm_frontend/app/data/models/resume_item.dart';
 import 'package:udm_frontend/app/data/models/session.dart';
 import 'package:udm_frontend/app/data/models/user_profile.dart';
+import 'package:udm_frontend/app/data/models/walk_summary.dart';
 import 'package:udm_frontend/app/data/providers/udm_api.dart';
 import 'package:udm_frontend/app/data/repositories/auth_repository.dart';
 import 'package:udm_frontend/app/data/repositories/content_repository.dart';
@@ -22,8 +26,10 @@ import 'package:udm_frontend/app/data/repositories/devotions_repository.dart';
 import 'package:udm_frontend/app/data/repositories/home_repository.dart';
 import 'package:udm_frontend/app/data/repositories/media_repository.dart';
 import 'package:udm_frontend/app/data/repositories/resources_repository.dart';
+import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
+import 'package:udm_frontend/app/modules/settings/appearance_controller.dart';
 
 /// Test payload shaped exactly like `/api/v1/home/`.
 HomePayload sampleHome() => HomePayload(
@@ -131,6 +137,37 @@ List<DevotionSeries> sampleSeriesGrid() => const [
     dayCount: 7,
   ),
   DevotionSeries(id: 's2', title: 'Christmas', order: 2, dayCount: 1),
+];
+
+/// What `/api/v1/devotions/` answers for the Devotions tab: the devotionals the
+/// ministry publishes on their own, newest first, so the first row is the
+/// day's reading and the rest sit behind it. One carries art on the ministry's
+/// host, one has none at all, and one has neither an excerpt nor a picture.
+List<Devotional> sampleDevotionalFeed() => const [
+  Devotional(
+    id: 'd10',
+    title: 'Trust God in Every Season',
+    scriptureReference: 'Ecclesiastes 3:1',
+    excerpt: 'To every thing there is a season.',
+    body: 'There is a time for everything.\n\nTrust is what makes a season bear.',
+    imageUrl: 'https://files.udm.ac.ug/devotions/seasons.jpg',
+    readingMinutes: 4,
+  ),
+  Devotional(
+    id: 'd9',
+    title: 'A Heart That Listens',
+    scriptureReference: '1 Samuel 3:1-10',
+    excerpt: 'Listening is taught, not caught.',
+    body: 'Eli was half asleep.\n\nListening is taught.',
+    readingMinutes: 5,
+  ),
+  Devotional(
+    id: 'd8',
+    title: 'Salt and Light',
+    scriptureReference: 'Matthew 5:13-16',
+    body: 'You are the salt of the earth.',
+    readingMinutes: 6,
+  ),
 ];
 
 
@@ -258,6 +295,18 @@ class FakeUdmApi implements UdmApi {
 
   @override
   Future<Devotional> devotion(String id) async => sampleHome().devotion!;
+
+  /// What `/devotions/` answers: the devotionals the ministry publishes on
+  /// their own, newest first, which is what the Devotions tab opens on.
+  List<Devotional> devotionalRows = sampleDevotionalFeed();
+  int devotionalCalls = 0;
+
+  @override
+  Future<List<Devotional>> devotionals() async {
+    devotionalCalls++;
+    if (failure != null) throw failure!;
+    return devotionalRows;
+  }
 
   @override
   Future<Article> article(String id) async => sampleHome().articles.first;
@@ -441,6 +490,12 @@ class FakeShellApi implements UdmApi {
   Future<List<DevotionSeries>> devotionSeries() async => sampleSeriesGrid();
 
   @override
+  Future<List<Devotional>> devotionals() async => sampleDevotionalFeed();
+
+  @override
+  Future<List<ResumeItem>> mediaResume() async => const [];
+
+  @override
   Future<DevotionSeries> devotionSeriesDetail(String id) async => sampleSeriesDetail();
 
   @override
@@ -502,6 +557,17 @@ class FakeHomeRepository implements HomeRepository {
   /// asked to send them.
   final List<String> memorized = [];
 
+  /// The private rows under the public feed. Empty is the anonymous answer, and
+  /// the screen reads an empty list as no section at all.
+  List<ResumeItem> started = const [];
+  List<ReadHistoryRow> finished = const [];
+
+  /// The account's own numbers, as `/progress/summary/` answers them.
+  WalkSummary numbers = const WalkSummary();
+  Failure? summaryFailure;
+  int summaryCalls = 0;
+  int historyCalls = 0;
+
   @override
   Future<HomePayload> load() async {
     loadCalls++;
@@ -514,6 +580,23 @@ class FakeHomeRepository implements HomeRepository {
   Future<void> markVerseMemorized(String verseId) async {
     if (memorizeFailure != null) throw memorizeFailure!;
     memorized.add(verseId);
+  }
+
+  @override
+  Future<List<ResumeItem>> resume() async => started;
+
+  @override
+  Future<List<ReadHistoryRow>> history() async {
+    historyCalls++;
+    if (failure != null) throw failure!;
+    return finished;
+  }
+
+  @override
+  Future<WalkSummary> summary() async {
+    summaryCalls++;
+    if (summaryFailure != null) throw summaryFailure!;
+    return numbers;
   }
 
   @override
@@ -708,16 +791,28 @@ class FakeContentVersionController extends ContentVersionController {
 }
 
 class FakeDevotionsRepository implements DevotionsRepository {
-  FakeDevotionsRepository({this.gridRows = const [], this.seriesRow, this.cachedRows, this.failure});
+  FakeDevotionsRepository({
+    this.gridRows = const [],
+    this.seriesRow,
+    this.cachedRows,
+    this.devotionalRows = const [],
+    this.cachedDevotionalRows,
+    this.failure,
+  });
 
   List<DevotionSeries> gridRows;
   DevotionSeries? seriesRow;
+
+  /// What `/devotions/` answers: the day's reading and the ones behind it.
+  List<Devotional> devotionalRows;
+  List<Devotional>? cachedDevotionalRows;
 
   /// What this device saved on an earlier visit.
   List<DevotionSeries>? cachedRows;
 
   Failure? failure;
   int gridCalls = 0;
+  int devotionalCalls = 0;
 
   @override
   Future<List<DevotionSeries>> grid() async {
@@ -727,6 +822,16 @@ class FakeDevotionsRepository implements DevotionsRepository {
       throw failure!;
     }
     return gridRows;
+  }
+
+  @override
+  Future<List<Devotional>> devotionals() async {
+    devotionalCalls++;
+    if (failure != null) {
+      if (cachedDevotionalRows != null) return cachedDevotionalRows!;
+      throw failure!;
+    }
+    return devotionalRows;
   }
 
   @override
@@ -741,6 +846,9 @@ class FakeDevotionsRepository implements DevotionsRepository {
 
   @override
   List<DevotionSeries>? cachedGrid() => cachedRows;
+
+  @override
+  List<Devotional>? cachedDevotionals() => cachedDevotionalRows;
 
   @override
   DevotionSeries? cachedSeries(String id) =>
@@ -772,6 +880,10 @@ class FakeMediaRepository implements MediaRepository {
   Failure? noteFailure;
   Failure? watchFailure;
   int shelvesCalls = 0;
+
+  /// What the student's own account says they stopped partway through.
+  List<ResumeItem> resumeRows = const [];
+  int resumeCalls = 0;
 
   /// Every note and every place the app tried to save, in order.
   final List<({String id, String text})> savedNotes = [];
@@ -828,6 +940,13 @@ class FakeMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<ResumeItem>> resume() async {
+    resumeCalls++;
+    if (failure != null) throw failure!;
+    return resumeRows;
+  }
+
+  @override
   List<MediaCollection>? cachedShelves() => cachedShelfRows;
 
   @override
@@ -856,10 +975,14 @@ class FakeResourcesRepository implements ResourcesRepository {
   ResourceTopic? cachedTopicRow;
 
   Failure? failure;
+
+  /// How often the list of guides was asked for, as against one guide opened.
+  int topicsCalls = 0;
   int topicCalls = 0;
 
   @override
   Future<List<ResourceTopic>> topics() async {
+    topicsCalls++;
     if (failure != null) {
       if (cachedTopicRows != null) return cachedTopicRows!;
       throw failure!;
@@ -884,3 +1007,10 @@ class FakeResourcesRepository implements ResourcesRepository {
   @override
   ResourceTopic? cachedTopic(String id) => cachedTopicRow?.id == id ? cachedTopicRow : null;
 }
+
+/// The device looks every reading screen now asks for: light or dark, and how
+/// large the text is. Registered permanently, the way the app registers it
+/// before the first frame, because a screen that reads a preference has no
+/// business inventing one.
+AppearanceController putAppearance(LocalCache cache) =>
+    Get.put(AppearanceController(SettingsRepository(cache)), permanent: true);

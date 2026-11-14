@@ -5,6 +5,7 @@ import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
 import 'package:udm_frontend/app/data/models/media_collection.dart';
+import 'package:udm_frontend/app/data/models/resume_item.dart';
 import 'package:udm_frontend/app/data/repositories/media_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/media/learn_controller.dart';
@@ -31,6 +32,7 @@ void main() {
     List<MediaCollection> rows = const [],
     List<MediaCollection>? cachedRows,
     MediaCollection? shelfRow,
+    List<ResumeItem> resumeRows = const [],
     Failure? failure,
   }) async {
     final repository = FakeMediaRepository(
@@ -38,7 +40,7 @@ void main() {
       cachedShelfRows: cachedRows,
       shelfRow: shelfRow,
       failure: failure,
-    );
+    )..resumeRows = resumeRows;
     Get.put<MediaRepository>(repository, permanent: true);
     Get.put<ContentVersionController>(FakeContentVersionController(), permanent: true);
     register?.call();
@@ -68,6 +70,8 @@ void main() {
     List<MediaCollection> rows = const [],
     List<MediaCollection>? cachedRows,
     MediaCollection? shelfRow,
+    List<ResumeItem> resumeRows = const [],
+    bool signedIn = false,
     Failure? failure,
   }) {
     return pumpMedia(
@@ -76,11 +80,14 @@ void main() {
       // The type is written out: GetX keys an instance by the type argument,
       // and this closure's void context would infer a different one.
       register: () {
-        Get.put<LearnController>(LearnController(Get.find<MediaRepository>()));
+        Get.put<LearnController>(
+          LearnController(Get.find<MediaRepository>(), fakeSession(signedIn: signedIn)),
+        );
       },
       rows: rows,
       cachedRows: cachedRows,
       shelfRow: shelfRow,
+      resumeRows: resumeRows,
       failure: failure,
     );
   }
@@ -234,10 +241,54 @@ void main() {
   testWidgets('pull to refresh asks the server again', (tester) async {
     final repository = await pumpLearn(tester, rows: sampleMediaShelves());
 
-    await tester.drag(find.byType(ListView), const Offset(0, 260));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 260));
     await tester.pumpAndSettle();
 
     expect(repository.shelvesCalls, greaterThan(1));
+  });
+
+  testWidgets('a signed-in student picks up the recording they stopped', (tester) async {
+    final repository = await pumpLearn(
+      tester,
+      rows: sampleMediaShelves(),
+      signedIn: true,
+      resumeRows: const [
+        ResumeItem(
+          id: 'm1',
+          title: 'True faith sides with God | Hebrews 11:29-31',
+          durationSeconds: 940,
+          positionSeconds: 640,
+          collectionTitle: 'SOMA',
+        ),
+      ],
+    );
+
+    expect(find.text('PICK UP WHERE YOU STOPPED'), findsOneWidget);
+    expect(find.text('Continue watching'), findsOneWidget);
+    expect(
+      find.text('True faith sides with God | Hebrews 11:29-31'),
+      findsOneWidget,
+    );
+    // Five minutes of a fifteen-minute talk is the promise the card makes.
+    expect(find.text('5 min left'), findsOneWidget);
+    expect(repository.resumeCalls, 1);
+
+    await tester.tap(
+      find.text('True faith sides with God | Hebrews 11:29-31').first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.mediaItem);
+    expect(find.text('RECORDING SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('nobody is offered a place they never got to', (tester) async {
+    // The section belongs to an account. A visitor has no watch rows to read,
+    // so the tab shows the shelves the ministry published and nothing else.
+    final repository = await pumpLearn(tester, rows: sampleMediaShelves());
+
+    expect(find.text('Continue watching'), findsNothing);
+    expect(repository.resumeCalls, 0);
   });
 
   testWidgets('a shelf lists its recordings with the byline the ministry wrote', (tester) async {

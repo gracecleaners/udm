@@ -18,6 +18,7 @@ class ResourceStep {
     this.topicId = '',
     this.topicTitle = '',
     this.topicStepCount = 0,
+    this.completed = false,
   });
 
   final String id;
@@ -40,6 +41,11 @@ class ResourceStep {
   /// "Step 2 of 5" is the real position rather than a counted label.
   final int topicStepCount;
 
+  /// Whether this student has already finished this step, which the guide page
+  /// answers for every row it lists. A step opened on its own is not sent a
+  /// flag, so an unread one and an unlabelled one read the same way: false.
+  final bool completed;
+
   bool get isStartingPoint => order == null;
   bool get hasVideo => videoUrl.isNotEmpty;
 
@@ -59,6 +65,7 @@ class ResourceStep {
       topicStepCount: topic is Map<String, dynamic>
           ? (topic['step_count'] as num?)?.toInt() ?? 0
           : 0,
+      completed: json['completed'] as bool? ?? false,
     );
   }
 
@@ -71,6 +78,7 @@ class ResourceStep {
         'body': body,
         'reading_minutes': readingMinutes,
         'video_url': videoUrl,
+        'completed': completed,
         'topic': {
           if (topicId.isNotEmpty) 'id': topicId,
           if (topicTitle.isNotEmpty) 'title': topicTitle,

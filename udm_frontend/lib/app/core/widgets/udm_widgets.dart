@@ -415,9 +415,13 @@ class Eyebrow extends StatelessWidget {
           Icon(icon, size: 13, color: color ?? theme.textTheme.bodySmall?.color),
           const SizedBox(width: 6),
         ],
-        AppText(
-          text.toUpperCase(),
-          style: AppTypography.eyebrow(color ?? theme.textTheme.bodySmall?.color ?? AppColors.secondaryText),
+        // Wrapped, not truncated: an eyebrow names what is below it, so the
+        // whole label has to survive a 320dp screen.
+        Flexible(
+          child: AppText(
+            text.toUpperCase(),
+            style: AppTypography.eyebrow(color ?? theme.textTheme.bodySmall?.color ?? AppColors.secondaryText),
+          ),
         ),
       ],
     );

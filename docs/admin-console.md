@@ -74,14 +74,14 @@ write route at all.
 | ↳ Readings | `admin/reading-plans/{id}/assignments/` | nested dialog, one passage per day |
 | Translations | `admin/translations/` | `is_active` only, and only for a platform admin — no form, no delete |
 | Media shelves | `admin/media-collections/` | full CRUD, dated publishing; this list *is* the Learn tab, in `order`, and a shelf with nothing published on it is hidden from students |
-| ↳ shelf artwork | the same row, as `multipart/form-data` | `image` is the one file field in the console; it uploads on its own write after the text |
+| ↳ artwork | the same row, as `multipart/form-data` | `image` is the console's only file type, on five resources: shelves, recordings, devotions, articles and memory verses |
 | Media recordings | `admin/media-items/` | full CRUD, filtered by shelf, dated publishing; a YouTube address is pasted, never uploaded, and only a ministry-hosted `download_url` makes the app offer Download |
 | Memory verses | `admin/memory-verses/` | full CRUD — one row does both jobs: the home feed's verse of the day (its date window) and the verse a student commits to memory (synced scripture, or a stored copy in a licensed translation) |
 | Universities | `admin/universities/` | full CRUD |
 | Campuses | `admin/campuses/` | full CRUD, filtered by university |
 | Fellowships, Groups, Events | `admin/fellowships/`, `admin/groups/`, `admin/events/` | full CRUD, filtered by campus |
 | Students | `admin/students/` | read-only roster |
-| Prayer queue | `prayers/moderation/` | `moderation_state` approve/decline |
+| Prayer queue | `prayers/moderation/` | `moderation_state` approve/decline, plus a wall choice (`category`) corrected on the same PATCH while the row is still pending |
 | Account | `auth/admin/me/`, `users/me/` | own name only (`full_name`) |
 
 Content screens are config-driven: each page under `src/pages/` is a `ResourceConfig` descriptor consumed by
@@ -93,7 +93,9 @@ the table to one parent and work through its rows in the order the app lists the
 An `image` field is the descriptor's only file type, and it is deliberately two writes rather than one: the text of the
 row goes as JSON, then a chosen file goes as `multipart/form-data` to the same detail route. A form that mixed the two
 would have to encode one inside the other, and a refused upload would take the wording with it. With nothing chosen the
-field sends nothing at all, so opening a form never re-uploads a cover.
+field sends nothing at all, so opening a form never re-uploads a cover. Five resources carry one — a shelf, a recording,
+a devotion, an article, a memory verse — and every one of them is optional, because the app paints the ministry's brand
+tile wherever staff have not uploaded a picture yet. Empty artwork is a state on this screen, not an error.
 
 ## Rules the console inherits rather than re-implements
 
@@ -130,8 +132,11 @@ The roster has no create, update or delete route, so the console renders no such
 the staff flag and two counts of work the app already shows publicly — never what a student reads, bookmarks,
 notes or prays. `UserContentProgress` is not exposed by any console route, matching its exclusion from Django
 Admin. The prayer queue only ever lists requests their owner submitted to the community wall with explicit
-consent; private and group requests stay out of reach of every console route, and approving one is a
-`moderation_state` write with no free-text reply field.
+consent, and only the ones still waiting: a group's pending requests are moderated by that group's own leader inside
+the student app, and nothing a student kept private is reachable from any console route. Approving one is a
+`moderation_state` write with no free-text reply field. What a wall request collects afterwards — the promises people
+made under it and the words they wrote — belongs to the students, and no console route lists either; a queue row that
+showed those counts would be counting nothing anyway, since a pending request is visible only to its own author.
 
 ## What was verified against the running API
 
@@ -204,6 +209,26 @@ On 2026-11-12, on the Learn shelves and recordings, with Django on `127.0.0.1:80
   needed are deleted. `npx tsc --noEmit`, `npm run lint` (0 errors, the same 10 `react-refresh` warnings) and
   `npm run build` pass.
 
+On 2026-11-14, on the community wall and the last three artwork fields, **no browser pass was run**. What follows is
+what the code and the two suites prove; nothing here is a claim about how a screen looks:
+
+- Devotions, articles and memory verses gained the `image` control the shelves and recordings already had, through the
+  descriptor's one file type and the same `uploadFiles` two-write flow proven against the running API on 12 November.
+  The server half is now held by `CurationImageWriteApiTests`, which posts each of the three with a real file and
+  reads the picture back off the student API — including a memory verse in an unlicensed translation *with* a file
+  attached, which must still be a 400 and not a crash.
+- The prayer queue learned the wall. Each row has a `WALLS` selector, and the choice travels as `category` on the
+  *same* PATCH as the approve/decline decision, because `prayers/moderation/<id>/` answers only while the row is
+  pending — a second write would target a row the queue no longer returns.
+- Parity was then checked in the direction the mobile app does not cover: what the backend has gained that this
+  console has not. Nothing is missing. Affirmations and comment threads are student-to-student and reach nobody else,
+  and `GET /progress/summary/` and `GET /media/resume/` are `IsAuthenticated` reads of *the requesting account* — a
+  staff token there returns the admin's own streak and the admin's own half-watched videos. A staff dashboard number
+  built on either would be a lie about a student, so neither has UI here. That is the correct state, not a gap.
+- `npx tsc --noEmit` and `npm run build` pass. `npx eslint .` reports the same 10 `react-refresh` warnings plus one
+  error that predates this work and is in a file this pass never opened: `tailwind.config.ts:98` uses a `require()`,
+  which the console's flat config forbids. `python manage.py test content accounts` is green at 220 tests.
+
 ## Known gaps
 
 - **Desktop width is unverified visually.** The available browser surface is pinned to 638×616, so the 258px
@@ -226,8 +251,15 @@ On 2026-11-12, on the Learn shelves and recordings, with Django on `127.0.0.1:80
 - **`admin_ui/` is not committed yet.** Until it lands in a commit, nothing in it is recoverable, so removals
   there have been archived rather than deleted.
 - **The prayer queue has not been exercised with a row.** `GET /api/v1/prayers/moderation/` returns `[]` in this
-  database because no student has consented to a public request, so approve and decline are wired to the route and
-  its `moderation_state` contract but have not been clicked against real data. Submitting one from the app with
-  *Community prayer wall* visibility is the way to see it.
+  database because no student has consented to a public request, so approve, decline and the wall correction are
+  wired to the route and its `moderation_state`/`category` contract — and covered by Django's own wall tests — but
+  have never been clicked against real data. Submitting one from the app with *Community prayer wall* visibility is
+  the way to see it.
+- **Four dropdowns copy the server's choices instead of reading them.** `WALLS` on the prayer queue, `eventState` on
+  events, and `PUBLISH_OPTIONS` behind every publish control are hand-written mirrors of Django `TextChoices`. The API
+  refuses a value it does not recognise, so drift surfaces as a refused save rather than as bad data — but adding a
+  fourth wall, event state or publish state means editing this folder as well, and nothing fails until someone tries.
+- **The console never asks for published-only rows.** `?published=true` is answered by the curation list endpoints and
+  is not used here; staff see the whole table and narrow it with search and the state control.
 - **On a database with no imported scripture the memory-verse picker has nothing to offer.** It can only propose
   `BibleVerse` rows a sync or `import_bible` produced, so until one runs it says so rather than listing verses.

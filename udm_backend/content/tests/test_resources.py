@@ -104,6 +104,54 @@ class ResourceApiTests(UdmAPITestCase):
         self.assertEqual(response.status_code, 201, response.json())
         self.assertTrue(UserContentProgress.objects.filter(user=student, kind="resource_step").exists())
 
+    def test_a_guide_row_carries_this_student_own_place_in_it(self):
+        # The list is where a guide is chosen, so the number that makes one row
+        # a "continue" rather than a "start" has to travel with it.
+        student = self._learner()
+        UserContentProgress.objects.create(
+            user=student, kind=UserContentProgress.Kind.RESOURCE_STEP, content_id=self._step_id("God is near")
+        )
+        row = next(r for r in self.client.get("/api/v1/resources/").json()["results"] if r["title"] == "Receive Christ")
+        self.assertEqual(row["steps_completed"], 1)
+
+    def test_the_guide_page_marks_the_steps_that_are_already_read(self):
+        student = self._learner()
+        UserContentProgress.objects.create(
+            user=student, kind=UserContentProgress.Kind.RESOURCE_STEP, content_id=self._step_id("God is near")
+        )
+        steps = self.client.get(f"/api/v1/resources/{self.receive.id}/").json()["steps"]
+        self.assertEqual(
+            {step["title"]: step["completed"] for step in steps},
+            {"Before you begin": False, "God is near": True, "We have all turned aside": False},
+        )
+
+    def test_a_visitor_gets_the_totals_and_no_finishes(self):
+        # Progress belongs to a person. With nobody to attribute it to, the
+        # honest answer is that nothing has been read yet.
+        row = next(r for r in self.client.get("/api/v1/resources/").json()["results"] if r["title"] == "Prayer")
+        self.assertEqual(row["steps_completed"], 0)
+        self.assertFalse(self.client.get(f"/api/v1/resources/{self.prayer.id}/").json()["steps"][0]["completed"])
+
+    def test_the_home_payload_carries_the_same_numbers(self):
+        student = self._learner()
+        UserContentProgress.objects.create(
+            user=student, kind=UserContentProgress.Kind.RESOURCE_STEP, content_id=self._step_id("Being heard")
+        )
+        rows = {row["title"]: row for row in self.client.get("/api/v1/home/").json()["resources"]}
+        self.assertEqual(rows["Prayer"]["steps_completed"], 1)
+        self.assertEqual(rows["Receive Christ"]["steps_completed"], 0)
+
+    def _learner(self):
+        student = get_user_model().objects.create_user(
+            email="learner@udm.ac.ke", password="long-enough-pass"
+        )
+        self.client.force_authenticate(user=student)
+        return student
+
+    @staticmethod
+    def _step_id(title):
+        return str(ResourceStep.objects.get(title=title).pk)
+
     def test_the_step_number_is_unique_within_a_guide_only(self):
         with self.assertRaises(IntegrityError):
             with transaction.atomic():

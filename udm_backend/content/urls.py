@@ -22,7 +22,9 @@ from .views import (
     GroupJoinView, GroupMembershipListView, GroupJoinRequestsView,
     GroupMembershipDecisionView, EventListView, EventRegistrationView,
     EventRegistrationListView, PrayerRequestListCreateView, PrayerRequestDetailView,
+    PrayerAffirmationView, PrayerCommentListView, PrayerCommentDetailView,
     PrayerModerationView, GroupPrayerModerationView,
+    MediaResumeView, ProgressSummaryView,
     ResourceTopicListView, ResourceTopicDetailView, ResourceStepDetailView,
 )
 
@@ -44,6 +46,9 @@ urlpatterns = [
     path("resources/steps/<uuid:pk>/", ResourceStepDetailView.as_view(), name="resource-step-detail"),
     path("resources/<uuid:pk>/", ResourceTopicDetailView.as_view(), name="resource-topic-detail"),
     path("progress/", ProgressView.as_view(), name="progress"),
+    # The one call behind the profile's numbers, so a screen does not fetch
+    # every history list to count them on the device.
+    path("progress/summary/", ProgressSummaryView.as_view(), name="progress-summary"),
     path("bible/translations/", BibleTranslationsView.as_view(), name="bible-translations"),
     path("bible/passage/", BiblePassageView.as_view(), name="bible-passage"),
     path("bible/sources/", BiblePassageSourcesView.as_view(), name="bible-passage-sources"),
@@ -61,6 +66,7 @@ urlpatterns = [
     path("media/items/<uuid:pk>/", MediaItemDetailView.as_view(), name="media-item-detail"),
     path("media/items/<uuid:pk>/note/", MediaNoteView.as_view(), name="media-item-note"),
     path("media/items/<uuid:pk>/watch/", MediaWatchView.as_view(), name="media-item-watch"),
+    path("media/resume/", MediaResumeView.as_view(), name="media-resume"),
     path("media/<uuid:pk>/", MediaCollectionDetailView.as_view(), name="media-collection-detail"),
     path("memory-verses/", MemoryVerseListView.as_view(), name="memory-verses"),
     path("memory-verses/progress/", MemoryVerseProgressView.as_view(), name="memory-verse-progress"),
@@ -81,4 +87,9 @@ urlpatterns = [
     path("prayers/moderation/", PrayerModerationView.as_view(), name="prayer-moderation"),
     path("prayers/moderation/<uuid:pk>/", PrayerModerationView.as_view(), name="prayer-moderation-detail"),
     path("prayers/<uuid:pk>/", PrayerRequestDetailView.as_view(), name="prayer-detail"),
+    # The wall's two responses: a promise kept for somebody, and a word under
+    # the request. Both are reached through a request the student can see.
+    path("prayers/<uuid:pk>/affirm/", PrayerAffirmationView.as_view(), name="prayer-affirm"),
+    path("prayers/<uuid:pk>/comments/", PrayerCommentListView.as_view(), name="prayer-comments"),
+    path("prayers/<uuid:pk>/comments/<uuid:comment_id>/", PrayerCommentDetailView.as_view(), name="prayer-comment-detail"),
 ]

@@ -8,10 +8,13 @@ import '../models/devotional.dart';
 import '../models/home_payload.dart';
 import '../models/media_collection.dart';
 import '../models/media_item.dart';
+import '../models/prayer_post.dart';
 import '../models/resource_step.dart';
 import '../models/resource_topic.dart';
+import '../models/resume_item.dart';
 import '../models/session.dart';
 import '../models/user_profile.dart';
+import '../models/walk_summary.dart';
 
 /// Typed surface of the UDM v1 API. Controllers never call Dio directly.
 class UdmApi {
@@ -37,6 +40,11 @@ class UdmApi {
   /// The Devotions tab: every series with at least one day a student can read.
   Future<List<DevotionSeries>> devotionSeries() async =>
       (await _list('/devotions/series/')).map(DevotionSeries.fromJson).toList();
+
+  /// Single devotionals as the ministry publishes them, newest first — the
+  /// server's own ordering, so the first row is the one to read today.
+  Future<List<Devotional>> devotionals() async =>
+      (await _list('/devotions/')).map(Devotional.fromJson).toList();
 
   Future<DevotionSeries> devotionSeriesDetail(String id) =>
       _client.guard(() async {
@@ -106,6 +114,11 @@ class UdmApi {
     );
     return _json(response);
   });
+
+  /// The recordings this student started and has not finished, most recent
+  /// first — the home feed's Continue row in one call.
+  Future<List<ResumeItem>> mediaResume() async =>
+      (await _list('/media/resume/')).map(ResumeItem.fromJson).toList();
 
   Future<List<Map<String, dynamic>>> bibleTranslations({String language = 'en'}) =>
       _list('/bible/translations/?language=$language');
@@ -235,17 +248,25 @@ class UdmApi {
   Future<void> registerForEvent(String eventId) => _client.guard(() async {
     await _client.dio.post<dynamic>('/events/$eventId/register/');
   });
-  Future<List<Map<String, dynamic>>> prayerRequests() => _list('/prayers/');
+  /// The community wall. `category` is one of the wall's own tabs; null asks
+  /// for everything the reader is allowed to see.
+  Future<List<PrayerPost>> prayerWall({String? category}) async {
+    final path = category == null ? '/prayers/' : '/prayers/?category=$category';
+    return (await _list(path)).map(PrayerPost.fromJson).toList();
+  }
+
   Future<void> createPrayerRequest({
     required String body,
     required String visibility,
     String? groupId,
     required bool shareConsent,
+    String category = 'prayer',
   }) => _client.guard(() async {
     await _client.dio.post<dynamic>(
       '/prayers/',
       data: {
         'body': body,
+        'category': category,
         'visibility': visibility,
         'group': ?groupId,
         'share_consent': shareConsent,
@@ -255,6 +276,38 @@ class UdmApi {
   Future<void> deletePrayerRequest(String id) => _client.guard(() async {
     await _client.dio.delete<dynamic>('/prayers/$id/');
   });
+
+  /// "I am praying for this", and the same call taken back. The server answers
+  /// with the two numbers the card shows, so the wall updates without a refetch.
+  Future<AffirmationState> setPrayerAffirmation(String prayerId, {required bool on}) =>
+      _client.guard(() async {
+        final url = '/prayers/$prayerId/affirm/';
+        final response = on
+            ? await _client.dio.post<dynamic>(url)
+            : await _client.dio.delete<dynamic>(url);
+        return AffirmationState.fromJson(_json(response));
+      });
+
+  /// The words under a request, newest first.
+  Future<List<PrayerComment>> prayerComments(String prayerId) async =>
+      (await _list('/prayers/$prayerId/comments/'))
+          .map(PrayerComment.fromJson)
+          .toList();
+
+  Future<PrayerComment> addPrayerComment(String prayerId, String body) =>
+      _client.guard(() async {
+        final response = await _client.dio.post<dynamic>(
+          '/prayers/$prayerId/comments/',
+          data: {'body': body},
+        );
+        return PrayerComment.fromJson(_json(response));
+      });
+
+  Future<void> removePrayerComment(String prayerId, String commentId) =>
+      _client.guard(() async {
+        await _client.dio.delete<dynamic>('/prayers/$prayerId/comments/$commentId/');
+      });
+
   Future<List<Map<String, dynamic>>> groupPrayerQueue(String groupId) =>
       _list('/groups/$groupId/prayer/');
   Future<void> moderateGroupPrayer(
@@ -353,6 +406,17 @@ class UdmApi {
       data: {'kind': kind, 'content_id': contentId, 'note': ?note},
     );
   });
+
+  /// The numbers the profile prints about this student's own walk, counted
+  /// from the same rows every list behind them reads.
+  Future<WalkSummary> walkSummary() => _client.guard(() async {
+    final response = await _client.dio.get<dynamic>('/progress/summary/');
+    return WalkSummary.fromJson(_json(response));
+  });
+
+  /// What this student finished, newest first and already named.
+  Future<List<ReadHistoryRow>> readHistory() async =>
+      (await _list('/progress/')).map(ReadHistoryRow.fromJson).toList();
 
   Future<Session> _session(String path, Map<String, dynamic> body) =>
       _client.guard(() async {

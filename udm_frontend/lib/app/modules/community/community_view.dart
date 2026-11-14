@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
+import '../../data/models/prayer_post.dart';
 import '../session/session_controller.dart';
 import 'community_controller.dart';
 
@@ -67,7 +68,7 @@ class CommunityView extends GetView<CommunityController> {
                     0 => _campus(context),
                     1 => _groups(context),
                     2 => _events(context),
-                    _ => _prayers(context),
+                    _ => _wall(context),
                   },
                 ),
               ),
@@ -314,7 +315,9 @@ class CommunityView extends GetView<CommunityController> {
     }).toList();
   }
 
-  List<Widget> _prayers(BuildContext context) {
+  /// The wall itself: what the student may add to it, which of its three
+  /// shelves is showing, and the cards on it.
+  List<Widget> _wall(BuildContext context) {
     final theme = Theme.of(context);
     return [
       if (Get.find<SessionController>().isSignedIn)
@@ -344,54 +347,33 @@ class CommunityView extends GetView<CommunityController> {
             ),
           ),
         ),
-      if (controller.prayers.isEmpty) _empty(context, 'No shared prayer requests are currently visible.'),
-      ...controller.prayers.map((prayer) {
-        final isOwner = prayer['is_owner'] == true;
-        final id = prayer['id'] as String;
-        final isPrivate = prayer['visibility'] == 'private';
+      // The wall's own filter row. `All` is the app's choice; the other tabs
+      // are the categories the ministry publishes, so no tab can be offered
+      // for a wall the server does not answer for.
+      PillSelector(
+        key: const Key('wall-tabs'),
+        options: CommunityController.wallLabels,
+        selectedIndex: controller.selectedWall.value,
+        onSelect: controller.selectWallTab,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      if (controller.loadingWall.value && controller.wall.isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: SkeletonCard(),
+        )
+      else if (controller.wall.isEmpty)
+        _empty(context, 'Nothing has been shared on this wall yet.'),
+      ...controller.wall.map((post) {
+        // Both reads happen while the screen's own reaction is being built,
+        // which is what lets one card open the words under it without asking
+        // the feed again — and without a card rebuilding because a neighbour's
+        // thread moved.
+        final isOpen = controller.openPost.value == post.id;
+        final replies = controller.comments[post.id];
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Panel(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconBadge(
-                  icon: isPrivate ? AppIcons.lock : AppIcons.heart,
-                  size: 36,
-                  filled: false,
-                  tone: isPrivate ? IconBadgeTone.neutral : IconBadgeTone.success,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(prayer['body'] as String, style: theme.textTheme.bodyMedium?.copyWith(height: 1.55)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          MetaPill(
-                            label: prayer['visibility'] as String,
-                            tone: isPrivate ? AppColors.secondaryText : AppColors.success,
-                          ),
-                          if (prayer['moderation_state'] == 'pending')
-                            const MetaPill(label: 'Waiting for review', icon: AppIcons.clock),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (isOwner)
-                  IconButton(
-                    tooltip: 'Delete my request'.tr,
-                    icon: const Icon(AppIcons.delete),
-                    onPressed: () => controller.deletePrayer(id),
-                  ),
-              ],
-            ),
-          ),
+          child: _WallCard(post: post, controller: controller, isOpen: isOpen, replies: replies),
         );
       }),
     ];
@@ -400,15 +382,29 @@ class CommunityView extends GetView<CommunityController> {
   Future<void> _newPrayer(BuildContext context) async {
     final input = TextEditingController();
     var visibility = 'private';
+    var category = 'prayer';
     String? selectedGroup;
     var consent = false;
     final joined = controller.groups.where((group) => group['membership_status'] == 'approved').toList();
-    final result = await showDialog<(String, String, String?, bool)>(
+    final result = await showDialog<({String body, String category, String visibility, String? group, bool consent})>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
         title: const AppText('Prayer request'),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           TextField(controller: input, maxLines: 4, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'What would you like prayer for?'.tr)),
+          const SizedBox(height: 12),
+          // Which wall the request belongs on is the writer's choice, and the
+          // three answers are the server's own categories rather than a list
+          // this screen invented.
+          DropdownButtonFormField<String>(
+            initialValue: category,
+            isExpanded: true,
+            decoration: InputDecoration(labelText: 'Which wall?'.tr),
+            items: PrayerCategory.values
+                .map((option) => DropdownMenuItem(value: option.value, child: AppText(option.label.tr)))
+                .toList(),
+            onChanged: (value) => setState(() { if (value != null) category = value; }),
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: visibility,
@@ -449,7 +445,7 @@ class CommunityView extends GetView<CommunityController> {
           FilledButton(
             onPressed: input.text.trim().isEmpty || (visibility != 'private' && !consent) || (visibility == 'group' && selectedGroup == null)
                 ? null
-                : () => Navigator.pop(dialogContext, (input.text.trim(), visibility, selectedGroup, consent)),
+                : () => Navigator.pop(dialogContext, (body: input.text.trim(), category: category, visibility: visibility, group: selectedGroup, consent: consent)),
             child: const AppText('Save'),
           ),
         ],
@@ -457,7 +453,13 @@ class CommunityView extends GetView<CommunityController> {
     );
     input.dispose();
     if (result != null) {
-      await controller.createPrayer(body: result.$1, visibility: result.$2, groupId: result.$3, shareConsent: result.$4);
+      await controller.createPrayer(
+        body: result.body,
+        visibility: result.visibility,
+        groupId: result.group,
+        shareConsent: result.consent,
+        category: result.category,
+      );
     }
   }
 
@@ -473,6 +475,245 @@ class CommunityView extends GetView<CommunityController> {
           ),
         ),
       );
+}
+
+/// One request on the wall, printed the way the ministry prints it: whose it
+/// is, what they wrote in their own words, how many are standing with them,
+/// and the encouragement underneath.
+class _WallCard extends StatelessWidget {
+  const _WallCard({
+    required this.post,
+    required this.controller,
+    required this.isOpen,
+    required this.replies,
+  });
+
+  final PrayerPost post;
+  final CommunityController controller;
+  final bool isOpen;
+  final List<PrayerComment>? replies;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPrivate = post.visibility == 'private';
+    final category = PrayerCategory.tryParse(post.category);
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              UdmAvatar(initials: post.initials, size: 38),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(post.ownerName, style: theme.textTheme.titleSmall),
+                    // The wall is the ministry's diary, so every entry carries
+                    // the day it was written in the device's own calendar words.
+                    AppText(
+                      MaterialLocalizations.of(context).formatMediumDate(post.createdAt),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              if (post.isOwner)
+                IconButton(
+                  tooltip: 'Delete my request'.tr,
+                  icon: const Icon(AppIcons.delete),
+                  onPressed: () => controller.deletePrayer(post.id),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppText(
+            post.body,
+            style: AppTypography.scriptureBody(theme.textTheme.bodyMedium!.color!)
+                .copyWith(fontSize: 17, height: 1.55),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (category != null)
+                MetaPill(
+                  label: category.label.tr,
+                  icon: category == PrayerCategory.testimony ? AppIcons.quote : AppIcons.heart,
+                ),
+              MetaPill(
+                label: post.visibility.tr,
+                tone: isPrivate ? AppColors.secondaryText : AppColors.success,
+              ),
+              if (post.moderationState == 'pending')
+                const MetaPill(label: 'Waiting for review', icon: AppIcons.clock),
+              if (post.moderationState == 'rejected')
+                const MetaPill(label: 'Not published', icon: AppIcons.close),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              _WallAction(
+                icon: AppIcons.heart,
+                label: post.affirmationCount > 0 ? '${post.affirmationCount}' : 'Pray for this'.tr,
+                active: post.affirmed,
+                onTap: () => controller.toggleAffirm(post),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              _WallAction(
+                icon: AppIcons.comment,
+                label: post.commentCount > 0 ? '${post.commentCount}' : 'Encourage'.tr,
+                active: isOpen,
+                onTap: () => controller.toggleComments(post),
+              ),
+            ],
+          ),
+          if (isOpen) _CommentThread(post: post, controller: controller, rows: replies),
+        ],
+      ),
+    );
+  }
+}
+
+/// A count that is also the verb: tapping a number promises the prayer, or
+/// opens the words under it.
+class _WallAction extends StatelessWidget {
+  const _WallAction({required this.icon, required this.label, required this.active, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = active ? AppColors.success : theme.textTheme.bodySmall?.color;
+    return Semantics(
+      button: true,
+      child: PressableScale(
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: AppSpacing.xs),
+            AppText(label, style: theme.textTheme.labelMedium?.copyWith(color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The words under one request, and the field that adds to them.
+class _CommentThread extends StatefulWidget {
+  const _CommentThread({required this.post, required this.controller, required this.rows});
+
+  final PrayerPost post;
+  final CommunityController controller;
+
+  /// Null while the server is still answering, empty when there is nothing
+  /// said yet — the card shows the difference.
+  final List<PrayerComment>? rows;
+
+  @override
+  State<_CommentThread> createState() => _CommentThreadState();
+}
+
+class _CommentThreadState extends State<_CommentThread> {
+  final _input = TextEditingController();
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final words = _input.text.trim();
+    if (words.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    await widget.controller.addComment(widget.post, words);
+    _input.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rows = widget.rows;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Divider(),
+          if (rows == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Center(child: UdmProgress()),
+            )
+          else ...[
+            if (rows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: AppText('No words yet. Be the first to encourage.'
+                    .tr, style: theme.textTheme.bodySmall),
+              ),
+            ...rows.map((comment) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppText(comment.authorName, style: theme.textTheme.labelLarge),
+                            const SizedBox(height: 2),
+                            AppText(
+                              comment.body,
+                              style: AppTypography.scriptureBody(theme.textTheme.bodyMedium!.color!)
+                                  .copyWith(fontSize: 15.5, height: 1.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // The endpoint only ever accepts the writer's own delete,
+                      // so the control appears on exactly those rows.
+                      if (comment.isOwner)
+                        IconButton(
+                          tooltip: 'Remove my word'.tr,
+                          icon: const Icon(AppIcons.delete, size: 18),
+                          onPressed: () => widget.controller.removeComment(widget.post, comment.id),
+                        ),
+                    ],
+                  ),
+                )),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _input,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _send(),
+                    decoration: InputDecoration(labelText: 'Write a word'.tr),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                FilledButton(onPressed: _send, child: AppText('Send'.tr)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 /// An expandable directory or group entry on the brand tile.

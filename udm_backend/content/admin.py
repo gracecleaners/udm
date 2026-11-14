@@ -169,7 +169,7 @@ class DevotionalAdmin(PublishedContentAdmin):
     search_fields = ("title", "scripture_reference", "body")
     fieldsets = (
         ("Series", {"fields": ("series", "day")}),
-        ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body")}),
+        ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body", "image")}),
         ("Response", {"fields": ("reflection_questions", "application", "prayer", "memory_scripture_reference")}),
         ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),
     )
@@ -338,7 +338,7 @@ class MemoryVerseAdmin(LocalizedModelAdmin):
     fieldsets = (
         ("From the synced Scripture", {"fields": ("verse",)}),
         ("Or written here", {"fields": ("reference", "text", "translation_code", "attribution")}),
-        ("Use", {"fields": ("prompt", "start_date", "end_date", "is_published", "created_at", "updated_at")}),
+        ("Use", {"fields": ("prompt", "image", "start_date", "end_date", "is_published", "created_at", "updated_at")}),
     )
     autocomplete_fields = ("verse",)
 

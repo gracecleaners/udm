@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
@@ -20,9 +21,9 @@ class DevotionsView extends GetView<DevotionsController> {
       state: controller.state.value,
       failureMessage: controller.failureMessage.value,
       onRetry: controller.load,
-      emptyTitle: 'No series published yet',
+      emptyTitle: 'Nothing published to read yet',
       emptyMessage:
-          'When the ministry team publishes a set of devotionals it appears here as a series.',
+          'When the ministry team publishes a devotional or a set of them as a series, it appears here.',
       child: RefreshIndicator(
         onRefresh: controller.load,
         child: CustomScrollView(
@@ -53,7 +54,7 @@ class DevotionsView extends GetView<DevotionsController> {
                           AppText(
                             controller.isOfflineCopy
                                 ? 'Saved on this device. Pull to refresh when you are online.'
-                                : 'Series the ministry team is publishing now.',
+                                : "Today's reading, then the series to work through.",
                             style: theme.textTheme.bodySmall,
                           ),
                         ],
@@ -67,6 +68,16 @@ class DevotionsView extends GetView<DevotionsController> {
                 ),
               ),
             ),
+            const SliverToBoxAdapter(child: _TodaysDevotional()),
+            const SliverToBoxAdapter(child: _RecentDevotionals()),
+            if (controller.series.isNotEmpty)
+              const SliverToBoxAdapter(
+                child: RailHeader(
+                  eyebrow: 'Work through',
+                  title: 'Reading series',
+                  subtitle: 'Sets the ministry team is publishing now',
+                ),
+              ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screen,
@@ -76,7 +87,7 @@ class DevotionsView extends GetView<DevotionsController> {
               ),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: _crossAxisCount(context),
+                  crossAxisCount: coverColumns(MediaQuery.sizeOf(context).width),
                   mainAxisSpacing: AppSpacing.md,
                   crossAxisSpacing: AppSpacing.md,
                   childAspectRatio: 0.6,
@@ -85,7 +96,9 @@ class DevotionsView extends GetView<DevotionsController> {
                   (context, index) {
                     final series = controller.series[index];
                     return FadeIn(
-                      delay: Duration(milliseconds: 60 * (index % _crossAxisCount(context))),
+                      delay: Duration(
+                        milliseconds: 60 * (index % coverColumns(MediaQuery.sizeOf(context).width)),
+                      ),
                       child: _SeriesTile(
                         series: series,
                         onOpen: () => controller.openSeries(series),
@@ -101,15 +114,88 @@ class DevotionsView extends GetView<DevotionsController> {
       ),
     ));
   }
+}
 
-  /// Two covers on a phone, more as the screen widens, so the art keeps its
-  /// proportions on a tablet instead of stretching.
-  static int _crossAxisCount(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width >= 900) return 4;
-    if (width >= 600) return 3;
-    return 2;
-  }
+/// The one page the tab opens on: whatever the ministry published most
+/// recently, on the ministry's own picture for it.
+class _TodaysDevotional extends GetView<DevotionsController> {
+  const _TodaysDevotional();
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final devotion = controller.todays;
+    if (devotion == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screen,
+        AppSpacing.sm,
+        AppSpacing.screen,
+        0,
+      ),
+      child: FadeIn(
+        delay: const Duration(milliseconds: 40),
+        child: FeatureCard(
+          eyebrow: "Today's devotional",
+          title: devotion.title,
+          subtitle: devotion.excerpt.isNotEmpty
+              ? devotion.excerpt
+              : devotion.scriptureReference,
+          artUrl: devotion.imageUrl,
+          artAsset: AppArt.devotionalSeason,
+          monogram: UdmAvatar.initialsFor(devotion.title),
+          onTap: () => controller.openDevotion(devotion),
+          pills: [
+            MetaPill(
+              label: '${devotion.readingMinutes} min',
+              icon: AppIcons.clock,
+              onDark: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  });
+}
+
+/// What sits behind today's page, newest next. The order is the server's, so
+/// the staff decide what a student reads after the day's devotion.
+class _RecentDevotionals extends GetView<DevotionsController> {
+  const _RecentDevotionals();
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final more = controller.more;
+    if (more.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        const RailHeader(eyebrow: 'Keep reading', title: 'Recent devotionals'),
+        FadeIn(
+          delay: const Duration(milliseconds: 80),
+          child: DiscoveryRail(
+            children: [
+              for (final devotion in more)
+                RailCard(
+                  title: devotion.title,
+                  subtitle: devotion.scriptureReference.isEmpty
+                      ? devotion.excerpt
+                      : devotion.scriptureReference,
+                  artUrl: devotion.imageUrl,
+                  artAsset: AppArt.devotionalSeason,
+                  monogram: UdmAvatar.initialsFor(devotion.title),
+                  pill: MetaPill(
+                    label: '${devotion.readingMinutes} min',
+                    icon: AppIcons.clock,
+                  ),
+                  onTap: () => controller.openDevotion(devotion),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  });
 }
 
 class _SeriesTile extends StatelessWidget {

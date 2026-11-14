@@ -10,6 +10,7 @@ class MemoryVerse {
     required this.translationCode,
     this.attribution = '',
     this.prompt = '',
+    this.imageUrl = '',
     this.completed = false,
   });
 
@@ -19,6 +20,10 @@ class MemoryVerse {
   final String translationCode;
   final String attribution;
   final String prompt;
+
+  /// Photo the ministry put behind this verse. Empty means none was uploaded,
+  /// which the cards read as the brand tile, not a broken image.
+  final String imageUrl;
   final bool completed;
 
   factory MemoryVerse.fromJson(Map<String, dynamic> json) => MemoryVerse(
@@ -28,6 +33,7 @@ class MemoryVerse {
         translationCode: json['translation'] as String? ?? 'kjv',
         attribution: json['attribution'] as String? ?? '',
         prompt: json['prompt'] as String? ?? '',
+        imageUrl: json['image_url'] as String? ?? '',
         completed: json['completed'] as bool? ?? false,
       );
 
@@ -38,6 +44,7 @@ class MemoryVerse {
         translationCode: translationCode,
         attribution: attribution,
         prompt: prompt,
+        imageUrl: imageUrl,
         completed: completed ?? this.completed,
       );
 
@@ -48,6 +55,7 @@ class MemoryVerse {
         'translation': translationCode,
         'attribution': attribution,
         'prompt': prompt,
+        'image_url': imageUrl,
         'completed': completed,
       };
 }

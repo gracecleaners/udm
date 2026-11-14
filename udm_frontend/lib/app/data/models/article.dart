@@ -7,6 +7,7 @@ class Article {
     this.category = '',
     this.excerpt = '',
     this.readingMinutes = 4,
+    this.imageUrl = '',
     this.publishAt,
   });
 
@@ -17,6 +18,10 @@ class Article {
   final String category;
   final String excerpt;
   final int readingMinutes;
+
+  /// Artwork the ministry chose for this article. Empty means none was
+  /// uploaded, which the cards read as the brand tile, not a broken image.
+  final String imageUrl;
   final DateTime? publishAt;
 
   /// First paragraph, used for list previews.
@@ -30,6 +35,7 @@ class Article {
         category: json['category'] as String? ?? '',
         excerpt: json['excerpt'] as String? ?? '',
         readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 4,
+        imageUrl: json['image_url'] as String? ?? '',
         publishAt: json['publish_at'] == null ? null : DateTime.tryParse(json['publish_at'] as String),
       );
 
@@ -41,6 +47,7 @@ class Article {
         'category': category,
         'excerpt': excerpt,
         'reading_minutes': readingMinutes,
+        'image_url': imageUrl,
         'publish_at': publishAt?.toIso8601String(),
       };
 }

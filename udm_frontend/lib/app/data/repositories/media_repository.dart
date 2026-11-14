@@ -2,6 +2,7 @@ import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
 import '../models/media_collection.dart';
 import '../models/media_item.dart';
+import '../models/resume_item.dart';
 import '../providers/udm_api.dart';
 
 /// The Learn tab: the ministry's shelves of recordings, the recordings on each
@@ -76,6 +77,11 @@ class MediaRepository {
       rethrow;
     }
   }
+
+  /// Where this student stopped in the ministry's recordings. Read straight
+  /// from the account and never kept on the device, for the same reason a note
+  /// is not: whoever next holds the phone is not this student.
+  Future<List<ResumeItem>> resume() => _api.mediaResume();
 
   /// The student's own note on a recording. Blank text deletes it server-side,
   /// and the answer is what the screen shows, so no refetch follows a save.

@@ -68,6 +68,12 @@ function buildConfig(codes: string[] | null): ResourceConfig {
         cell: (row) => `${row.start_date ? dateText(row.start_date) : "any"} → ${row.end_date ? dateText(row.end_date) : "any"}`,
       },
       { header: "Prompt", cell: (row) => ellipsis(row.prompt, 70) },
+      {
+        header: "Cover",
+        cell: (row) => (
+          <span className="console-cell-sub">{row.image_url ? "Image uploaded" : "No cover image"}</span>
+        ),
+      },
       { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
       { header: "Changed", cell: (row) => dateTimeText(row.updated_at) },
     ],
@@ -132,6 +138,12 @@ function buildConfig(codes: string[] | null): ResourceConfig {
         type: "date",
         nullable: true,
         help: "Blank means it never expires. The end date cannot precede the start date.",
+      },
+      {
+        name: "image",
+        label: "Cover image",
+        type: "image",
+        help: "Optional artwork shown with the verse. Uploading a picture replaces the one on the server.",
       },
       { name: "updated_at", label: "Last changed", type: "text", readOnly: true, show: (row) => dateTimeText(row.updated_at) },
     ],

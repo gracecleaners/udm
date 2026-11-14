@@ -10,7 +10,8 @@ These deliberately do not reuse the student serializers in
   reading a translation provider's best guess;
 * a cover is a file staff upload here, while the student API only ever reads a
   URL back — which is why `MediaItemAdminSerializer` carries both `image` and
-  `image_url` and the read-only serializer carries neither.
+  `image_url` while the student serializer carries `image_url` alone. The same
+  pair now sits on devotionals, articles and memory verses.
 
 Every write runs `Model.full_clean()`. The licensing guard on
 `MemoryVerse.clean`, the HTTPS and YouTube-link rules on `MediaItem`/`Event` and
@@ -206,20 +207,24 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
     # devotion has no series, and the console then shows an empty cell that is
     # indistinguishable from a payload that never carried the column.
     series_title = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Devotional
         fields = (
             "id", "title", "author", "scripture_reference", "excerpt", "body",
             "reflection_questions", "application", "prayer", "memory_scripture_reference",
-            "reading_minutes", "series", "series_title", "day",
+            "reading_minutes", "series", "series_title", "day", "image", "image_url",
             "is_published", "publish_at", "publish_state",
             "translations", "created_at", "updated_at",
         )
-        read_only_fields = ("id", "series_title", "publish_state", "created_at", "updated_at")
+        read_only_fields = ("id", "series_title", "image_url", "publish_state", "created_at", "updated_at")
 
     def get_series_title(self, obj):
         return obj.series.title if obj.series_id else None
+
+    def get_image_url(self, obj):
+        return media_file_url(obj.image, self.context.get("request"))
 
     def get_validators(self):
         return [
@@ -231,14 +236,20 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
 
 
 class ArticleAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Article
         fields = (
             "id", "title", "author", "category", "excerpt", "body", "reading_minutes",
+            "image", "image_url",
             "is_published", "publish_at", "publish_state",
             "translations", "created_at", "updated_at",
         )
-        read_only_fields = ("id", "publish_state", "created_at", "updated_at")
+        read_only_fields = ("id", "image_url", "publish_state", "created_at", "updated_at")
+
+    def get_image_url(self, obj):
+        return media_file_url(obj.image, self.context.get("request"))
 
 
 class ResourceTopicAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
@@ -377,19 +388,20 @@ class MemoryVerseAdminSerializer(CurationSerializerMixin, PublishStateFields, se
     display_translation = serializers.SerializerMethodField()
     display_attribution = serializers.SerializerMethodField()
     allowed_translation_codes = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = MemoryVerse
         fields = (
             "id", "verse", "reference", "text", "translation_code", "attribution",
             "display_reference", "display_text", "display_translation", "display_attribution",
-            "allowed_translation_codes", "prompt", "start_date", "end_date",
+            "allowed_translation_codes", "prompt", "image", "image_url", "start_date", "end_date",
             "is_published", "publish_state",
             "translations", "created_at", "updated_at",
         )
         read_only_fields = (
             "id", "display_reference", "display_text", "display_translation",
-            "display_attribution", "allowed_translation_codes", "publish_state",
+            "display_attribution", "allowed_translation_codes", "image_url", "publish_state",
             "created_at", "updated_at",
         )
 
@@ -409,6 +421,9 @@ class MemoryVerseAdminSerializer(CurationSerializerMixin, PublishStateFields, se
         # The console builds its translation dropdown from this, so the licence
         # list lives in settings alone.
         return list(getattr(settings, "UDM_MEMORY_VERSE_TRANSLATIONS", []))
+
+    def get_image_url(self, obj):
+        return media_file_url(obj.image, self.context.get("request"))
 
 
 class UniversityAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer):
