@@ -198,7 +198,6 @@ class CoverArt extends StatelessWidget {
               width: width,
               height: height,
               cacheWidth: decodedWidthFor(logicalWidth * dpr),
-              cacheHeight: height != null && height!.isFinite ? decodedWidthFor(height! * dpr) : null,
               gaplessPlayback: true,
               errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
               loadingBuilder: (context, child, progress) =>

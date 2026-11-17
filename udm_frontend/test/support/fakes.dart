@@ -738,11 +738,12 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 class FakeContentRepository implements ContentRepository {
-  FakeContentRepository({this.serverDevotional, this.serverStep, this.serverArticle});
+  FakeContentRepository({this.serverDevotional, this.serverStep, this.serverArticle, this.serverArticles = const []});
 
   Devotional? serverDevotional;
   ResourceStep? serverStep;
   Article? serverArticle;
+  List<Article> serverArticles;
   Failure? failure;
   Failure? progressFailure;
   final List<String> completions = [];
@@ -766,6 +767,12 @@ class FakeContentRepository implements ContentRepository {
     if (failure != null) throw failure!;
     if (serverArticle == null) throw StateError('FakeContentRepository has no article configured.');
     return serverArticle!;
+  }
+
+  @override
+  Future<List<Article>> articles() async {
+    if (failure != null) throw failure!;
+    return serverArticles;
   }
 
   @override
