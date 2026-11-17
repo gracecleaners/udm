@@ -69,6 +69,24 @@ class PublishableModel(LocalizedModel):
         return self.is_published and (self.publish_at is None or self.publish_at <= timezone.now())
 
 
+class ArtworkLink:
+    """The one rule a pasted picture address has to keep, whoever writes it.
+
+    Art reaches the app through `Image.network`, so an address with no scheme
+    loads on a desktop browser and fails on a phone. Checking it on the model
+    rather than only in the console's serializer means Django admin, a
+    `loaddata` fixture and a shell script are held to the same rule as the API.
+    """
+
+    def clean(self):
+        super().clean()
+        link = getattr(self, "image_link", "")
+        if link and not link.lower().startswith(("http://", "https://")):
+            raise ValidationError(
+                {"image_link": "Artwork needs a full http:// or https:// address the app can load."}
+            )
+
+
 class DevotionalSeries(LocalizedModel):
     """A named set of devotions read day by day — *The Book of James*, *Christmas*.
 
@@ -112,7 +130,7 @@ class DevotionalSeries(LocalizedModel):
         )
 
 
-class Devotional(PublishableModel):
+class Devotional(ArtworkLink, PublishableModel):
     series = models.ForeignKey(
         DevotionalSeries,
         on_delete=models.SET_NULL,
@@ -132,6 +150,10 @@ class Devotional(PublishableModel):
         null=True,
         blank=True,
         help_text="The picture this devotion opens on. Leave empty and the app paints its brand tile.",
+    )
+    image_link = models.URLField(
+        blank=True,
+        help_text="Use this instead of uploading when the picture already lives on another host. An upload wins if both are set.",
     )
     reflection_questions = models.JSONField(default=list, blank=True)
     application = models.TextField(blank=True)
@@ -153,13 +175,17 @@ class Devotional(PublishableModel):
         ]
 
 
-class Article(PublishableModel):
+class Article(ArtworkLink, PublishableModel):
     category = models.CharField(max_length=80, blank=True)
     image = models.ImageField(
         upload_to="articles/",
         null=True,
         blank=True,
         help_text="The picture on this article's card. Leave empty and the app paints its brand tile.",
+    )
+    image_link = models.URLField(
+        blank=True,
+        help_text="Use this instead of uploading when the picture already lives on another host. An upload wins if both are set.",
     )
     localized_fields = PublishableModel.localized_fields + ("category",)
 
@@ -168,7 +194,7 @@ class Article(PublishableModel):
         indexes = [models.Index(fields=["is_published", "publish_at"], name="content_art_pub_idx")]
 
 
-class ResourceTopic(LocalizedModel):
+class ResourceTopic(ArtworkLink, LocalizedModel):
     """One guided answer to a question a student actually asks — *Receive Christ*,
     *Prayer*, *The Bible*.
 
@@ -180,6 +206,13 @@ class ResourceTopic(LocalizedModel):
 
     title = models.CharField(max_length=220)
     summary = models.TextField(blank=True)
+    image = models.ImageField(
+        upload_to="resource_topics/",
+        null=True,
+        blank=True,
+        help_text="Optional cover image for this guide. Leave empty for the branded fallback.",
+    )
+    image_link = models.URLField(blank=True)
     order = models.PositiveSmallIntegerField(
         default=1,
         help_text="Position in the home 'Find resources on' list, lowest first.",
@@ -268,7 +301,7 @@ class MemoryVerseQuerySet(models.QuerySet):
         ).filter(Q(end_date__isnull=True) | Q(end_date__gte=on_date))
 
 
-class MemoryVerse(LocalizedModel):
+class MemoryVerse(ArtworkLink, LocalizedModel):
     """A verse students hide in their heart, curated on the server.
 
     One model serves both jobs the app has: the home screen's verse of the day
@@ -298,6 +331,10 @@ class MemoryVerse(LocalizedModel):
         null=True,
         blank=True,
         help_text="The scene this verse is set over on the home feed and the share card.",
+    )
+    image_link = models.URLField(
+        blank=True,
+        help_text="Use this instead of uploading when the picture already lives on another host. An upload wins if both are set.",
     )
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
@@ -494,7 +531,7 @@ class BibleReadingProgress(TimestampedModel):
         constraints = [models.UniqueConstraint(fields=["user", "assignment"], name="unique_user_bible_assignment")]
 
 
-class MediaCollection(LocalizedModel):
+class MediaCollection(ArtworkLink, LocalizedModel):
     """A named shelf of video or audio teaching — *SOMA*, *Uliza*, *Podcast*.
 
     The Learn tab is this table and nothing else, so a collection with no
@@ -509,6 +546,10 @@ class MediaCollection(LocalizedModel):
         null=True,
         blank=True,
         help_text="The shelf artwork students recognise. Leave empty for a plain tile.",
+    )
+    image_link = models.URLField(
+        blank=True,
+        help_text="Use this instead of uploading when the picture already lives on another host. An upload wins if both are set.",
     )
     order = models.PositiveSmallIntegerField(default=1, help_text="Position in the Learn tab, lowest first.")
     is_published = models.BooleanField(default=False)
@@ -541,7 +582,7 @@ class MediaCollection(LocalizedModel):
         )
 
 
-class MediaItem(LocalizedModel):
+class MediaItem(ArtworkLink, LocalizedModel):
     """One recording inside a collection.
 
     The footage belongs to the ministry and lives on YouTube; staff paste the
@@ -584,6 +625,10 @@ class MediaItem(LocalizedModel):
         null=True,
         blank=True,
         help_text="Optional artwork. With none, a YouTube recording shows its own thumbnail.",
+    )
+    image_link = models.URLField(
+        blank=True,
+        help_text="Use this instead of uploading when the picture already lives on another host. It still falls back to the YouTube thumbnail only when both are empty.",
     )
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)

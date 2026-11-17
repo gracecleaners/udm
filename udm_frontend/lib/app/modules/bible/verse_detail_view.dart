@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/localization/localized_snackbar.dart';
 import '../../core/routes/app_routes.dart';
-import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
@@ -67,15 +66,7 @@ class _VerseDetailViewState extends State<VerseDetailView> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            BackdropArt(
-              asset: AppArt.verseCross,
-              errorBuilder: (context, _, _) => const DecoratedBox(
-                decoration: BoxDecoration(gradient: AppGradients.scripture),
-              ),
-            ),
-            // The words are what the screen is for, so the picture is pushed
-            // back until they read cleanly against it.
-            const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim)),
+            const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scripture)),
             Mark.backdrop(tint: AppColors.white, alpha: 0.08),
             Column(
               children: [

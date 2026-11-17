@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 
 import '../../modules/article/article_binding.dart';
 import '../../modules/article/article_view.dart';
+import '../../modules/article/articles_binding.dart';
+import '../../modules/article/articles_view.dart';
 import '../../modules/auth/auth_binding.dart';
 import '../../modules/auth/register_view.dart';
 import '../../modules/auth/sign_in_view.dart';
@@ -88,6 +90,13 @@ abstract class AppPages {
       transitionDuration: transitionDuration,
     ),
     GetPage(
+      name: AppRoutes.articles,
+      page: () => const ArticlesView(),
+      binding: ArticlesBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
       name: AppRoutes.resourceTopic,
       page: () => const ResourceTopicView(),
       binding: ResourceTopicBinding(),
@@ -104,6 +113,13 @@ abstract class AppPages {
     GetPage(
       name: AppRoutes.courses,
       page: () => const CoursesView(),
+      binding: CoursesBinding(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.newBeliever,
+      page: () => const CoursesView(newBelieverMode: true),
       binding: CoursesBinding(),
       transition: Transition.rightToLeft,
       transitionDuration: transitionDuration,

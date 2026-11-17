@@ -135,10 +135,11 @@ function FieldEditor({
         />
       ) : (
         <>
-          {(field.type === "text" || field.type === "number") && (
+          {(field.type === "text" || field.type === "password" || field.type === "number") && (
             <Input
               id={inputId}
-              type={field.type === "number" ? "number" : "text"}
+              type={field.type === "number" ? "number" : field.type === "password" ? "password" : "text"}
+              autoComplete={field.type === "password" ? "new-password" : undefined}
               placeholder={field.placeholder}
               required={field.required}
               value={String(value ?? "")}
@@ -203,9 +204,14 @@ function FieldEditor({
           )}
           {field.type === "image" && (
             <div className="console-image-field">
-              {currentImage
+              {currentImage && value !== NONE
                 ? <img src={currentImage} alt="" className="console-image-preview" />
-                : <span className="console-image-none">No picture yet</span>}
+                : <span className="console-image-none">{value === NONE ? "Image will be removed on save" : "No picture yet"}</span>}
+              {currentImage && value !== NONE && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => onChange(NONE)}>
+                  Remove current image
+                </Button>
+              )}
               <Input
                 id={inputId}
                 type="file"
@@ -421,6 +427,7 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
       if (field.type === "image") {
         // A chosen picture travels as a file, never as JSON.
         if (raw instanceof File) files[field.name] = raw;
+        else if (raw === NONE) body[field.name] = null;
         continue;
       }
       let value: unknown;

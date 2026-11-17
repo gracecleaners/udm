@@ -169,7 +169,7 @@ class DevotionalAdmin(PublishedContentAdmin):
     search_fields = ("title", "scripture_reference", "body")
     fieldsets = (
         ("Series", {"fields": ("series", "day")}),
-        ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body", "image")}),
+        ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body", ("image", "image_link"))}),
         ("Response", {"fields": ("reflection_questions", "application", "prayer", "memory_scripture_reference")}),
         ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),
     )
@@ -199,6 +199,10 @@ class ResourceTopicAdmin(PublishedContentAdmin):
     list_display = ("title", "order", "step_count", "publish_state", "publish_at", "updated_at")
     search_fields = ("title", "summary")
     readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("title", "summary", "order", ("image", "image_link"))}),
+        ("Publishing", {"fields": ("is_published", "publish_at", "created_at", "updated_at")}),
+    )
     ordering = ("order",)
     inlines = (ResourceStepInline,)
 
@@ -293,7 +297,7 @@ class MediaItemInline(admin.StackedInline):
     extra = 1
     fields = (
         "order", "title", "author", "excerpt", "body",
-        "youtube_url", "download_url", "duration_seconds", "image",
+        "youtube_url", "download_url", "duration_seconds", "image", "image_link",
         "is_published", "publish_at",
     )
     ordering = ("-order",)
@@ -322,7 +326,7 @@ class MediaItemAdmin(PublishedContentAdmin):
     fieldsets = (
         ("Shelf", {"fields": ("collection", "order")}),
         ("Recording", {"fields": ("title", "author", "excerpt", "body")}),
-        ("Media", {"fields": ("youtube_url", "download_url", "duration_seconds", "image")}),
+        ("Media", {"fields": ("youtube_url", "download_url", "duration_seconds", ("image", "image_link"))}),
         ("Publishing", {"fields": ("is_published", "publish_at", "created_at", "updated_at")}),
     )
 
@@ -338,7 +342,7 @@ class MemoryVerseAdmin(LocalizedModelAdmin):
     fieldsets = (
         ("From the synced Scripture", {"fields": ("verse",)}),
         ("Or written here", {"fields": ("reference", "text", "translation_code", "attribution")}),
-        ("Use", {"fields": ("prompt", "image", "start_date", "end_date", "is_published", "created_at", "updated_at")}),
+        ("Use", {"fields": ("prompt", ("image", "image_link"), "start_date", "end_date", "is_published", "created_at", "updated_at")}),
     )
     autocomplete_fields = ("verse",)
 

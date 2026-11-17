@@ -9,7 +9,7 @@ class SplashController extends GetxController {
 
   final SettingsRepository _settings;
 
-  static const Duration brandPause = Duration(milliseconds: 700);
+  static const Duration brandPause = Duration(seconds: 2);
 
   @override
   void onInit() {

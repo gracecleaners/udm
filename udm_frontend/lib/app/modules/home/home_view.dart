@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
-import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
@@ -53,7 +52,6 @@ class HomeView extends GetView<HomeController> {
                           text: controller.data!.memoryVerse!.text,
                           translationCode: controller.data!.memoryVerse!.translationCode,
                           artUrl: controller.data!.memoryVerse!.imageUrl,
-                          artAsset: AppArt.verseSunrise,
                           offline: controller.isOfflineCopy,
                           ctaLabel: controller.data!.devotion == null ? null : "Open today's devotion",
                           onTap: controller.data!.devotion == null
@@ -111,7 +109,6 @@ class HomeView extends GetView<HomeController> {
                         title: controller.data!.devotion!.title,
                         subtitle: controller.data!.devotion!.scriptureReference,
                         artUrl: controller.data!.devotion!.imageUrl,
-                        artAsset: AppArt.devotionalSeason,
                         monogram: UdmAvatar.initialsFor(controller.data!.devotion!.title),
                         pills: [
                           MetaPill(
@@ -175,24 +172,21 @@ class HomeView extends GetView<HomeController> {
         ),
       );
 
-  /// The four doors a student reaches for from the feed: the Bible, the day's
-  /// devotion, the guides the ministry writes, and the people they walk with.
-  /// Learn has its own place in the bar below, so it is not a shortcut too.
+  /// The four requested home doors. The five-tab navigation remains separate.
   List<QuickAction> _shortcuts(HomePayload? payload) {
     void go(int tab) => Get.find<ShellController>().select(tab);
     return [
-      QuickAction(label: 'Bible', icon: AppIcons.bible, onTap: () => go(ShellController.bibleTab)),
-      QuickAction(label: 'Devotions', icon: AppIcons.sun, onTap: () => go(ShellController.devotionsTab)),
+      QuickAction(label: 'Courses', icon: AppIcons.school, onTap: _openCourses),
+      QuickAction(label: 'Articles', icon: AppIcons.book, onTap: () => Get.toNamed(AppRoutes.articles)),
       QuickAction(
-        label: 'Courses',
-        icon: AppIcons.school,
-        onTap: _openCourses,
+        label: 'New Believer',
+        icon: AppIcons.sparkles,
+        onTap: () => Get.toNamed(AppRoutes.newBeliever),
       ),
       QuickAction(
-        label: 'Community',
-        icon: AppIcons.community,
-        tone: IconBadgeTone.gold,
-        onTap: () => Get.toNamed(AppRoutes.community),
+        label: 'Media',
+        icon: AppIcons.play,
+        onTap: () => go(ShellController.learnTab),
       ),
     ];
   }
@@ -518,19 +512,13 @@ class _ResourceRow extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
-          Container(
+          CoverArt(
+            url: topic.imageUrl,
+            monogram: topic.monogram,
             width: AppSpacing.iconTile,
             height: AppSpacing.iconTile,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: AppGradients.hero,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-              boxShadow: AppShadows.glow(AppColors.primaryBlue),
-            ),
-            child: AppText(
-              topic.monogram,
-              style: theme.textTheme.titleSmall?.copyWith(color: AppColors.white),
-            ),
+            radius: AppSpacing.radiusTile,
+            monogramSize: 16,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

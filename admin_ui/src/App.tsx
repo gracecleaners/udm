@@ -26,6 +26,7 @@ const Fellowships = lazy(() => import("./pages/Fellowships"));
 const Groups = lazy(() => import("./pages/Groups"));
 const Events = lazy(() => import("./pages/Events"));
 const Students = lazy(() => import("./pages/Students"));
+const StaffAccounts = lazy(() => import("./pages/StaffAccounts"));
 const PrayerQueue = lazy(() => import("./pages/PrayerQueue"));
 const Account = lazy(() => import("./pages/Account"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -68,6 +69,17 @@ const App = () => (
                 <Route path="/groups" element={<Groups />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/students" element={<Students />} />
+                {/* The only screen the API refuses to list for staff, so the
+                    route checks the capability instead of rendering a table of
+                    refusals. */}
+                <Route
+                  path="/staff-accounts"
+                  element={
+                    <ProtectedRoute capability="accounts">
+                      <StaffAccounts />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/prayers" element={<PrayerQueue />} />
                 <Route path="/account" element={<Account />} />
               </Route>

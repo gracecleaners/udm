@@ -16,6 +16,8 @@ class ContentRepository {
 
   Future<Article> article(String id) => _api.article(id);
 
+  Future<List<Article>> articles() => _api.articles();
+
   Future<ResourceStep> resourceStep(String id) => _api.resourceStep(id);
 
   /// Requires a signed-in student: progress belongs to an account. The API

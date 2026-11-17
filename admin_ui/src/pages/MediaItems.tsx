@@ -125,6 +125,13 @@ const config: ResourceConfig = {
       help: "Optional. With none, a YouTube recording shows the thumbnail YouTube already has for it.",
     },
     {
+      name: "image_link",
+      label: "Or paste an image link",
+      type: "text",
+      placeholder: "https://…",
+      help: "For a picture the ministry already hosts elsewhere. It still beats the YouTube thumbnail; an uploaded file beats both.",
+    },
+    {
       name: "publish_at",
       label: "Publish date",
       type: "datetime",

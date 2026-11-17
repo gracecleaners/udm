@@ -50,6 +50,18 @@ const config: ResourceConfig = {
       help: "Shown above the step list when the guide opens.",
     },
     {
+      name: "image",
+      label: "Guide cover",
+      type: "image",
+      help: "Optional artwork shown on course cards. Upload a ministry-approved image; the app uses a branded tile when none is set.",
+    },
+    {
+      name: "image_link",
+      label: "Or use an image URL",
+      type: "text",
+      help: "Use a full https:// URL when the ministry's image already lives on another host. An uploaded file takes priority.",
+    },
+    {
       name: "order",
       label: "Position in the list",
       type: "number",

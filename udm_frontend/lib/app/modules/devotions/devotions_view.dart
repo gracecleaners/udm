@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/app_art.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
@@ -141,7 +140,6 @@ class _TodaysDevotional extends GetView<DevotionsController> {
               ? devotion.excerpt
               : devotion.scriptureReference,
           artUrl: devotion.imageUrl,
-          artAsset: AppArt.devotionalSeason,
           monogram: UdmAvatar.initialsFor(devotion.title),
           onTap: () => controller.openDevotion(devotion),
           pills: [
@@ -182,7 +180,6 @@ class _RecentDevotionals extends GetView<DevotionsController> {
                       ? devotion.excerpt
                       : devotion.scriptureReference,
                   artUrl: devotion.imageUrl,
-                  artAsset: AppArt.devotionalSeason,
                   monogram: UdmAvatar.initialsFor(devotion.title),
                   pill: MetaPill(
                     label: '${devotion.readingMinutes} min',

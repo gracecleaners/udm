@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User, UserProfile
+from .permissions import capabilities_for, role_for
 
 # Interests and year bounds are client-visible rules, not decoration: the form
 # and the API must reject the same input.
@@ -146,10 +147,128 @@ class StaffTokenObtainPairSerializer(UdmTokenObtainPairSerializer):
 
 
 class AdminIdentitySerializer(serializers.ModelSerializer):
+    """What the signed-in console account may reach, named by the server.
+
+    `role` and `capabilities` come from `accounts.permissions`, which is the
+    same table the routes are guarded by, so a page cannot offer a control the
+    API would refuse.
+    """
+
+    role = serializers.SerializerMethodField()
+    capabilities = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "email", "display_name", "is_staff", "is_superuser")
+        fields = ("id", "email", "display_name", "is_staff", "is_superuser", "role", "capabilities")
         read_only_fields = fields
+
+    def get_role(self, obj):
+        return role_for(obj)
+
+    def get_capabilities(self, obj):
+        return list(capabilities_for(obj))
+
+
+class StaffAccountSerializer(serializers.ModelSerializer):
+    """A console account the platform owner opens for somebody on the team.
+
+    The staff flag is the only role this route can give. `is_superuser` is
+    read-only, so no HTTP call — not one made through a hijacked admin session
+    either — can mint a second owner or hand out the rights to delete the
+    platform; that still takes Django Admin or a terminal.
+    """
+
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        style={"input_type": "password"},
+    )
+    display_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    role = serializers.SerializerMethodField()
+    capabilities = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            "id", "email", "display_name", "password", "is_staff", "is_active",
+            "is_superuser", "role", "capabilities", "created_at", "updated_at",
+        )
+        # `is_staff` is read although `create` sets it: an edit that could turn
+        # the flag off would drop the row from this page's own list, leaving an
+        # account that can sign in nowhere and that no console screen can find
+        # again to restore it.
+        read_only_fields = (
+            "id", "is_staff", "is_superuser", "role", "capabilities", "created_at", "updated_at",
+        )
+
+    def get_role(self, obj):
+        return role_for(obj)
+
+    def get_capabilities(self, obj):
+        return list(capabilities_for(obj))
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+    def validate_password(self, value):
+        # An empty password on an edit means "keep the one they have", which is
+        # how the console's form arrives when a curator is only renaming someone.
+        if not value:
+            return value
+        # The same strength rules a student meets at sign-up, because a staff
+        # account that reaches the whole ministry is the more valuable one to
+        # guess.
+        try:
+            validate_password(value)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(list(error.messages))
+        return value
+
+    def validate(self, attrs):
+        if self.instance is None and not attrs.get("password"):
+            raise serializers.ValidationError({"password": "A new console account needs a password."})
+        return attrs
+
+    def create(self, validated_data):
+        full_name = validated_data.pop("display_name", "")
+        password = validated_data.pop("password")
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            password=password,
+            # This route exists to open staff accounts, so the flag is set
+            # here rather than trusted from the request body.
+            is_staff=True,
+            # The owner typed this address as their own team member's; there is
+            # no confirmation link for that person to wait on before signing in.
+            is_email_verified=True,
+            is_active=validated_data.get("is_active", True),
+        )
+        _write_display_name(user, full_name)
+        return user
+
+    def update(self, instance, validated_data):
+        full_name = validated_data.pop("display_name", None)
+        password = validated_data.pop("password", "")
+        for name, value in validated_data.items():
+            setattr(instance, name, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        if full_name is not None:
+            _write_display_name(instance, full_name)
+        return instance
+
+
+def _write_display_name(user, full_name):
+    """Put the console's name on the profile the read path already uses.
+
+    `User.display_name` reads `profile.full_name`, so a staff account with no
+    profile row would list itself as an email prefix.
+    """
+    profile = UserProfile.for_user(user)
+    profile.full_name = (full_name or "").strip()
+    profile.save(update_fields=["full_name", "updated_at"])
 
 
 class StudentDirectorySerializer(serializers.ModelSerializer):
@@ -169,7 +288,7 @@ class StudentDirectorySerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            "id", "email", "display_name", "is_staff", "is_active", "created_at",
+            "id", "email", "display_name", "is_staff", "is_superuser", "is_active", "created_at",
             "groups_led", "events_organized",
         )
         read_only_fields = fields

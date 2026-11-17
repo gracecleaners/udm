@@ -18,11 +18,13 @@ import {
   MapPinned,
   ScrollText,
   Settings2,
+  UserCog,
   UsersRound,
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { ConsoleCapability } from "@/services/authService";
 import { BrandLockup, BrandMark } from "@/components/BrandLockup";
 
 interface AppSidebarProps {
@@ -35,6 +37,13 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   end?: boolean;
+  /**
+   * The API's name for what this page reaches, named only on the pages whose
+   * endpoint refuses to even list for a role. Everywhere else the console shows
+   * the table and gates the write controls inside it, because a staff account
+   * may read what it cannot change.
+   */
+  capability?: ConsoleCapability;
 }
 
 const ministryItems: NavItem[] = [
@@ -67,6 +76,7 @@ const campusItems: NavItem[] = [
 
 const peopleItems: NavItem[] = [
   { title: "Students", url: "/students", icon: UsersRound },
+  { title: "Staff accounts", url: "/staff-accounts", icon: UserCog, capability: "accounts" },
   { title: "Prayer queue", url: "/prayers", icon: HeartHandshake },
   { title: "Account", url: "/account", icon: Settings2 },
 ];
@@ -79,7 +89,7 @@ export function AppSidebar({ mobileOpen, onNavigate }: AppSidebarProps) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches);
   const sidebarRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const { user, role } = useAuth();
+  const { user, role, can } = useAuth();
   const displayName = user?.display_name || user?.email || "Ministry staff";
 
   const renderItems = (items: NavItem[]) => (
@@ -100,12 +110,16 @@ export function AppSidebar({ mobileOpen, onNavigate }: AppSidebarProps) {
     </ul>
   );
 
-  const renderGroup = (label: string, items: NavItem[], accessory?: ReactNode) => (
-    <section className="workspace-nav-group" key={label}>
-      <div className="workspace-nav-label"><span>{label}</span>{accessory}</div>
-      {renderItems(items)}
-    </section>
-  );
+  const renderGroup = (label: string, items: NavItem[], accessory?: ReactNode) => {
+    const reachable = items.filter((item) => !item.capability || can(item.capability));
+    if (reachable.length === 0) return null;
+    return (
+      <section className="workspace-nav-group" key={label}>
+        <div className="workspace-nav-label"><span>{label}</span>{accessory}</div>
+        {renderItems(reachable)}
+      </section>
+    );
+  };
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 760px)");

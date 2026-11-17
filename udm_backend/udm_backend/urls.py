@@ -6,7 +6,8 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from accounts.admin_views import StudentDirectoryView
+from accounts.admin_views import (StaffAccountDetailView, StaffAccountListView,
+                                  StudentDirectoryView)
 from accounts.urls import auth_urlpatterns, user_urlpatterns
 from content.views import HealthView
 
@@ -22,6 +23,14 @@ urlpatterns = [
     # The roster belongs to `accounts`, so it is mounted here rather than in
     # the content app's curation routes.
     path("api/v1/admin/students/", StudentDirectoryView.as_view(), name="admin_students"),
+    # Opening a console account is the owner's act, not a curation step, so it
+    # sits beside the roster rather than under `content/admin_urls.py`.
+    path("api/v1/admin/accounts/", StaffAccountListView.as_view(), name="admin_staff_accounts"),
+    path(
+        "api/v1/admin/accounts/<uuid:pk>/",
+        StaffAccountDetailView.as_view(),
+        name="admin_staff_account_detail",
+    ),
     path("api/v1/", include("content.urls")),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

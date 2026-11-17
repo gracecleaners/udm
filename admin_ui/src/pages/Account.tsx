@@ -3,11 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { api, extractApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchIdentity } from "@/services/authService";
+import { capabilitiesText, fetchIdentity } from "@/services/authService";
 import { toast } from "@/hooks/use-toast";
 
 export default function Account() {
-  const { user, logout } = useAuth();
+  const { user, logout, capabilities } = useAuth();
   const queryClient = useQueryClient();
   const identityQ = useQuery({ queryKey: ["identity"], queryFn: fetchIdentity, staleTime: 60_000 });
   const [fullName, setFullName] = useState<string | null>(null);
@@ -47,12 +47,16 @@ export default function Account() {
             <dt>Access</dt>
             <dd>{user?.is_superuser ? "Superuser" : "Ministry staff"}</dd>
           </div>
+          <div>
+            <dt>Surfaces</dt>
+            <dd>{capabilitiesText(capabilities)}</dd>
+          </div>
         </dl>
         <p className="console-note">
           <ShieldCheck size={13} aria-hidden="true" />
           {user?.is_superuser
-            ? "As a platform admin you curate content, read the campus directory and decide which Bible editions students may read — the licensing assertion no other account is allowed to make."
-            : "Staff accounts can curate content and the campus directory. Bible licensing is the one surface you read but do not change: only a platform admin decides which editions students may read."}{" "}
+            ? "As a platform admin you curate content, read the campus directory, decide which Bible editions students may read, and open or close the staff accounts below you — the three acts other accounts are refused."
+            : "A staff account curates content and the campus directory. Bible licensing you may read but not change, and staff accounts are not offered to you at all: only a platform admin adds or removes the people who sign in here."}{" "}
           A student&apos;s reading history, bookmarks, notes and private prayer requests are never exposed here —
           that record belongs to the student.
         </p>

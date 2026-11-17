@@ -161,6 +161,17 @@ def media_file_url(upload, request):
     return request.build_absolute_uri(url) if request is not None else url
 
 
+def artwork_url(item, request):
+    """The picture staff chose for this content, as an address the device loads.
+
+    An upload is the ministry's own copy and answers first; the link pasted in
+    the console is read only when no file is attached. With neither the app
+    draws its brand tile, which is a designed state rather than a gap, so this
+    returns None rather than inventing an address.
+    """
+    return media_file_url(item.image, request) or (item.image_link or None)
+
+
 def live_media_collections(on_now=None):
     """The Learn tab's shelves: every collection with a recording on it.
 

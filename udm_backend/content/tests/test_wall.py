@@ -531,3 +531,90 @@ class CurationImageWriteApiTests(UdmAPITestCase):
         )
         self.assertEqual(cleared.status_code, 200, cleared.json())
         self.assertIsNone(cleared.json()["image_url"])
+
+
+class CurationArtworkLinkApiTests(UdmAPITestCase):
+    """The other half of the console's artwork: a link instead of a file.
+
+    Art the ministry already hosts elsewhere is pasted rather than uploaded, and
+    the student API has to hand back exactly that address. An upload still wins
+    when both are set, because the copy on the ministry's own disk is the one
+    staff control.
+    """
+
+    LINK = "https://images.udm.ac.ug/seasons/path.jpg"
+
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            email="linker@udm.ac.ke", password="long-enough-pass", is_staff=True
+        )
+        self.client.force_authenticate(self.staff)
+
+    def test_a_pasted_picture_reaches_the_student_api_as_it_was_written(self):
+        devotion = self.client.post(
+            "/api/v1/admin/devotions/",
+            {
+                "title": "Trust God in Every Season",
+                "scripture_reference": "Romans 8:28",
+                "body": "Every season is covered by somebody.",
+                "is_published": "true",
+                "image_link": self.LINK,
+            },
+            format="json",
+        )
+        self.assertEqual(devotion.status_code, 201, devotion.json())
+        self.assertEqual(devotion.json()["image_url"], self.LINK)
+        self.assertEqual(
+            self.client.get(f"/api/v1/devotions/{devotion.json()['id']}/").json()["image_url"],
+            self.LINK,
+        )
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_the_ministrys_own_file_wins_over_a_pasted_link(self):
+        created = self.client.post(
+            "/api/v1/admin/articles/",
+            {
+                "title": "How to study",
+                "body": "Four steps, one paragraph each.",
+                "is_published": "true",
+            },
+            format="json",
+        )
+        detail = f"/api/v1/admin/articles/{created.json()['id']}/"
+
+        linked = self.client.patch(detail, {"image_link": self.LINK}, format="json")
+        self.assertEqual(linked.json()["image_url"], self.LINK)
+
+        with_file = self.client.patch(
+            detail, {"image": uploaded("article.png"), "image_link": self.LINK}, format="multipart"
+        )
+        self.assertEqual(with_file.status_code, 200, with_file.json())
+        self.assertTrue(with_file.json()["image_url"].startswith("http://testserver/media/articles/"))
+
+    def test_an_address_the_app_cannot_load_is_refused(self):
+        refused = self.client.post(
+            "/api/v1/admin/articles/",
+            {
+                "title": "How to study",
+                "body": "Four steps, one paragraph each.",
+                "image_link": "images.udm.ac.ug/seasons/path.jpg",
+            },
+            format="json",
+        )
+        self.assertEqual(refused.status_code, 400, refused.json())
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_clearing_the_file_leaves_the_pasted_link_in_place(self):
+        created = self.client.post(
+            "/api/v1/admin/media-collections/",
+            {"title": "SOMA", "description": "Weekly teaching.", "is_published": "true"},
+            format="json",
+        )
+        detail = f"/api/v1/admin/media-collections/{created.json()['id']}/"
+        self.client.patch(detail, {"image_link": self.LINK}, format="json")
+
+        with_file = self.client.patch(detail, {"image": uploaded("shelf.png")}, format="multipart")
+        self.assertTrue(with_file.json()["image_url"].startswith("http://testserver/media/media_collections/"))
+
+        cleared = self.client.patch(detail, {"image": ""}, format="multipart")
+        self.assertEqual(cleared.json()["image_url"], self.LINK)

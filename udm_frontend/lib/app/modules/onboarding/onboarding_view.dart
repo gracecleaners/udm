@@ -117,7 +117,7 @@ class OnboardingView extends GetView<OnboardingController> {
                           () => FilledButton.icon(
                             onPressed: controller.isLast ? controller.finish : controller.next,
                             icon: Icon(controller.isLast ? AppIcons.target : AppIcons.next, size: 19),
-                            label: AppText(controller.isLast ? 'Start my journey' : 'Next'),
+                            label: AppText(controller.isLast ? 'Get Started' : 'Next'),
                           ),
                         ),
                       ),

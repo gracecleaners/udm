@@ -27,15 +27,15 @@ Checks: `npm run lint`, `npx tsc --noEmit`, `npm run build`.
 
 Sign-in posts to `POST /api/v1/auth/admin/token/`, which refuses a student account with the message the login
 form shows: a student is turned away rather than handed tokens it could not use. Console sessions are staff-only
-(`is_staff`), and `python manage.py createsuperuser` (or setting `is_staff=True` on an existing user) is how a
-new one is made.
+(`is_staff`). The platform owner opens those accounts on the **Staff accounts** screen;
+`python manage.py createsuperuser` is still the only way to make an owner, and no route here can make a second one.
 
 | Route | Use |
 | --- | --- |
 | `POST /api/v1/auth/admin/token/` | Staff-gated pair; sets the refresh cookie |
 | `POST /api/v1/auth/admin/token/refresh/` | Rotation, cookie-only |
 | `POST /api/v1/auth/admin/token/logout/` | Blacklists the refresh token and clears the cookie |
-| `GET /api/v1/auth/admin/me/` | Identity behind the account chip |
+| `GET /api/v1/auth/admin/me/` | Identity, role and capability list behind the account chip |
 
 The access token is held in memory only; the refresh token lives in an `HttpOnly`, `SameSite=Lax` cookie scoped
 to `Path=/api/v1/auth/admin`, so no script on the page can read it. `src/lib/api.ts` refreshes 45 seconds before
@@ -49,7 +49,7 @@ Both accounts sign in the same door; the API decides what each may write.
 | Role | How the API marks it | What it does here |
 | --- | --- | --- |
 | Ministry staff | `is_staff=True` | Adds and edits every content record and the campus directory, monitors the roster and the prayer queue. |
-| Platform admin | `is_superuser=True` | The above, plus the Bible licensing toggle — the one write that changes what students may read and cannot be undone by putting the flag back — and deletions in Django Admin. |
+| Platform admin | `is_superuser=True` | The above, plus the three acts another account cannot take back: the Bible licensing toggle, deleting a student account, and opening, suspending or closing the staff accounts below them. |
 
 Every curation endpoint is staff-*readable*, because monitoring is part of the job, so the split is not a matter of
 which pages a role can open. `ResourceConfig.writableBy` records which role the endpoint takes writes from, and
@@ -58,9 +58,19 @@ box and a note saying why there are no buttons, and no create, edit, delete or s
 That is the console's share of the ground rule that a control either performs a real operation or does not appear —
 the refused-403 path exists server-side, it just is not offered as something to click.
 
+`GET /api/v1/auth/admin/me/` answers with `role` and a `capabilities` list read from the same
+`CONSOLE_CAPABILITIES` table the permission classes use, so the menu is built from what the server already decided
+rather than a second copy of the rules written in TypeScript. One page is missing from that list for staff rather
+than merely button-free: `admin/accounts/` refuses to even list for them, so `/staff-accounts` is behind
+`ProtectedRoute capability="accounts"` and its sidebar entry is filtered out — staff are not told who else holds a
+console account, and a link that would only render a table of refusals is not offered.
+
 A staff account cannot delete a *user* anywhere: Django Admin's `PlatformOwnerDeletesOnly` gate takes the delete
-button and the `user:delete` permission away from staff while leaving change rights, and the console has no user
-write route at all.
+button and the `user:delete` permission away from staff while leaving change rights, and the student roster route has
+no write verb at all. The staff accounts route writes only staff accounts: `is_superuser` and `is_staff` are both
+read-only there, so no HTTP call — including one made through a hijacked session — can mint a second owner or demote
+an account out of the only list that can find it again. The owner's own row is not in that queryset, which is why no
+route on this page can hide or close the last admin account.
 
 ## Screens and endpoints
 
@@ -74,15 +84,16 @@ write route at all.
 | ↳ Readings | `admin/reading-plans/{id}/assignments/` | nested dialog, one passage per day |
 | Translations | `admin/translations/` | `is_active` only, and only for a platform admin — no form, no delete |
 | Media shelves | `admin/media-collections/` | full CRUD, dated publishing; this list *is* the Learn tab, in `order`, and a shelf with nothing published on it is hidden from students |
-| ↳ artwork | the same row, as `multipart/form-data` | `image` is the console's only file type, on five resources: shelves, recordings, devotions, articles and memory verses |
+| ↳ artwork | the same row, as `multipart/form-data` or as a pasted link | `image` is the console's only file type, on five resources: shelves, recordings, devotions, articles and memory verses. Each of them pairs it with `image_link` for a picture that already lives on another host; an upload wins when both are set |
 | Media recordings | `admin/media-items/` | full CRUD, filtered by shelf, dated publishing; a YouTube address is pasted, never uploaded, and only a ministry-hosted `download_url` makes the app offer Download |
 | Memory verses | `admin/memory-verses/` | full CRUD — one row does both jobs: the home feed's verse of the day (its date window) and the verse a student commits to memory (synced scripture, or a stored copy in a licensed translation) |
 | Universities | `admin/universities/` | full CRUD |
 | Campuses | `admin/campuses/` | full CRUD, filtered by university |
 | Fellowships, Groups, Events | `admin/fellowships/`, `admin/groups/`, `admin/events/` | full CRUD, filtered by campus |
 | Students | `admin/students/` | read-only roster |
+| Staff accounts | `admin/accounts/`, `admin/accounts/{id}/` | platform admin only, and only for staff: open an account with an email, a name and a password; rename, suspend or close one. Nothing here writes a role flag, and the owner's own account is not listed |
 | Prayer queue | `prayers/moderation/` | `moderation_state` approve/decline, plus a wall choice (`category`) corrected on the same PATCH while the row is still pending |
-| Account | `auth/admin/me/`, `users/me/` | own name only (`full_name`) |
+| Account | `auth/admin/me/`, `users/me/` | own name only (`full_name`); the page also repeats the capability list the API sent |
 
 Content screens are config-driven: each page under `src/pages/` is a `ResourceConfig` descriptor consumed by
 `src/components/curation/ResourceScreen.tsx`, which owns paging, search, parent filters, the form dialog and nested
@@ -96,6 +107,14 @@ would have to encode one inside the other, and a refused upload would take the w
 field sends nothing at all, so opening a form never re-uploads a cover. Five resources carry one — a shelf, a recording,
 a devotion, an article, a memory verse — and every one of them is optional, because the app paints the ministry's brand
 tile wherever staff have not uploaded a picture yet. Empty artwork is a state on this screen, not an error.
+
+Each of those five also carries `image_link`, for a picture that already lives on another host: the ministry CDN, a
+parish photo album, anywhere. `content.services.artwork_url` is the single resolver the app reads through, and it
+prefers the uploaded file whenever both are set, so a link is never a way to lose a picture somebody chose. The model's
+`clean()` refuses a link without a scheme, which `full_clean()` on every admin write turns into a field message instead
+of a URL the device cannot load. Video is never uploaded: a recording's play link is YouTube only, and a ministry-hosted
+file is reached through `download_url`. That is the whole of the app's media policy — the phone ships artwork for the
+splash and the three onboarding slides and takes every other picture from this console.
 
 ## Rules the console inherits rather than re-implements
 
@@ -120,9 +139,10 @@ tile wherever staff have not uploaded a picture yet. Empty artwork is a state on
   resource declares; a blank box leaves that field reading the English text, and saving preserves locales the form
   cannot see. List-shaped fields (a devotion's reflection questions, a reading's reference) go back as arrays, prose as text.
 - **Validation lives in `Model.clean()`.** Every admin write runs `full_clean()`, so the console enforces exactly
-  what Django Admin does: HTTPS media, end-after-start events, IANA event time zones, unique campus+name
-  fellowships, one reading per plan day, one memory verse per verse row, one recording position per shelf, and a
-  YouTube field that either stays empty or holds an address the app can actually play.
+  what Django Admin does: HTTPS media, an artwork link that is a full `http(s)` address or empty, end-after-start
+  events, IANA event time zones, unique campus+name fellowships, one reading per plan day, one memory verse per verse
+  row, one recording position per shelf, and a YouTube field that either stays empty or holds an address the app can
+  actually play.
 - **The reason a write failed is shown, not swallowed.** The shared envelope carries `detail`, `code`, `status` and
   `errors`; `extractApiError` prefers `errors` because `detail` is generic whenever a field carries the message.
 
@@ -229,6 +249,26 @@ what the code and the two suites prove; nothing here is a claim about how a scre
   error that predates this work and is in a file this pass never opened: `tailwind.config.ts:98` uses a `require()`,
   which the console's flat config forbids. `python manage.py test content accounts` is green at 220 tests.
 
+On 2026-11-17, on artwork links and staff accounts, again **no browser pass was run** — the same pinned browser
+surface as before, and nothing below claims how a screen looks:
+
+- Five resources gained `image_link` beside `image`, resolved by one `artwork_url()` that prefers the uploaded file,
+  and the console pairs the two in each form. `CurationArtworkLinkApiTests` covers the four cases that matter: the link
+  reaching the student API verbatim, an upload beating a link, a scheme-less link refused, and clearing the file
+  leaving the link serving.
+- `admin/accounts/` and `admin/accounts/{id}/` opened behind `IsPlatformAdmin`, with `StaffAccountSerializer` forcing
+  `is_staff` and the email-verified flag on create and both role flags read-only on every write. Nine tests in
+  `StaffAccountOpeningTests` walk the whole path, including the new account signing in at the console's own token
+  endpoint and then being refused `admin/accounts/` with its own token, a suspension that keeps the password and stops
+  the sign-in, and a deletion that leaves the group it led with a null leader.
+- `/api/v1/auth/admin/me/` now also answers `role` and `capabilities`, and the console builds its sidebar from that
+  list instead of a copy of the rules. A server old enough to omit the list falls back to the two rows the
+  TypeScript knows, because an absent list would otherwise hide every page from everybody.
+- `npx tsc --noEmit` and `npm run build` pass; `npx eslint .` still reports only the ten `react-refresh` warnings and
+  the pre-existing `tailwind.config.ts` error. `python manage.py test` is green at 233 tests. The new
+  `image_link` columns arrive in migration `0016`, which has run against the test database but **not** yet against
+  the dev or the AWS database.
+
 ## Known gaps
 
 - **Desktop width is unverified visually.** The available browser surface is pinned to 638×616, so the 258px
@@ -248,8 +288,6 @@ what the code and the two suites prove; nothing here is a claim about how a scre
 - **Three lockfiles are present**: `package-lock.json` (what is installed and verified here, with npm) plus
   `bun.lock` and `bun.lockb` from the template. Two package managers resolving this folder would drift, so keep
   the one the team uses and drop the others.
-- **`admin_ui/` is not committed yet.** Until it lands in a commit, nothing in it is recoverable, so removals
-  there have been archived rather than deleted.
 - **The prayer queue has not been exercised with a row.** `GET /api/v1/prayers/moderation/` returns `[]` in this
   database because no student has consented to a public request, so approve, decline and the wall correction are
   wired to the route and its `moderation_state`/`category` contract — and covered by Django's own wall tests — but

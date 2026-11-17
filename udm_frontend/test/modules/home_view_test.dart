@@ -143,13 +143,26 @@ void main() {
   testWidgets('a guide row really opens that guide', (tester) async {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
 
-    final row = find.text('New Believer');
+    await scrollToCard(tester, find.text('GUIDED READING'));
+    final row = find.text('New Believer').last;
     await scrollToCard(tester, row);
     await tester.tap(row);
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.resourceTopic);
     expect(find.text('GUIDE SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('home shortcuts use the four requested destinations', (tester) async {
+    await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
+    await scrollToCard(tester, find.text('New Believer').first);
+
+    expect(find.text('Courses'), findsOneWidget);
+    expect(find.text('Articles'), findsOneWidget);
+    expect(find.text('New Believer'), findsWidgets);
+    expect(find.text('Media'), findsOneWidget);
+    expect(find.text('Community'), findsNothing);
+    expect(find.text('Bible'), findsNothing);
   });
 
   testWidgets('a home with no guides published shows no resources section', (tester) async {

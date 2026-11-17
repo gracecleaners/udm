@@ -71,7 +71,7 @@ function buildConfig(codes: string[] | null): ResourceConfig {
       {
         header: "Cover",
         cell: (row) => (
-          <span className="console-cell-sub">{row.image_url ? "Image uploaded" : "No cover image"}</span>
+          <span className="console-cell-sub">{row.image_url ? "Picture set" : "Brand tile"}</span>
         ),
       },
       { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
@@ -144,6 +144,13 @@ function buildConfig(codes: string[] | null): ResourceConfig {
         label: "Cover image",
         type: "image",
         help: "Optional artwork shown with the verse. Uploading a picture replaces the one on the server.",
+      },
+      {
+        name: "image_link",
+        label: "Or paste an image link",
+        type: "text",
+        placeholder: "https://…",
+        help: "For a picture the ministry already hosts elsewhere. An uploaded file wins when both are set.",
       },
       { name: "updated_at", label: "Last changed", type: "text", readOnly: true, show: (row) => dateTimeText(row.updated_at) },
     ],

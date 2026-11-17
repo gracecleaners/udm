@@ -23,23 +23,20 @@ class OnboardingController extends GetxController {
   static const List<OnboardingSlide> slides = [
     OnboardingSlide(
       'Know Christ',
-      'Scripture you actually finish',
-      'Read a licensed Bible, take today\'s devotion, and memorise a verse. Notes and highlights stay yours.',
+      'Grow Deeper in God\'s Word',
+      'Discover timeless truth and find guidance for everyday life.',
       AppArt.onboardingWord,
     ),
     OnboardingSlide(
       'Grow in Christ',
-      'Discipleship, not downloads',
-      'Work through the ministry\'s teaching recordings, write what each one '
-          'brought you, and follow a guided resource on the questions you '
-          'actually ask.',
+      'Build Consistent Spiritual Habits',
+      'Pray, read, and grow in your faith through simple daily practices.',
       AppArt.onboardingHabits,
     ),
     OnboardingSlide(
       'Make Disciples',
-      'Sent to your campus',
-      'Share a teaching with a friend, work through a guide with someone new '
-          'to the faith, and keep a verse ready for the day they ask you why.',
+      'Connect with a Faith Community',
+      'Walk together in Christ and encourage one another as you grow.',
       AppArt.onboardingCommunity,
     ),
   ];

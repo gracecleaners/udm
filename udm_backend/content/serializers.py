@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .media_refs import youtube_thumbnail
-from .services import media_file_url
+from .services import artwork_url
 from .translation import translate_value
 from .models import (Article, BibleBookmark, BibleBook, BibleChapter, BibleNote, BibleReadingAssignment,
                      BibleReadingPlan, BibleReadingProgress, BibleTranslation, BibleVerse, ContentVersion,
@@ -231,7 +231,7 @@ class MediaCollectionSerializer(ContentStampedSerializerMixin, LocalizedModelSer
         read_only_fields = fields
 
     def get_image_url(self, collection):
-        return media_file_url(collection.image, self.context.get("request"))
+        return artwork_url(collection, self.context.get("request"))
 
 
 class MediaCollectionDetailSerializer(MediaCollectionSerializer):
@@ -272,12 +272,10 @@ class MediaItemRowSerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_image_url(self, item):
-        # Ministry artwork first; otherwise the frame YouTube already publishes
-        # for the video, so a shelf of recordings is never a wall of text.
-        return (
-            media_file_url(item.image, self.context.get("request"))
-            or youtube_thumbnail(item.youtube_url)
-        )
+        # Ministry artwork first, whether staff uploaded it or linked it;
+        # otherwise the frame YouTube already publishes for the video, so a
+        # shelf of recordings is never a wall of text.
+        return artwork_url(item, self.context.get("request")) or youtube_thumbnail(item.youtube_url)
 
     def get_youtube_video_id(self, item):
         return item.youtube_video_id
@@ -405,9 +403,8 @@ class MediaResumeSerializer(serializers.ModelSerializer):
         return localized_value(watch.item, "title", self.context)
 
     def get_image_url(self, watch):
-        return (
-            media_file_url(watch.item.image, self.context.get("request"))
-            or youtube_thumbnail(watch.item.youtube_url)
+        return artwork_url(watch.item, self.context.get("request")) or youtube_thumbnail(
+            watch.item.youtube_url
         )
 
     def get_collection(self, watch):
@@ -442,7 +439,7 @@ class MemoryVerseSerializer(LocalizedModelSerializer):
         fields = ("id", "verse_id", "reference", "text", "translation", "attribution", "prompt", "completed", "image_url")
 
     def get_image_url(self, item):
-        return media_file_url(item.image, self.context.get("request"))
+        return artwork_url(item, self.context.get("request"))
 
     def _stored_or_linked(self, item, field, linked_value):
         return linked_value if item.verse_id is not None else localized_value(item, field, self.context)
@@ -754,7 +751,7 @@ class DevotionalSerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_image_url(self, devotional):
-        return media_file_url(devotional.image, self.context.get("request"))
+        return artwork_url(devotional, self.context.get("request"))
 
 
 class DevotionalSeriesSerializer(ContentStampedSerializerMixin, LocalizedModelSerializer):
@@ -798,7 +795,7 @@ class DevotionalDaySerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_image_url(self, devotional):
-        return media_file_url(devotional.image, self.context.get("request"))
+        return artwork_url(devotional, self.context.get("request"))
 
 
 class DevotionalSeriesDetailSerializer(DevotionalSeriesSerializer):
@@ -833,7 +830,7 @@ class ArticleSerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_image_url(self, article):
-        return media_file_url(article.image, self.context.get("request"))
+        return artwork_url(article, self.context.get("request"))
 
 
 class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSerializer):
@@ -849,6 +846,7 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSeria
     localized_fields = ResourceTopic.localized_fields
     step_count = serializers.IntegerField(read_only=True)
     steps_completed = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ResourceTopic
@@ -856,6 +854,7 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSeria
             "id",
             "title",
             "summary",
+            "image_url",
             "order",
             "publish_at",
             "step_count",
@@ -870,6 +869,9 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSeria
             return 0
         counts = progress.per_topic.get(topic.pk)
         return counts[1] if counts else 0
+
+    def get_image_url(self, topic):
+        return artwork_url(topic, self.context.get("request"))
 
 
 class ResourceStepRowSerializer(LocalizedModelSerializer):

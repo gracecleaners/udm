@@ -2,11 +2,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, R
 import { tokenStorage, restoreSession, endSession } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { fetchIdentity, signIn, type ConsoleIdentity } from "@/services/authService";
+import {
+  fetchIdentity,
+  signIn,
+  type ConsoleCapability,
+  type ConsoleIdentity,
+} from "@/services/authService";
 
 /**
  * Two roles, mirroring the API: ministry staff author content, and a platform
- * admin additionally owns the surfaces a change cannot undo — Bible licensing.
+ * admin additionally owns the surfaces a change cannot undo — Bible licensing
+ * and the staff accounts below them.
  */
 export type ConsoleRole = "superuser" | "staff" | "guest";
 
@@ -17,6 +23,9 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   role: ConsoleRole;
+  /** What this account may reach, as the API named it. */
+  capabilities: ConsoleCapability[];
+  can: (capability: ConsoleCapability) => boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -27,6 +36,19 @@ function roleFor(user: AuthUser | null): ConsoleRole {
   if (!user) return "guest";
   if (user.is_superuser) return "superuser";
   return "staff";
+}
+
+// The same two rows the API keeps in `CONSOLE_CAPABILITIES`, used only when a
+// console is pointed at a server old enough not to answer with its own list:
+// an absent list would otherwise hide every page from everybody.
+const ROLE_CAPABILITIES: Record<ConsoleRole, ConsoleCapability[]> = {
+  superuser: ["curation", "directory", "moderation", "translations", "accounts"],
+  staff: ["curation", "directory", "moderation"],
+  guest: [],
+};
+
+function capabilitiesFor(user: AuthUser | null, role: ConsoleRole): ConsoleCapability[] {
+  return user?.capabilities ?? ROLE_CAPABILITIES[role];
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -81,17 +103,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(identity);
   }, [queryClient]);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
+  const value = useMemo<AuthContextValue>(() => {
+    const role = roleFor(user);
+    const capabilities = capabilitiesFor(user, role);
+    return {
       user,
       isAuthenticated: !!user,
       isLoading,
-      role: roleFor(user),
+      role,
+      capabilities,
+      can: (capability) => capabilities.includes(capability),
       login,
       logout,
-    }),
-    [user, isLoading, login, logout],
-  );
+    };
+  }, [user, isLoading, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

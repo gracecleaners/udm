@@ -17,13 +17,15 @@ import 'courses_controller.dart';
 /// and the counts on the rows are the server's own, worked out against the
 /// steps it has published today.
 class CoursesView extends GetView<CoursesController> {
-  const CoursesView({super.key});
+  const CoursesView({super.key, this.newBelieverMode = false});
+
+  final bool newBelieverMode;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const AppText('Courses')),
+      appBar: AppBar(title: AppText(newBelieverMode ? 'New Believer' : 'Courses')),
       body: Obx(() => StateView(
         state: controller.state.value,
         failureMessage: controller.failureMessage.value,
@@ -43,6 +45,27 @@ class CoursesView extends GetView<CoursesController> {
               AppSpacing.xl,
             ),
             children: [
+              if (newBelieverMode) ...[
+                Panel(
+                  gradient: AppGradients.tint(
+                    theme.extension<AppSurfaces>()!.scripture,
+                    theme.colorScheme.surface,
+                  ),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Eyebrow('A first step with Jesus', color: theme.colorScheme.primary, icon: AppIcons.sparkles),
+                      const SizedBox(height: AppSpacing.xs),
+                      AppText(
+                        'Explore the foundations of Christian faith, one short guide at a time. Start with any topic that speaks to you.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
               if (controller.isOfflineCopy) ...[
                 const OfflineChip(message: 'Offline copy of the guides'),
                 const SizedBox(height: AppSpacing.md),
@@ -119,19 +142,13 @@ class _CourseRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          CoverArt(
+            url: topic.imageUrl,
+            monogram: topic.monogram,
             width: AppSpacing.iconTile,
             height: AppSpacing.iconTile,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: AppGradients.hero,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-              boxShadow: AppShadows.glow(AppColors.primaryBlue),
-            ),
-            child: AppText(
-              topic.monogram,
-              style: AppTypography.scriptureVerse(AppColors.white, size: 16),
-            ),
+            radius: AppSpacing.radiusTile,
+            monogramSize: 16,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

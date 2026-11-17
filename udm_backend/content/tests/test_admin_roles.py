@@ -1,9 +1,10 @@
-"""Ministry staff versus platform admin, and the two things only an admin may do.
+"""Ministry staff versus platform admin, and what only an admin may do.
 
 The rule the console is built on is irreversibility: staff add and edit content
 and watch the system, because any of that can be undone by editing it again.
-Deleting a student account and asserting the right to publish a Bible
-translation cannot be, so those two belong to the platform owner alone.
+Deleting a student account, asserting the right to publish a Bible translation
+and opening or closing the staff accounts below them cannot be, so those belong
+to the platform owner alone.
 """
 
 from django.contrib import admin as django_admin
@@ -13,7 +14,7 @@ from django.test import RequestFactory
 from core.testing import UdmAPITestCase
 
 from accounts.models import User, UserProfile
-from content.models import BibleTranslation, Devotional, DevotionalSeries, MemoryVerse
+from content.models import BibleTranslation, Devotional, DevotionalSeries, DiscipleshipGroup, MemoryVerse
 
 
 class ConsolePermissionTests(UdmAPITestCase):
@@ -168,6 +169,176 @@ class ConsolePermissionTests(UdmAPITestCase):
         )
         self.assertEqual(accepted.status_code, 201, accepted.json())
         self.assertEqual(accepted.json()["display_text"], "Love is patient.")
+
+
+class StaffAccountOpeningTests(UdmAPITestCase):
+    """The owner's other exclusive act: deciding who else signs in here.
+
+    A staff account is the one row a platform owner creates that hands out
+    rights, so these tests follow the whole path — the owner opens it, the new
+    account actually signs in, and what it can then reach is only what staff
+    are allowed. Nothing on these routes can raise a second owner or lock the
+    first one out.
+    """
+
+    PASSWORD = "Ministry-Team-2026"
+
+    def setUp(self):
+        self.owner = User.objects.create_superuser(email="owner@udm.ac.ke", password="long-enough-pass")
+        self.staff = User.objects.create_user(
+            email="worker@udm.ac.ke", password="long-enough-pass", is_staff=True
+        )
+        self.student = User.objects.create_user(email="learner@udm.ac.ke", password="long-enough-pass")
+
+    def test_only_the_owner_sees_who_holds_a_console_account(self):
+        self.assertEqual(self.client.get("/api/v1/admin/accounts/").status_code, 401)
+        for user in (self.student, self.staff):
+            self.client.force_authenticate(user=user)
+            refused = self.client.get("/api/v1/admin/accounts/")
+            self.assertEqual(refused.status_code, 403, user.email)
+            self.assertIn("admin", refused.json()["detail"].lower())
+            self.assertEqual(refused.json()["detail"].count("staff"), 0)
+
+    def test_the_list_offers_only_console_accounts_and_not_the_owner(self):
+        self.client.force_authenticate(user=self.owner)
+        rows = self.client.get("/api/v1/admin/accounts/").json()["results"]
+        self.assertEqual([row["email"] for row in rows], ["worker@udm.ac.ke"])
+
+    def test_the_owner_opens_a_staff_account_that_signs_in(self):
+        self.client.force_authenticate(user=self.owner)
+        created = self.client.post(
+            "/api/v1/admin/accounts/",
+            {"email": " NEWCURATOR@udm.ac.ke ", "display_name": "Ruth Businge", "password": self.PASSWORD},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.json())
+        body = created.json()
+        account = User.objects.get(pk=body["id"])
+        self.assertEqual(account.email, "newcurator@udm.ac.ke")
+        self.assertEqual(body["display_name"], "Ruth Businge")
+        self.assertEqual((account.is_staff, account.is_superuser, account.is_active), (True, False, True))
+        self.assertTrue(account.check_password(self.PASSWORD))
+        self.assertNotIn("password", body)
+
+        # The whole point of the row: it signs in through the console's own
+        # session endpoint, without the owner handing over a token.
+        signed_in = self.client.post(
+            "/api/v1/auth/admin/token/",
+            {"email": "newcurator@udm.ac.ke", "password": self.PASSWORD},
+            format="json",
+        )
+        self.assertEqual(signed_in.status_code, 200, signed_in.json())
+        # `force_authenticate` outranks an Authorization header, so the owner's
+        # stamp has to come off before this token decides who the request is.
+        self.client.force_authenticate(user=None)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {signed_in.json()['access']}")
+        self.assertEqual(self.client.get("/api/v1/admin/devotions/").status_code, 200)
+        self.assertEqual(self.client.get("/api/v1/admin/accounts/").status_code, 403)
+        self.client.credentials()
+
+    def test_a_new_account_needs_a_password_that_is_not_common(self):
+        self.client.force_authenticate(user=self.owner)
+        missing = self.client.post(
+            "/api/v1/admin/accounts/", {"email": "nobody@udm.ac.ke"}, format="json"
+        )
+        self.assertEqual(missing.status_code, 400, missing.json())
+        self.assertIn("password", missing.json()["errors"])
+        self.assertFalse(User.objects.filter(email="nobody@udm.ac.ke").exists())
+
+        weak = self.client.post(
+            "/api/v1/admin/accounts/",
+            {"email": "weak@udm.ac.ke", "password": "password"},
+            format="json",
+        )
+        self.assertEqual(weak.status_code, 400, weak.json())
+        self.assertIn("password", weak.json()["errors"])
+        self.assertFalse(User.objects.filter(email="weak@udm.ac.ke").exists())
+
+    def test_the_address_of_an_existing_account_is_taken(self):
+        self.client.force_authenticate(user=self.owner)
+        clash = self.client.post(
+            "/api/v1/admin/accounts/",
+            {"email": "worker@udm.ac.ke", "password": self.PASSWORD},
+            format="json",
+        )
+        self.assertEqual(clash.status_code, 400, clash.json())
+        self.assertEqual(User.objects.filter(email="worker@udm.ac.ke").count(), 1)
+
+    def test_no_request_on_this_page_can_create_a_second_owner(self):
+        self.client.force_authenticate(user=self.owner)
+        created = self.client.post(
+            "/api/v1/admin/accounts/",
+            {
+                "email": "hopeful@udm.ac.ke",
+                "password": self.PASSWORD,
+                "is_superuser": True,
+                "is_staff": False,
+            },
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.json())
+        account = User.objects.get(pk=created.json()["id"])
+        self.assertFalse(account.is_superuser)
+        # `is_staff` is set by the route, never read from the body.
+        self.assertTrue(account.is_staff)
+
+        demoted = self.client.patch(
+            f"/api/v1/admin/accounts/{account.pk}/", {"is_staff": False, "is_superuser": True}, format="json"
+        )
+        self.assertEqual(demoted.status_code, 200, demoted.json())
+        account.refresh_from_db()
+        self.assertTrue(account.is_staff)
+        self.assertFalse(account.is_superuser)
+
+    def test_the_owner_can_suspend_a_staff_account_but_not_themself(self):
+        self.client.force_authenticate(user=self.owner)
+        suspended = self.client.patch(
+            f"/api/v1/admin/accounts/{self.staff.pk}/", {"is_active": False}, format="json"
+        )
+        self.assertEqual(suspended.status_code, 200, suspended.json())
+        self.staff.refresh_from_db()
+        self.assertFalse(self.staff.is_active)
+        # Suspending is not a reset: the same password still belongs to them,
+        # which is what makes it different from closing the account.
+        self.assertTrue(self.staff.check_password("long-enough-pass"))
+        blocked = self.client.post(
+            "/api/v1/auth/admin/token/",
+            {"email": "worker@udm.ac.ke", "password": "long-enough-pass"},
+            format="json",
+        )
+        self.assertEqual(blocked.status_code, 401, blocked.json())
+
+        # The owner's own row is not in this page's queryset at all, so there is
+        # no route left that could hide or close the last admin account.
+        self.assertEqual(
+            self.client.patch(f"/api/v1/admin/accounts/{self.owner.pk}/", {"is_active": False}, format="json").status_code,
+            404,
+        )
+        self.assertEqual(self.client.delete(f"/api/v1/admin/accounts/{self.owner.pk}/").status_code, 404)
+        self.owner.refresh_from_db()
+        self.assertTrue(self.owner.is_active)
+
+    def test_closing_an_account_leaves_the_ministry_rows_it_led(self):
+        group = DiscipleshipGroup.objects.create(name="Kampla Wednesday fellowship", leader=self.staff)
+        self.client.force_authenticate(user=self.owner)
+        self.assertEqual(
+            self.client.delete(f"/api/v1/admin/accounts/{self.staff.pk}/").status_code, 204
+        )
+        self.assertFalse(User.objects.filter(pk=self.staff.pk).exists())
+        group.refresh_from_db()
+        self.assertIsNone(group.leader)
+
+    def test_the_identity_endpoint_names_what_each_role_may_reach(self):
+        staff_caps = ["curation", "directory", "moderation"]
+        self.client.force_authenticate(user=self.staff)
+        identity = self.client.get("/api/v1/auth/admin/me/").json()
+        self.assertEqual(identity["role"], "staff")
+        self.assertEqual(identity["capabilities"], staff_caps)
+
+        self.client.force_authenticate(user=self.owner)
+        owner = self.client.get("/api/v1/auth/admin/me/").json()
+        self.assertEqual(owner["role"], "superuser")
+        self.assertEqual(owner["capabilities"], staff_caps + ["translations", "accounts"])
 
 
 class DjangoAdminDeletionGateTests(UdmAPITestCase):

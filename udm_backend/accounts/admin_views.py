@@ -1,4 +1,4 @@
-"""Session endpoints and the roster for the ministry console.
+"""Session endpoints, the roster and the staff accounts for the ministry console.
 
 The console is a browser app, so it cannot keep credentials in a keystore the
 way the mobile app does. These views split the token pair deliberately: the
@@ -19,8 +19,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
-from .permissions import IsMinistryStaff
-from .serializers import AdminIdentitySerializer, StaffTokenObtainPairSerializer, StudentDirectorySerializer
+from .permissions import IsMinistryStaff, IsPlatformAdmin
+from .serializers import (AdminIdentitySerializer, StaffAccountSerializer,
+                          StaffTokenObtainPairSerializer, StudentDirectorySerializer)
 
 REFRESH_COOKIE = "udm_admin_refresh"
 # Only the session endpoints need the credential, so only they ever receive it.
@@ -153,3 +154,51 @@ class StudentDirectoryView(generics.ListAPIView):
     ).order_by("-created_at")
     search_fields = ["email", "profile__full_name"]
     ordering_fields = ["email", "created_at", "is_staff", "groups_led", "events_organized"]
+
+
+def _console_accounts():
+    """The ministry team's own console accounts.
+
+    A superuser is deliberately absent: nothing on these routes may create or
+    remove one, so listing them would offer a row the platform cannot afford to
+    delete. An account whose staff flag is turned off in Django Admin leaves
+    this list with the console access it no longer has.
+    """
+    return (
+        User.objects.filter(is_staff=True, is_superuser=False)
+        .select_related("profile")
+        .order_by("-created_at")
+    )
+
+
+class StaffAccountListView(generics.ListCreateAPIView):
+    """The platform owner opens, and reads, the staff accounts below them.
+
+    Staff cannot reach this list at all. Knowing who else holds a console
+    account is not part of curating a devotion, and the two acts here —
+    closing an account and setting its password — are not theirs to take.
+    """
+
+    permission_classes = [IsPlatformAdmin]
+    serializer_class = StaffAccountSerializer
+    # The console's one search box over this page.
+    search_fields = ["email", "profile__full_name"]
+
+    def get_queryset(self):
+        return _console_accounts()
+
+
+class StaffAccountDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """One staff account: rename it, hide it, show it again, or close it.
+
+    Neither role flag is writable here, and the owner's own account is not in
+    the queryset at all — a superuser cannot be listed, edited or deleted by
+    these routes, which is why nobody can lock themselves out of the platform
+    with this page. What changes is `is_active` and the password.
+    """
+
+    permission_classes = [IsPlatformAdmin]
+    serializer_class = StaffAccountSerializer
+
+    def get_queryset(self):
+        return _console_accounts()

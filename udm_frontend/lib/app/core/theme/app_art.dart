@@ -1,26 +1,15 @@
 /// The ministry's own pictures, named once.
 ///
-/// These are the scenes the app paints before any request comes back — the
-/// opening screen, the three onboarding slides and the standing verse backdrops
-/// a card uses when the server has no picture for the item in front of it.
-/// Everything a student is shown that comes from the server arrives as a URL
-/// uploaded by staff, so it is never in here.
+/// Only the opening screen and the three onboarding slides are carried in the
+/// build: they paint before any request comes back, so the first thing a fresh
+/// device shows cannot depend on the network. Every other surface — a devotion,
+/// an article, a verse, a recording — takes its artwork from the ministry
+/// console, where staff either upload a file or paste a link to one, and shows
+/// the brand gradient when they have not chosen either yet.
 class AppArt {
   const AppArt._();
 
   static const String splash = 'assets/images/splash.jpg';
-
-  /// Sunrise over the hill, for a verse about light or a new morning.
-  static const String verseSunrise = 'assets/images/verse_sunrise.jpg';
-
-  /// The cross on the hill at dusk, for a verse about the cross or endurance.
-  static const String verseCross = 'assets/images/verse_cross.jpg';
-
-  /// A teaching in progress, behind the Learn tab's opening card.
-  static const String teachingAction = 'assets/images/teaching_action.jpg';
-
-  /// The seasons card: a path through changing light.
-  static const String devotionalSeason = 'assets/images/devotional_season.jpg';
 
   static const String onboardingWord = 'assets/images/onboard_word.png';
   static const String onboardingHabits = 'assets/images/onboard_habits.png';

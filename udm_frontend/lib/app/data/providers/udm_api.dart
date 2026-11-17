@@ -62,6 +62,10 @@ class UdmApi {
     return Article.fromJson(_json(response));
   });
 
+  /// Published article library, newest first, as curated by the ministry.
+  Future<List<Article>> articles() async =>
+      (await _list('/articles/')).map(Article.fromJson).toList();
+
   /// The home "Find resources on" list: only guides with a step to read.
   Future<List<ResourceTopic>> resourceTopics() async =>
       (await _list('/resources/')).map(ResourceTopic.fromJson).toList();

@@ -159,7 +159,19 @@ export const eventState: StateSpec = {
 export interface FieldSpec {
   name: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "switch" | "datetime" | "date" | "json" | "lines" | "verse" | "image";
+  type:
+    | "text"
+    | "password"
+    | "textarea"
+    | "number"
+    | "select"
+    | "switch"
+    | "datetime"
+    | "date"
+    | "json"
+    | "lines"
+    | "verse"
+    | "image";
   help?: string;
   placeholder?: string;
   options?: Option[];

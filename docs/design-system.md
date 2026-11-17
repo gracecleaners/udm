@@ -56,6 +56,8 @@ Colour alone does not carry hierarchy. `AppGradients.hero` / `.scripture` / `.sh
 
 `AppMotion` names the four durations the app uses — `tap 110`, `quick 220`, `base 320`, `enter 420` — and the three curves (`standard`, `emphasized`, `springy`). Route transitions are `AppPages.transitionDuration`; a press is `PressableScale`, which scales rather than ripples, so a tap reads on a gradient where an `InkWell` would be invisible.
 
+The opening screen is the one place the app waits rather than races: `SplashController.brandPause` holds the ministry's own picture for two full seconds before the first route decision, so the brand is seen instead of flashed. It is a fixed dwell, not a load timeout — the two seconds are paid up front and the onboarding flag is read when they are done, so what the student waits for is the brand, never a spinner.
+
 ## Icon dialect
 
 `AppIcons` (`lib/app/core/widgets/app_kit.dart`) is the only source of glyphs in a feature screen. Every member is a `…_rounded` Material icon, so the set reads as one hand-drawn family — Lucide-style, 24dp grid, rounded terminals — and a screen cannot accidentally mix a sharp and a rounded icon on the same row. The base kit (`udm_widgets.dart`, `state_view.dart`) references raw `Icons.*` because `app_kit` depends on them; their glyphs are already the dialect.
@@ -72,7 +74,7 @@ One glyph, one meaning: `bookOpen` for reading, `bible` for the Bible tab, `lear
 
 **Discovery kit** (`app_kit.dart`), which is what makes the app look designed rather than assembled:
 - `CoverArt` — a server picture, or a designed fallback (monogram, icon, initials) on the brand gradient. Exactly one `Image` is ever requested, and only when the API supplied a URL, so a missing upload is a state, never a broken box.
-- `BackdropArt` — a bundled ministry picture painted edge to edge: the opening screen, an onboarding slide, a verse on a hillside. Both it and `CoverArt`'s own asset path ask the decoder for the box's width in device pixels (`decodedWidthFor`) instead of the file's, so a small Android phone never holds a flagship-sized bitmap. The number is a budget, not a guarantee — a JPEG is only stepped down in halves — which is why asking is safe on every screen: it costs nothing in sharpness where the box genuinely needs the pixels.
+- `BackdropArt` — a bundled ministry picture painted edge to edge. Four files are all the build carries (`AppArt`, `assets/images/`): the opening screen and the three onboarding slides, which paint before any request comes back, so the first thing a fresh device shows cannot depend on the network. Everything a student reaches afterwards takes its picture from the ministry console. It asks the decoder for the box's width in device pixels (`decodedWidthFor`) instead of the file's, so a small Android phone never holds a flagship-sized bitmap. The number is a budget, not a guarantee — a JPEG is only stepped down in halves — which is why asking is safe: it costs nothing in sharpness where the box genuinely needs the pixels.
 - `FeatureCard` (the wide featured tile) and `RailCard` (the 148dp discovery card) — art, scrim, title and byline composed once.
 - `DiscoveryRail` — the horizontal shelf. It is a `SingleChildScrollView`, deliberately not a `ListView`, so a rail of three items cannot be confused with the vertical feed by a scroll gesture or a widget test.
 - `QuickActionGrid` + `QuickAction` — the home shortcuts, sized by the grid rather than by fixed widths.

@@ -8,15 +8,17 @@ These deliberately do not reuse the student serializers in
 * French overrides come back as the raw `translations` map rather than a
   resolved string, because staff review what is actually stored instead of
   reading a translation provider's best guess;
-* a cover is a file staff upload here, while the student API only ever reads a
-  URL back — which is why `MediaItemAdminSerializer` carries both `image` and
-  `image_url` while the student serializer carries `image_url` alone. The same
-  pair now sits on devotionals, articles and memory verses.
+* artwork is staff's choice of an upload or a link here, while the student API
+  only ever reads one address back — which is why `MediaItemAdminSerializer`
+  carries `image`, `image_link` and `image_url` while the student serializer
+  carries `image_url` alone. The same trio sits on devotionals, articles,
+  memory verses and shelves, and the upload wins when both are set.
 
 Every write runs `Model.full_clean()`. The licensing guard on
-`MemoryVerse.clean`, the HTTPS and YouTube-link rules on `MediaItem`/`Event` and
-the guide ordering rules therefore cannot be sidestepped by posting JSON over
-HTTP, and the models stay the single place where those rules are stated.
+`MemoryVerse.clean`, the HTTPS and YouTube-link rules on `MediaItem`/`Event`,
+the scheme rule on a pasted artwork link and the guide ordering rules therefore
+cannot be sidestepped by posting JSON over HTTP, and the models stay the single
+place where those rules are stated.
 """
 
 import copy
@@ -34,7 +36,7 @@ from .models import (Article, BibleReadingAssignment, BibleReadingPlan, BibleTra
                      BibleVerse, Campus, Devotional,
                      DevotionalSeries, DiscipleshipGroup, Event, Fellowship,
                      MediaCollection, MediaItem, MemoryVerse, ResourceStep, ResourceTopic, University)
-from .services import media_file_url
+from .services import artwork_url
 
 # `content.translation.translate_strings` only ever speaks French, so accepting
 # any other locale here would store a key no reader can ever resolve.
@@ -214,7 +216,7 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
         fields = (
             "id", "title", "author", "scripture_reference", "excerpt", "body",
             "reflection_questions", "application", "prayer", "memory_scripture_reference",
-            "reading_minutes", "series", "series_title", "day", "image", "image_url",
+            "reading_minutes", "series", "series_title", "day", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
             "translations", "created_at", "updated_at",
         )
@@ -224,7 +226,7 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
         return obj.series.title if obj.series_id else None
 
     def get_image_url(self, obj):
-        return media_file_url(obj.image, self.context.get("request"))
+        return artwork_url(obj, self.context.get("request"))
 
     def get_validators(self):
         return [
@@ -242,27 +244,31 @@ class ArticleAdminSerializer(CurationSerializerMixin, PublishStateFields, serial
         model = Article
         fields = (
             "id", "title", "author", "category", "excerpt", "body", "reading_minutes",
-            "image", "image_url",
+            "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
             "translations", "created_at", "updated_at",
         )
         read_only_fields = ("id", "image_url", "publish_state", "created_at", "updated_at")
 
     def get_image_url(self, obj):
-        return media_file_url(obj.image, self.context.get("request"))
+        return artwork_url(obj, self.context.get("request"))
 
 
 class ResourceTopicAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
     step_count = serializers.IntegerField(read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ResourceTopic
         fields = (
-            "id", "title", "summary", "order",
+            "id", "title", "summary", "order", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state", "step_count",
             "translations", "created_at", "updated_at",
         )
-        read_only_fields = ("id", "publish_state", "step_count", "created_at", "updated_at")
+        read_only_fields = ("id", "image_url", "publish_state", "step_count", "created_at", "updated_at")
+
+    def get_image_url(self, obj):
+        return artwork_url(obj, self.context.get("request"))
 
 
 class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
@@ -317,7 +323,8 @@ class BibleReadingAssignmentAdminSerializer(CurationSerializerMixin, serializers
 
 class MediaCollectionAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
     """A shelf of recordings. `image` is a real upload, so the console posts
-    multipart for it and Django Admin offers the same file picker."""
+    multipart for it and Django Admin offers the same file picker; `image_link`
+    is the JSON half, for art the ministry hosts elsewhere."""
 
     item_count = serializers.IntegerField(read_only=True)
     image_url = serializers.SerializerMethodField()
@@ -325,14 +332,14 @@ class MediaCollectionAdminSerializer(CurationSerializerMixin, PublishStateFields
     class Meta:
         model = MediaCollection
         fields = (
-            "id", "title", "description", "order", "image", "image_url",
+            "id", "title", "description", "order", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state", "item_count",
             "translations", "created_at", "updated_at",
         )
         read_only_fields = ("id", "image_url", "publish_state", "item_count", "created_at", "updated_at")
 
     def get_image_url(self, obj):
-        return media_file_url(obj.image, self.context.get("request"))
+        return artwork_url(obj, self.context.get("request"))
 
 
 class MediaItemAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
@@ -346,7 +353,7 @@ class MediaItemAdminSerializer(CurationSerializerMixin, PublishStateFields, seri
         model = MediaItem
         fields = (
             "id", "collection", "collection_title", "title", "author", "excerpt", "body",
-            "order", "youtube_url", "download_url", "duration_seconds", "image", "image_url",
+            "order", "youtube_url", "download_url", "duration_seconds", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
             "translations", "created_at", "updated_at",
         )
@@ -358,7 +365,7 @@ class MediaItemAdminSerializer(CurationSerializerMixin, PublishStateFields, seri
         return obj.collection.title if obj.collection_id else None
 
     def get_image_url(self, obj):
-        return media_file_url(obj.image, self.context.get("request")) or youtube_thumbnail(obj.youtube_url)
+        return artwork_url(obj, self.context.get("request")) or youtube_thumbnail(obj.youtube_url)
 
     def get_validators(self):
         return [
@@ -395,7 +402,7 @@ class MemoryVerseAdminSerializer(CurationSerializerMixin, PublishStateFields, se
         fields = (
             "id", "verse", "reference", "text", "translation_code", "attribution",
             "display_reference", "display_text", "display_translation", "display_attribution",
-            "allowed_translation_codes", "prompt", "image", "image_url", "start_date", "end_date",
+            "allowed_translation_codes", "prompt", "image", "image_link", "image_url", "start_date", "end_date",
             "is_published", "publish_state",
             "translations", "created_at", "updated_at",
         )
@@ -423,7 +430,7 @@ class MemoryVerseAdminSerializer(CurationSerializerMixin, PublishStateFields, se
         return list(getattr(settings, "UDM_MEMORY_VERSE_TRANSLATIONS", []))
 
     def get_image_url(self, obj):
-        return media_file_url(obj.image, self.context.get("request"))
+        return artwork_url(obj, self.context.get("request"))
 
 
 class UniversityAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer):

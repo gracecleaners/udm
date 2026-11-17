@@ -35,7 +35,7 @@ const config: ResourceConfig = {
       header: "Artwork",
       cell: (row) =>
         row.image_url
-          ? <span className="console-cell-sub">Uploaded</span>
+          ? <span className="console-cell-sub">Picture set</span>
           : <span className="console-cell-sub">Plain tile</span>,
     },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
@@ -68,6 +68,13 @@ const config: ResourceConfig = {
       label: "Shelf artwork",
       type: "image",
       help: "The picture on the tile. Left empty, the Learn tab draws a plain tile with the shelf’s initial.",
+    },
+    {
+      name: "image_link",
+      label: "Or paste an image link",
+      type: "text",
+      placeholder: "https://…",
+      help: "For a picture the ministry already hosts elsewhere. An uploaded file wins when both are set.",
     },
     {
       name: "publish_at",

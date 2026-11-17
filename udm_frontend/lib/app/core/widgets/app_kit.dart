@@ -108,11 +108,11 @@ int? decodedWidthFor(double pixels) => pixels.isFinite && pixels > 0 ? pixels.ce
 
 /// A bundled picture of the ministry's own, drawn to fill whatever it is given.
 ///
-/// The full-bleed scenes — the opening screen, an onboarding slide, a verse set
-/// on a hillside — are the largest images the app carries, and each one is
-/// asked to cover the whole screen. Sizing the decode to the screen in hand is
-/// what keeps a small Android phone from holding a flagship's bitmap in memory
-/// while it paints them.
+/// Only the opening screen and the onboarding slides carry a file, because they
+/// paint before any request comes back. They are also the largest images in the
+/// build, each asked to cover the whole screen, so sizing the decode to the
+/// device in hand is what keeps a small Android phone from holding a flagship's
+/// bitmap in memory while it paints them.
 class BackdropArt extends StatelessWidget {
   const BackdropArt({
     super.key,
@@ -142,19 +142,18 @@ class BackdropArt extends StatelessWidget {
   }
 }
 
-/// Cover art the ministry uploaded, with the brand tile underneath it.
+/// Cover art the ministry published, with the brand tile underneath it.
 ///
-/// Artwork lives on the ministry's own host, so a series, shelf or recording
-/// can be perfectly published and still have no picture. A missing image is a
-/// designed state here, not a hole: the initials or the play mark show, and the
-/// name stays readable. Exactly one `Image` is ever built, so a screen with two
-/// tiles and one picture has one picture.
+/// Artwork lives on the ministry's own host — a file staff uploaded or a link
+/// they pasted in the console — so a series, shelf or recording can be
+/// perfectly published and still have no picture. A missing image is a designed
+/// state here, not a hole: the initials or the play mark show, and the name
+/// stays readable.
 class CoverArt extends StatelessWidget {
   const CoverArt({
     super.key,
     required this.url,
     required this.monogram,
-    this.asset = '',
     this.icon,
     this.width,
     this.height,
@@ -165,11 +164,6 @@ class CoverArt extends StatelessWidget {
   });
 
   final String url;
-
-  /// A bundled picture of the ministry's own, used when the server has no
-  /// upload for this item. Only ever the fallback under `url`, so staff art
-  /// always wins.
-  final String asset;
 
   /// What the tile falls back to when there is no picture: the initials the
   /// server derived from the title.
@@ -188,61 +182,31 @@ class CoverArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.circular(radius);
-    if (url.isEmpty && asset.isEmpty) {
-      return _Fallback(
-        width: width,
-        height: height,
-        borderRadius: borderRadius,
-        gradient: gradient,
-        child: icon != null
-            ? Icon(icon, color: AppColors.white, size: monogramSize * 1.15)
-            : AppText(
-                monogram,
-                style: AppTypography.scriptureVerse(AppColors.white, size: monogramSize),
-                maxLines: 1,
-              ),
-      );
-    }
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: url.isNotEmpty || asset.isEmpty
-            ? Image.network(
-                url,
-                fit: fit,
-                width: width,
-                height: height,
-                gaplessPlayback: true,
-                errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
-                loadingBuilder: (context, child, progress) => progress == null
-                    ? child
-                    : _Fallback(
-                        borderRadius: borderRadius,
-                        gradient: gradient,
-                        dimmed: asset.isEmpty,
-                        child: asset.isEmpty
-                            ? const SizedBox.shrink()
-                            : _photo(context, fit, borderRadius),
-                      ),
-              )
-            : _photo(context, fit, borderRadius),
-      ),
-    );
-  }
-
-  Widget _photo(BuildContext context, BoxFit fit, BorderRadius borderRadius) {
+    if (url.isEmpty) return _brandedArt(borderRadius);
     final dpr = MediaQuery.devicePixelRatioOf(context);
-
     return LayoutBuilder(
-      builder: (context, box) => Image.asset(
-        asset,
-        fit: fit,
-        cacheWidth: decodedWidthFor(box.maxWidth * dpr),
-        gaplessPlayback: true,
-        errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
-      ),
+      builder: (context, constraints) {
+        final logicalWidth = width != null && width!.isFinite ? width! : constraints.maxWidth;
+        return ClipRRect(
+          borderRadius: borderRadius,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Image.network(
+              url,
+              fit: fit,
+              width: width,
+              height: height,
+              cacheWidth: decodedWidthFor(logicalWidth * dpr),
+              cacheHeight: height != null && height!.isFinite ? decodedWidthFor(height! * dpr) : null,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stack) => _brandedArt(borderRadius),
+              loadingBuilder: (context, child, progress) =>
+                  progress == null ? child : _Fallback(borderRadius: borderRadius, gradient: gradient),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -263,20 +227,18 @@ class CoverArt extends StatelessWidget {
 
 class _Fallback extends StatelessWidget {
   const _Fallback({
-    required this.child,
+    this.child,
     this.borderRadius = BorderRadius.zero,
     this.width,
     this.height,
     this.gradient,
-    this.dimmed = false,
   });
 
-  final Widget child;
+  final Widget? child;
   final BorderRadius borderRadius;
   final double? width;
   final double? height;
   final Gradient? gradient;
-  final bool dimmed;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -291,8 +253,7 @@ class _Fallback extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
-            if (dimmed) const Positioned.fill(child: ColoredBox(color: Color(0x33FFFFFF))),
-            Center(child: child),
+            if (child != null) Center(child: child!),
           ],
         ),
       );
@@ -308,7 +269,6 @@ class FeatureCard extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.artUrl = '',
-    this.artAsset = '',
     this.monogram = '',
     this.artIcon,
     this.pills = const [],
@@ -322,11 +282,6 @@ class FeatureCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String artUrl;
-
-  /// The ministry's own picture for this kind of card, used when staff have not
-  /// uploaded one. Never a placeholder: the brand tile is what appears when
-  /// both are empty.
-  final String artAsset;
   final String monogram;
   final IconData? artIcon;
 
@@ -358,7 +313,6 @@ class FeatureCard extends StatelessWidget {
             Positioned.fill(
               child: CoverArt(
                 url: artUrl,
-                asset: artAsset,
                 monogram: monogram,
                 icon: artIcon,
                 radius: AppSpacing.radiusSheet,
@@ -433,7 +387,6 @@ class RailCard extends StatelessWidget {
     required this.title,
     required this.monogram,
     this.artUrl = '',
-    this.artAsset = '',
     this.artIcon,
     this.eyebrow,
     this.subtitle,
@@ -449,8 +402,6 @@ class RailCard extends StatelessWidget {
   final String monogram;
   final String artUrl;
 
-  /// The ministry's bundled picture for when staff have not uploaded one.
-  final String artAsset;
   final IconData? artIcon;
   final String? eyebrow;
   final String? subtitle;
@@ -482,7 +433,6 @@ class RailCard extends StatelessWidget {
                 aspectRatio: artRatio,
                 child: CoverArt(
                   url: artUrl,
-                  asset: artAsset,
                   monogram: monogram,
                   icon: artIcon,
                   radius: AppSpacing.radiusArt,
@@ -493,7 +443,6 @@ class RailCard extends StatelessWidget {
                 height: artHeight,
                 child: CoverArt(
                   url: artUrl,
-                  asset: artAsset,
                   monogram: monogram,
                   icon: artIcon,
                   radius: AppSpacing.radiusArt,
@@ -580,8 +529,9 @@ class QuickActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    // Four across a phone, and never a tile narrower than a thumb needs.
-    final perRow = width < 360 ? 3 : columns;
+    // Keep all four doors balanced on very small phones instead of leaving a
+    // single orphan tile on a second row.
+    final perRow = width < 360 ? 2 : columns;
     return LayoutBuilder(
       builder: (context, constraints) => Wrap(
         spacing: AppSpacing.sm,

@@ -11,6 +11,7 @@ class ResourceTopic {
     required this.id,
     required this.title,
     this.summary = '',
+    this.imageUrl = '',
     this.order = 1,
     this.stepCount = 0,
     this.stepsCompleted = 0,
@@ -23,6 +24,7 @@ class ResourceTopic {
   final String id;
   final String title;
   final String summary;
+  final String imageUrl;
   final int order;
   final int stepCount;
 
@@ -50,6 +52,7 @@ class ResourceTopic {
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
         summary: json['summary'] as String? ?? '',
+        imageUrl: json['image_url'] as String? ?? '',
         order: (json['order'] as num?)?.toInt() ?? 1,
         stepCount: (json['step_count'] as num?)?.toInt() ?? 0,
         stepsCompleted: (json['steps_completed'] as num?)?.toInt() ?? 0,
@@ -68,6 +71,7 @@ class ResourceTopic {
         'id': id,
         'title': title,
         'summary': summary,
+        'image_url': imageUrl,
         'order': order,
         'step_count': stepCount,
         'steps_completed': stepsCompleted,
@@ -81,6 +85,7 @@ class ResourceTopic {
         id: id,
         title: title,
         summary: summary,
+        imageUrl: imageUrl,
         order: order,
         stepCount: stepCount,
         stepsCompleted: stepsCompleted,
@@ -93,6 +98,7 @@ class ResourceTopic {
         id: id,
         title: title,
         summary: summary,
+        imageUrl: imageUrl,
         order: order,
         stepCount: stepCount,
         stepsCompleted: stepsCompleted,

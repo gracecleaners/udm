@@ -82,7 +82,6 @@ class ScripturePanel extends StatelessWidget {
     required this.text,
     this.translationCode = '',
     this.artUrl = '',
-    this.artAsset = '',
     this.offline = false,
     this.onTap,
     this.ctaLabel,
@@ -95,11 +94,9 @@ class ScripturePanel extends StatelessWidget {
   final String text;
   final String translationCode;
 
-  /// A picture behind the verse. Staff upload `artUrl`; `artAsset` is the
-  /// ministry's own bundled scene for when they have not. With neither, the
-  /// card keeps its brand gradient.
+  /// A picture behind the verse, as staff published it in the console — an
+  /// upload or a link. With none, the card keeps its brand gradient.
   final String artUrl;
-  final String artAsset;
   final bool offline;
   final VoidCallback? onTap;
 
@@ -118,7 +115,7 @@ class ScripturePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasArt = artUrl.isNotEmpty || artAsset.isNotEmpty;
+    final hasArt = artUrl.isNotEmpty;
     return PressableScale(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
@@ -136,7 +133,6 @@ class ScripturePanel extends StatelessWidget {
               Positioned.fill(
                 child: CoverArt(
                   url: artUrl,
-                  asset: artAsset,
                   monogram: '',
                   radius: 0,
                   gradient: AppGradients.scripture,

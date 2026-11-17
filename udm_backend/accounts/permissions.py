@@ -12,9 +12,38 @@ irreversibility:
 `is_staff` is Django's own console flag and `is_superuser` its own owner flag,
 so no parallel role field can drift out of sync with the Django Admin site that
 reads the same two columns.
+
+`CONSOLE_CAPABILITIES` below is what each of those two may actually reach. It
+lives here rather than inside the console because the routes enforce the same
+list: a page that hides a control the API would still accept is decoration, and
+an endpoint open to a role the menu never offers is dead surface.
 """
 
 from rest_framework import permissions
+
+# Read once by `AdminIdentitySerializer`, so the console builds its own
+# navigation from what the server already decided rather than a second copy of
+# these rules written in TypeScript.
+CONSOLE_CAPABILITIES = {
+    "staff": ("curation", "directory", "moderation"),
+    "superuser": ("curation", "directory", "moderation", "translations", "accounts"),
+}
+
+
+def role_for(user) -> str:
+    """The console's role name for a user, or `student` / `guest` outside it."""
+    if not (user and user.is_authenticated):
+        return "guest"
+    if user.is_superuser:
+        return "superuser"
+    if user.is_staff:
+        return "staff"
+    return "student"
+
+
+def capabilities_for(user) -> tuple[str, ...]:
+    """What this account may do in the console — empty for anyone outside it."""
+    return CONSOLE_CAPABILITIES.get(role_for(user), ())
 
 
 class IsMinistryStaff(permissions.BasePermission):

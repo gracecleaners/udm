@@ -8,9 +8,11 @@ abstract class AppRoutes {
   static const String devotion = '/devotion';
   static const String devotionSeries = '/devotion-series';
   static const String article = '/article';
+  static const String articles = '/articles';
   static const String resourceTopic = '/resource-topic';
   static const String resourceStep = '/resource-step';
   static const String courses = '/courses';
+  static const String newBeliever = '/new-believer';
   static const String mediaCollection = '/media-collection';
   static const String mediaItem = '/media-item';
   static const String community = '/community';
