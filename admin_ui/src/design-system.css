@@ -239,6 +239,11 @@ div.console-toolbar label.console-search input:focus-visible { outline: none; }
 .console-panel td.console-col-actions { text-align: right; white-space: nowrap; }
 .console-panel tbody td strong { color: #323943; font-weight: 660; }
 .console-cell-sub { display: block; margin-top: 3px; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 1.45; }
+/* A student's own picture beside their name in the roster. The empty disc is a
+   designed gap, not a placeholder face: nothing is invented for a row. */
+.console-cell-person { display: flex; align-items: center; gap: 10px; }
+.console-avatar { width: 30px; height: 30px; flex: none; border-radius: 50%; object-fit: cover; }
+.console-avatar-empty { background: #eef4fa; border: 1px solid #e2eaf3; }
 .console-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 div.console-row-actions .console-state-select { width: 152px; height: 34px; border-color: #dce5ee; background: #fff; font-size: 12.5px; font-weight: 600; }
 button.console-delete { color: #93a1b1; }
@@ -279,14 +284,15 @@ div.console-child-dialog { max-width: min(1180px, calc(100vw - 3rem)); }
 .console-datetime-row > div { flex: 1; min-width: 0; }
 .console-datetime-row > button { flex: 0 0 auto; width: 36px; color: #7d8b9c; }
 
+/* Broadcast composer: one write that cannot be taken back, so the send asks twice. */
+.console-broadcast-actions { display: flex; align-items: center; gap: 10px; }
+.console-saved { margin: 0; padding: 12px 15px; border: 1px solid rgba(31,122,87,.22); border-radius: 12px; background: #f1faf5; color: #1f7a57; font-size: 13px; font-weight: 550; line-height: 1.55; }
+
 /* Cover upload: the picture on the server, then the file staff choose to replace it. */
 .console-image-field { display: flex; align-items: center; gap: 10px; }
 .console-image-field > div { flex: 1; min-width: 0; }
 .console-image-preview { flex: 0 0 auto; width: 88px; height: 56px; object-fit: cover; border: 1px solid #dce5ee; border-radius: 8px; background: #fff; }
 .console-image-none { flex: 0 0 auto; display: grid; place-items: center; width: 88px; height: 56px; border: 1px dashed #dce5ee; border-radius: 8px; color: #a9b6c5; font-size: 11.5px; }
-
-.console-localized { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; grid-column: 1 / -1; padding: 15px 16px; border: 1px dashed #c9dcf0; border-radius: 14px; background: #f7fbfe; }
-.console-localized-head { grid-column: 1 / -1; margin: 0; color: hsl(var(--muted-foreground)); font-size: 12px; font-weight: 600; }
 
 .console-verse-picker { display: grid; gap: 9px; }
 .console-verse-filters { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) 104px; gap: 8px; }
@@ -324,8 +330,7 @@ button.console-prayer-wall-select { width: 176px; height: 34px; border-color: #d
   .console-toolbar label.console-filter .console-filter-select { width: 100%; }
 }
 @media (max-width: 760px) {
-  .console-form-grid,
-  .console-localized { grid-template-columns: minmax(0, 1fr); }
+  .console-form-grid { grid-template-columns: minmax(0, 1fr); }
   .console-verse-filters { grid-template-columns: minmax(0, 1fr); }
   .console-page-head { gap: 12px; }
   .console-page-head > button { width: 100%; justify-content: center; }

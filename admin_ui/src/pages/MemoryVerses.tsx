@@ -40,7 +40,6 @@ function buildConfig(codes: string[] | null): ResourceConfig {
       "Verses students hide in their heart. The home feed rotates the published ones whose window covers today, "
       + "the same verse for every reader on a given day.",
     state: simplePublishState,
-    localized: ["reference", "text", "attribution", "prompt"],
     searchPlaceholder: "Search prompts or verse text",
     columns: [
       {

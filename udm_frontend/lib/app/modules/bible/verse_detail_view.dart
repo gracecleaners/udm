@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/localization/localized_snackbar.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -232,7 +231,7 @@ class _ActionBar extends StatelessWidget {
     );
   }
 
-  void _explain() => showLocalizedSnackbar(
+  void _explain() => Get.snackbar(
     'This verse cannot be kept',
     'The app may only link out to this translation, so its verses are not '
         'stored to bookmark.',
@@ -245,7 +244,7 @@ class _ActionBar extends StatelessWidget {
     try {
       await SharePlus.instance.share(ShareParams(text: text));
     } on Exception {
-      showLocalizedSnackbar('Could not share', 'No sharing app answered. Copy the verse instead.');
+      Get.snackbar('Could not share', 'No sharing app answered. Copy the verse instead.');
     }
   }
 }

@@ -16,7 +16,6 @@ const config: ResourceConfig = {
     "Read-through sets like The Book of James or Christmas. Cover art is loaded from a URL the ministry hosts; "
     + "a series stays hidden until it is Live and has at least one published day.",
   state: datedPublishState,
-  localized: ["title", "description"],
   ordering: "order",
   searchPlaceholder: "Search titles or descriptions",
   columns: [

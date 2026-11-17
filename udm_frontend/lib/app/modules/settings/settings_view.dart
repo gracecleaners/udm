@@ -7,14 +7,13 @@ import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../content_version/content_version_controller.dart';
-import 'app_language_controller.dart';
 import 'appearance_controller.dart';
 import 'reading_size_sheet.dart';
 
 /// The device's own choices, in one place.
 ///
 /// Everything on this screen belongs to the phone rather than to the account:
-/// the light, the size of the reading text, the language. A shared family
+/// the light and the size of the reading text. A shared family
 /// device can be dark for one student and light for the next, which is exactly
 /// why none of it is sent to the server.
 ///
@@ -45,8 +44,6 @@ class SettingsView extends StatelessWidget {
           const _Appearance(),
           const SizedBox(height: AppSpacing.lg),
           const _ReadingSize(),
-          const SizedBox(height: AppSpacing.lg),
-          const _Language(),
           const SizedBox(height: AppSpacing.lg),
           const _About(),
           const SizedBox(height: AppSpacing.lg),
@@ -131,46 +128,6 @@ class _ReadingSize extends GetView<AppearanceController> {
       ),
     ],
   );
-}
-
-/// The one preference that changes what the server sends, not just how it looks.
-class _Language extends GetView<AppLanguageController> {
-  const _Language();
-
-  static const _choices = <(String, String)>[
-    ('en', 'English'),
-    ('fr', 'Français'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return _Group(
-      eyebrow: 'Language',
-      icon: AppIcons.language,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-          child: AppText(
-            'The interface, and the ministry content published in that language.',
-            style: theme.textTheme.bodySmall,
-          ),
-        ),
-        for (var i = 0; i < _choices.length; i++)
-          Obx(
-            () => NavRow(
-              icon: AppIcons.language,
-              label: _choices[i].$2,
-              last: i == _choices.length - 1,
-              trailing: controller.locale.value.languageCode == _choices[i].$1
-                  ? Icon(AppIcons.check, size: 20, color: theme.colorScheme.primary)
-                  : const SizedBox.shrink(),
-              onTap: () => controller.select(_choices[i].$1),
-            ),
-          ),
-      ],
-    );
-  }
 }
 
 /// What the app is, and the copy it is currently reading.

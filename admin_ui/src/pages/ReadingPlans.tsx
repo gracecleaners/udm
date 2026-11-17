@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { ResourceScreen } from "@/components/curation/ResourceScreen";
 import { StateBadge, countText, dateTimeText } from "@/components/curation/cells";
 import { simplePublishState, type ResourceConfig } from "@/lib/curation";
@@ -6,23 +7,61 @@ const assignments = (planId: string, planTitle: string): ResourceConfig => ({
   endpoint: `admin/reading-plans/${planId}/assignments/`,
   singular: "Reading",
   plural: "Readings",
-  description: `Day-by-day passages for “${planTitle}”. The API files each one under this plan.`,
+  description: `Day-by-day passages for “${planTitle}”, each written in the four sections a reader works through.`,
   ordering: "day",
-  localized: ["reference"],
   searchPlaceholder: "Search references",
   columns: [
     { header: "Day", cell: (row) => <strong>{String(row.day)}</strong> },
-    { header: "Passage", cell: (row) => String(row.reference) },
+    {
+      header: "Passage",
+      cell: (row) => (
+        <>
+          <span>{String(row.reference)}</span>
+          <span className="console-cell-sub">{String(row.title || "No title for the day")}</span>
+        </>
+      ),
+    },
+    { header: "Verse", cell: (row) => String(row.verse_reference || "—") },
     { header: "Changed", cell: (row) => dateTimeText(row.updated_at) },
   ],
   fields: [
     { name: "day", label: "Day", type: "number", required: true, help: "One reading per day; a duplicate is refused." },
     {
+      name: "title",
+      label: "Title",
+      type: "text",
+      help: "Optional. The day's own name, shown above the passage on the phone.",
+    },
+    {
       name: "reference",
-      label: "Passage",
+      label: "The passage",
       type: "text",
       required: true,
       help: "Written the way the reader should see it, for example “Genesis 1-2; Psalm 1”.",
+    },
+    {
+      name: "verse_reference",
+      label: "The verse",
+      type: "text",
+      help: "The one verse to hold on to, for example “Romans 1:17”. Blank keeps the section off the page.",
+    },
+    {
+      name: "verse_text",
+      label: "What the verse says",
+      type: "textarea",
+      help: "The verse in the ministry's own wording. Quoted Scripture has to come from a licensed edition.",
+    },
+    {
+      name: "what_it_says",
+      label: "What it says",
+      type: "textarea",
+      help: "The passage opened up: what the reader is actually looking at.",
+    },
+    {
+      name: "what_to_learn",
+      label: "What to learn",
+      type: "textarea",
+      help: "What the reader takes from it. The phone draws these four sections in this order.",
     },
   ],
   deleteWarning: "Readers’ completion marks for this day go with it. Delete it?",
@@ -34,7 +73,6 @@ const config: ResourceConfig = {
   plural: "Reading plans",
   description: "Guided scripture plans. A plan with no readings shows students nothing, so add days after creating it.",
   state: simplePublishState,
-  localized: ["title", "description"],
   searchPlaceholder: "Search plan titles",
   columns: [
     {
@@ -47,12 +85,22 @@ const config: ResourceConfig = {
       ),
     },
     { header: "Readings", cell: (row) => countText(row.assignment_count, "day") },
+    {
+      header: "Daily",
+      cell: (row) => (row.is_daily ? <Badge variant="default">Today’s reading</Badge> : <Badge variant="outline">Not daily</Badge>),
+    },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
     { header: "Changed", cell: (row) => dateTimeText(row.updated_at) },
   ],
   fields: [
     { name: "title", label: "Title", type: "text", required: true },
     { name: "description", label: "Description", type: "textarea", help: "Why a student would start this plan." },
+    {
+      name: "is_daily",
+      label: "Offer as Today’s reading",
+      type: "switch",
+      help: "The home feed reads one published plan marked daily. If several are marked, the first by title wins.",
+    },
     { name: "updated_at", label: "Last changed", type: "text", readOnly: true, show: (row) => dateTimeText(row.updated_at) },
   ],
   child: (row) => ({

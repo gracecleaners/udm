@@ -1,7 +1,5 @@
-import 'package:udm_frontend/app/core/localization/localized_snackbar.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../settings/app_language_controller.dart';
 
 import '../../core/network/failure.dart';
 import '../../data/models/prayer_post.dart';
@@ -19,7 +17,6 @@ class CommunityController extends GetxController {
 
   final UdmApi api;
   final SessionController session;
-  Worker? _languageWorker;
   final selectedSection = 0.obs;
   final loading = false.obs;
   final error = ''.obs;
@@ -49,16 +46,7 @@ class CommunityController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    if (Get.isRegistered<AppLanguageController>()) {
-      _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
-    }
     load();
-  }
-
-  @override
-  void onClose() {
-    _languageWorker?.dispose();
-    super.onClose();
   }
 
   Future<void> load() async {
@@ -96,9 +84,9 @@ class CommunityController extends GetxController {
     try {
       await api.requestGroupMembership(group['id'] as String);
       await load();
-      showLocalizedSnackbar('Request sent', 'The group leader will review your request.');
+      Get.snackbar('Request sent', 'The group leader will review your request.');
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not request membership', failure.message);
+      Get.snackbar('Could not request membership', failure.message);
     }
   }
 
@@ -107,7 +95,7 @@ class CommunityController extends GetxController {
       await api.decideGroupMembership(groupId, membershipId, status);
       await load();
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not update request', failure.message);
+      Get.snackbar('Could not update request', failure.message);
     }
   }
 
@@ -116,23 +104,23 @@ class CommunityController extends GetxController {
     try {
       await api.registerForEvent(event['id'] as String);
       await load();
-      showLocalizedSnackbar('Registered', 'You are on the event list.');
+      Get.snackbar('Registered', 'You are on the event list.');
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not register', failure.message);
+      Get.snackbar('Could not register', failure.message);
     }
   }
 
   Future<void> openEventLink(String rawUrl) async {
     final uri = Uri.tryParse(rawUrl);
     if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
-      showLocalizedSnackbar('Event link unavailable', 'This event does not have a safe online link.');
+      Get.snackbar('Event link unavailable', 'This event does not have a safe online link.');
       return;
     }
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!opened) showLocalizedSnackbar('Event link unavailable', 'No app could open this event.');
+      if (!opened) Get.snackbar('Event link unavailable', 'No app could open this event.');
     } on Exception {
-      showLocalizedSnackbar('Event link unavailable', 'No app could open this event.');
+      Get.snackbar('Event link unavailable', 'No app could open this event.');
     }
   }
 
@@ -165,7 +153,7 @@ class CommunityController extends GetxController {
       final state = await api.setPrayerAffirmation(post.id, on: !post.affirmed);
       _replace(post, post.copyWith(affirmed: state.affirmed, affirmationCount: state.count));
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not record the promise', failure.message);
+      Get.snackbar('Could not record the promise', failure.message);
     }
   }
 
@@ -181,7 +169,7 @@ class CommunityController extends GetxController {
       comments[post.id] = await api.prayerComments(post.id);
     } on Failure catch (failure) {
       openPost.value = '';
-      showLocalizedSnackbar('Could not load the words', failure.message);
+      Get.snackbar('Could not load the words', failure.message);
     }
   }
 
@@ -194,7 +182,7 @@ class CommunityController extends GetxController {
       comments[post.id] = [comment, ...?comments[post.id]];
       _replace(post, post.copyWith(commentCount: post.commentCount + 1));
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not post the word', failure.message);
+      Get.snackbar('Could not post the word', failure.message);
     }
   }
 
@@ -204,7 +192,7 @@ class CommunityController extends GetxController {
       comments[post.id] = (comments[post.id] ?? const []).where((row) => row.id != commentId).toList();
       _replace(post, post.copyWith(commentCount: post.commentCount > 0 ? post.commentCount - 1 : 0));
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not remove the word', failure.message);
+      Get.snackbar('Could not remove the word', failure.message);
     }
   }
 
@@ -230,12 +218,12 @@ class CommunityController extends GetxController {
         category: category,
       );
       await loadWall();
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Prayer saved',
         visibility == 'private' ? 'Only you can see it.' : 'It is waiting for the selected reviewers.',
       );
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not save prayer', failure.message);
+      Get.snackbar('Could not save prayer', failure.message);
     }
   }
 
@@ -246,7 +234,7 @@ class CommunityController extends GetxController {
       comments.remove(id);
       if (openPost.value == id) openPost.value = '';
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not delete prayer', failure.message);
+      Get.snackbar('Could not delete prayer', failure.message);
     }
   }
 
@@ -255,13 +243,13 @@ class CommunityController extends GetxController {
       await api.moderateGroupPrayer(groupId, prayerId, decision);
       await load();
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not review prayer', failure.message);
+      Get.snackbar('Could not review prayer', failure.message);
     }
   }
 
   bool _requireSignIn(String message) {
     if (session.isSignedIn) return true;
-    showLocalizedSnackbar('Sign in required', message);
+    Get.snackbar('Sign in required', message);
     return false;
   }
 }

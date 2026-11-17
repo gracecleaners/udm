@@ -27,12 +27,22 @@ from .views import (
     MediaResumeView, ProgressSummaryView,
     ResourceTopicListView, ResourceTopicDetailView, ResourceStepDetailView,
 )
+from .notification_views import (
+    NotificationDeviceView,
+    NotificationListView,
+    NotificationReadAllView,
+    NotificationReadView,
+)
 
 urlpatterns = [
     # Staff curation for the ministry console. Mounted first so the `admin/`
     # prefix never collides with a student route.
     path("admin/", include(admin_urlpatterns)),
     path("home/", HomeView.as_view(), name="home"),
+    path("notifications/", NotificationListView.as_view(), name="notifications"),
+    path("notifications/read-all/", NotificationReadAllView.as_view(), name="notifications-read-all"),
+    path("notifications/<uuid:pk>/read/", NotificationReadView.as_view(), name="notification-read"),
+    path("notifications/devices/", NotificationDeviceView.as_view(), name="notification-devices"),
     path("content-version/", ContentVersionView.as_view(), name="content-version"),
     path("devotions/", DevotionalListView.as_view(), name="devotions"),
     # Declared before the uuid detail route so `series` is never read as an id.

@@ -1,7 +1,5 @@
 import 'package:get/get.dart';
-import '../settings/app_language_controller.dart';
 
-import '../../core/localization/localized_snackbar.dart';
 import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/widgets/state_view.dart';
@@ -17,12 +15,12 @@ class HomeController extends GetxController with RefetchesOnContentChange {
 
   final HomeRepository _home;
   final SessionController session;
-  Worker? _languageWorker;
 
   final Rxn<HomePayload> payload = Rxn<HomePayload>();
   final Rx<ViewState> state = ViewState.loading.obs;
   final RxString failureMessage = ''.obs;
   final RxBool savingVerse = false.obs;
+  final RxBool savingReading = false.obs;
 
   /// Where the student stopped in the recordings, and what they have finished.
   /// Both belong to an account, so both stay empty until there is one, and a
@@ -44,16 +42,7 @@ class HomeController extends GetxController with RefetchesOnContentChange {
   @override
   void onInit() {
     super.onInit();
-    if (Get.isRegistered<AppLanguageController>()) {
-      _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
-    }
     load();
-  }
-
-  @override
-  void onClose() {
-    _languageWorker?.dispose();
-    super.onClose();
   }
 
   @override
@@ -110,18 +99,52 @@ class HomeController extends GetxController with RefetchesOnContentChange {
     try {
       await _home.markVerseMemorized(verse.id);
       payload.value = payload.value?.copyWith(memoryVerse: verse.copyWith(completed: true));
-      showLocalizedSnackbar('Saved', 'This verse is on your list to keep.');
+      Get.snackbar('Saved', 'This verse is on your list to keep.');
     } on Failure catch (failure) {
-      showLocalizedSnackbar('Could not save review', failure.message);
+      Get.snackbar('Could not save review', failure.message);
     } finally {
       savingVerse.value = false;
     }
   }
 
-  void openDevotion(String id) => Get.toNamed(AppRoutes.devotion, arguments: {RouteArgs.devotionId: id});
+  /// Today's day of the reading plan, ticked on the account. The server counts
+  /// the finished days, so the progress line moves from the number it sent plus
+  /// the one the student has just done — the app keeps no streak of its own.
+  Future<void> markReadingFinished() async {
+    final reading = payload.value?.reading;
+    if (reading == null || reading.day.completed) return;
+    if (!session.isSignedIn) {
+      Get.toNamed(AppRoutes.signIn);
+      return;
+    }
+    if (savingReading.value) return;
+    savingReading.value = true;
+    try {
+      await _home.markReadingFinished(reading.day.id);
+      payload.value = payload.value?.copyWith(
+        reading: reading.copyWith(
+          completed: reading.completed + 1,
+          day: reading.day.copyWith(completed: true),
+        ),
+      );
+      Get.snackbar('Saved', 'Day ${reading.day.day} is on your record.');
+    } on Failure catch (failure) {
+      Get.snackbar('Could not save reading', failure.message);
+    } finally {
+      savingReading.value = false;
+    }
+  }
 
-  void openArticle(String id) => Get.toNamed(AppRoutes.article, arguments: {RouteArgs.articleId: id});
+  void openDevotion(String id) =>
+      Get.toNamed(AppRoutes.devotion, arguments: {RouteArgs.devotionId: id});
+
+  void openArticle(String id) =>
+      Get.toNamed(AppRoutes.article, arguments: {RouteArgs.articleId: id});
 
   void openTopic(String id) =>
       Get.toNamed(AppRoutes.resourceTopic, arguments: {RouteArgs.resourceTopicId: id});
+
+  /// The day itself, in the four sections the ministry wrote for it. The plan
+  /// position travels on the dashboard, so this screen needs no second call.
+  void openReading() => Get.toNamed(AppRoutes.readingDay);
 }

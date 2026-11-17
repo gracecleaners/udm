@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/network/api_client.dart';
+import '../core/notifications/push_notifications.dart';
 import '../core/storage/local_cache.dart';
 import '../core/storage/token_store.dart';
 import '../data/providers/udm_api.dart';
@@ -14,8 +15,8 @@ import '../data/repositories/resources_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import '../modules/content_version/content_version_controller.dart';
 import '../modules/session/session_controller.dart';
-import '../modules/settings/app_language_controller.dart';
 import '../modules/settings/appearance_controller.dart';
+import '../modules/notifications/notifications_controller.dart';
 
 /// App-wide singletons. Resolved before `runApp` because the cache needs an
 /// already-loaded `SharedPreferences` handle.
@@ -23,7 +24,6 @@ Future<void> configureDependencies() async {
   final prefs = await SharedPreferences.getInstance();
   Get.put<LocalCache>(LocalCache(prefs), permanent: true);
   Get.put<SettingsRepository>(SettingsRepository(Get.find<LocalCache>()), permanent: true);
-  Get.put<AppLanguageController>(AppLanguageController(Get.find<SettingsRepository>()), permanent: true);
   // Registered before the first frame because the theme is read straight off
   // it: an app that opens light then flicks dark has simply loaded late.
   Get.put<AppearanceController>(AppearanceController(Get.find<SettingsRepository>()), permanent: true);
@@ -35,7 +35,6 @@ Future<void> configureDependencies() async {
   Get.put<ApiClient>(
     ApiClient(
       tokenStore: tokens,
-      languageCode: () => Get.find<AppLanguageController>().locale.value.languageCode,
     ),
     permanent: true,
   );
@@ -48,14 +47,11 @@ Future<void> configureDependencies() async {
     permanent: true,
   );
   int? contentVersion() => Get.find<ContentVersionController>().known.value;
-  String languageCode() =>
-      Get.find<AppLanguageController>().locale.value.languageCode;
 
   Get.put<HomeRepository>(
     HomeRepository(
       Get.find<UdmApi>(),
       Get.find<LocalCache>(),
-      languageCode: languageCode,
       contentVersion: contentVersion,
     ),
     permanent: true,
@@ -64,7 +60,6 @@ Future<void> configureDependencies() async {
     DevotionsRepository(
       Get.find<UdmApi>(),
       Get.find<LocalCache>(),
-      languageCode: languageCode,
       contentVersion: contentVersion,
     ),
     permanent: true,
@@ -76,7 +71,6 @@ Future<void> configureDependencies() async {
     ResourcesRepository(
       Get.find<UdmApi>(),
       Get.find<LocalCache>(),
-      languageCode: languageCode,
       contentVersion: contentVersion,
     ),
     permanent: true,
@@ -88,7 +82,6 @@ Future<void> configureDependencies() async {
     MediaRepository(
       Get.find<UdmApi>(),
       Get.find<LocalCache>(),
-      languageCode: languageCode,
       contentVersion: contentVersion,
     ),
     permanent: true,
@@ -101,6 +94,16 @@ Future<void> configureDependencies() async {
   // reach one object that owns the signed-in state.
   Get.put<SessionController>(
     SessionController(Get.find<AuthRepository>(), Get.find<ApiClient>()),
+    permanent: true,
+  );
+  Get.put<NotificationsController>(
+    NotificationsController(Get.find<UdmApi>(), Get.find<SessionController>()),
+    permanent: true,
+  );
+  // Push is a doorbell, never a dependency. It starts after the rest of the
+  // singletons and stays silent on a build without Firebase configuration.
+  Get.put<PushNotifications>(
+    PushNotifications(Get.find<UdmApi>(), Get.find<SessionController>()),
     permanent: true,
   );
 }

@@ -82,6 +82,7 @@ class ScripturePanel extends StatelessWidget {
     required this.text,
     this.translationCode = '',
     this.artUrl = '',
+    this.compact = false,
     this.offline = false,
     this.onTap,
     this.ctaLabel,
@@ -97,6 +98,7 @@ class ScripturePanel extends StatelessWidget {
   /// A picture behind the verse, as staff published it in the console — an
   /// upload or a link. With none, the card keeps its brand gradient.
   final String artUrl;
+  final bool compact;
   final bool offline;
   final VoidCallback? onTap;
 
@@ -141,10 +143,11 @@ class ScripturePanel extends StatelessWidget {
               // The verse is written over somebody else's picture, so the scrim
               // is what makes the card readable rather than a decoration.
               const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim))),
+              if (compact)
+                Positioned.fill(child: ColoredBox(color: Colors.black.withValues(alpha: 0.22))),
             ] else
               Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.14)),
-            // Oversized open-quote set in the reading serif: decoration, not text.
-            PositionedDirectional(
+            if (!compact) PositionedDirectional(
               top: -18,
               start: 6,
               child: ExcludeSemantics(
@@ -159,7 +162,65 @@ class ScripturePanel extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
+            if (compact)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
+                        if (translationCode.isNotEmpty)
+                          AppText(translationCode.toUpperCase(), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    AppText(
+                      text,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.scriptureVerse(AppColors.white, size: 18).copyWith(
+                        height: 1.28,
+                        shadows: [Shadow(color: AppColors.ink.withValues(alpha: 0.45), blurRadius: 12)],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      children: [
+                        Expanded(child: AppText(reference, style: AppTypography.scriptureReference(Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        if (onReview != null)
+                          // A kept verse answers with the mark itself rather
+                          // than a disabled button, so it cannot be counted
+                          // twice by an accidental second tap.
+                          if (memorized)
+                            const MetaPill(
+                              label: 'Memorized',
+                              icon: AppIcons.checkCircle,
+                              onDark: true,
+                            )
+                          else
+                            TextButton.icon(
+                              key: const Key('udm.markMemorized'),
+                              onPressed: savingReview ? null : onReview,
+                              icon: const Icon(AppIcons.verify, size: 16),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                              ),
+                              label: AppText(
+                                'Keep',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+                              ),
+                            ),
+                      ],
+                    ),
+                  ],
+                ),
+              )
+            else Padding(
               padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

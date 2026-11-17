@@ -9,7 +9,6 @@ const config: ResourceConfig = {
   description:
     "The visible gatherings on a campus. A public fellowship can be found by any student; a private one only by its members.",
   state: activeState,
-  localized: ["name", "description", "meeting_schedule"],
   parentFilter: { name: "campus", label: "Campus", optionsFrom: campusOptions },
   searchPlaceholder: "Search fellowships or campuses",
   columns: [

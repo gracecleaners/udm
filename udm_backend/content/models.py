@@ -21,20 +21,6 @@ class TimestampedModel(models.Model):
         abstract = True
 
 
-class LocalizedModel(TimestampedModel):
-    """Admin-authored strings with optional locale overrides."""
-
-    translations = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Language-specific text is edited in the translation fields below.",
-    )
-    localized_fields = ()
-
-    class Meta:
-        abstract = True
-
-
 class PublishedQuerySet(models.QuerySet):
     def published(self, at=None):
         """Rows an ordinary reader may see right now.
@@ -46,7 +32,7 @@ class PublishedQuerySet(models.QuerySet):
         return self.filter(is_published=True).filter(Q(publish_at__isnull=True) | Q(publish_at__lte=at))
 
 
-class PublishableModel(LocalizedModel):
+class PublishableModel(TimestampedModel):
     title = models.CharField(max_length=220)
     author = models.CharField(max_length=150, blank=True)
     excerpt = models.TextField(blank=True)
@@ -54,7 +40,6 @@ class PublishableModel(LocalizedModel):
     reading_minutes = models.PositiveSmallIntegerField(default=5)
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
-    localized_fields = ("title", "excerpt", "body")
 
     objects = PublishedQuerySet.as_manager()
 
@@ -87,7 +72,7 @@ class ArtworkLink:
             )
 
 
-class DevotionalSeries(LocalizedModel):
+class DevotionalSeries(TimestampedModel):
     """A named set of devotions read day by day — *The Book of James*, *Christmas*.
 
     The app's Devotions tab is this table and nothing more, so a series with no
@@ -102,7 +87,6 @@ class DevotionalSeries(LocalizedModel):
     order = models.PositiveSmallIntegerField(default=1, help_text="Position in the Devotions grid, lowest first.")
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
-    localized_fields = ("title", "description")
 
     objects = PublishedQuerySet.as_manager()
 
@@ -159,9 +143,6 @@ class Devotional(ArtworkLink, PublishableModel):
     application = models.TextField(blank=True)
     prayer = models.TextField(blank=True)
     memory_scripture_reference = models.CharField(max_length=120, blank=True)
-    localized_fields = PublishableModel.localized_fields + (
-        "reflection_questions", "application", "prayer",
-    )
 
     class Meta:
         ordering = ["-publish_at", "-created_at"]
@@ -187,14 +168,13 @@ class Article(ArtworkLink, PublishableModel):
         blank=True,
         help_text="Use this instead of uploading when the picture already lives on another host. An upload wins if both are set.",
     )
-    localized_fields = PublishableModel.localized_fields + ("category",)
 
     class Meta:
         ordering = ["-publish_at", "-created_at"]
         indexes = [models.Index(fields=["is_published", "publish_at"], name="content_art_pub_idx")]
 
 
-class ResourceTopic(ArtworkLink, LocalizedModel):
+class ResourceTopic(ArtworkLink, TimestampedModel):
     """One guided answer to a question a student actually asks — *Receive Christ*,
     *Prayer*, *The Bible*.
 
@@ -219,7 +199,6 @@ class ResourceTopic(ArtworkLink, LocalizedModel):
     )
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
-    localized_fields = ("title", "summary")
 
     objects = PublishedQuerySet.as_manager()
 
@@ -273,7 +252,6 @@ class ResourceStep(PublishableModel):
         blank=True,
         help_text="Optional https:// link the ministry hosts. Leave empty and the app shows no video action.",
     )
-    localized_fields = PublishableModel.localized_fields
 
     class Meta:
         ordering = ["-publish_at", "-created_at"]
@@ -301,7 +279,7 @@ class MemoryVerseQuerySet(models.QuerySet):
         ).filter(Q(end_date__isnull=True) | Q(end_date__gte=on_date))
 
 
-class MemoryVerse(ArtworkLink, LocalizedModel):
+class MemoryVerse(ArtworkLink, TimestampedModel):
     """A verse students hide in their heart, curated on the server.
 
     One model serves both jobs the app has: the home screen's verse of the day
@@ -339,8 +317,6 @@ class MemoryVerse(ArtworkLink, LocalizedModel):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     is_published = models.BooleanField(default=False)
-    localized_fields = ("reference", "text", "attribution", "prompt")
-    translation_excluded_fields = ("reference", "text", "attribution")
 
     objects = MemoryVerseQuerySet.as_manager()
 
@@ -499,22 +475,35 @@ class BibleNote(TimestampedModel):
         constraints = [models.UniqueConstraint(fields=["user", "verse"], name="unique_user_bible_note")]
 
 
-class BibleReadingPlan(LocalizedModel):
+class BibleReadingPlan(TimestampedModel):
     title = models.CharField(max_length=220)
     description = models.TextField(blank=True)
     is_published = models.BooleanField(default=False)
-    localized_fields = ("title", "description")
+    is_daily = models.BooleanField(
+        default=False,
+        help_text="Offer this plan as the home feed's Today's reading. One plan at a time should be marked.",
+    )
 
     class Meta:
         ordering = ["title"]
 
 
-class BibleReadingAssignment(LocalizedModel):
+class BibleReadingAssignment(TimestampedModel):
+    """One day of a plan, authored in the four sections the reader works through.
+
+    The reference is the passage itself; the verse, what it says and what to
+    learn are the ministry's own words about it, so a reading on the phone is
+    the same study the devotional team wrote rather than a bare chapter number.
+    """
+
     plan = models.ForeignKey(BibleReadingPlan, on_delete=models.CASCADE, related_name="assignments")
     day = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=220, blank=True)
     reference = models.CharField(max_length=220)
-    localized_fields = ("reference",)
-    translation_excluded_fields = ("reference",)
+    verse_reference = models.CharField(max_length=120, blank=True)
+    verse_text = models.TextField(blank=True)
+    what_it_says = models.TextField(blank=True)
+    what_to_learn = models.TextField(blank=True)
 
     class Meta:
         ordering = ["day"]
@@ -531,7 +520,7 @@ class BibleReadingProgress(TimestampedModel):
         constraints = [models.UniqueConstraint(fields=["user", "assignment"], name="unique_user_bible_assignment")]
 
 
-class MediaCollection(ArtworkLink, LocalizedModel):
+class MediaCollection(ArtworkLink, TimestampedModel):
     """A named shelf of video or audio teaching — *SOMA*, *Uliza*, *Podcast*.
 
     The Learn tab is this table and nothing else, so a collection with no
@@ -554,7 +543,6 @@ class MediaCollection(ArtworkLink, LocalizedModel):
     order = models.PositiveSmallIntegerField(default=1, help_text="Position in the Learn tab, lowest first.")
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
-    localized_fields = ("title", "description")
 
     objects = PublishedQuerySet.as_manager()
 
@@ -582,7 +570,7 @@ class MediaCollection(ArtworkLink, LocalizedModel):
         )
 
 
-class MediaItem(ArtworkLink, LocalizedModel):
+class MediaItem(ArtworkLink, TimestampedModel):
     """One recording inside a collection.
 
     The footage belongs to the ministry and lives on YouTube; staff paste the
@@ -632,7 +620,6 @@ class MediaItem(ArtworkLink, LocalizedModel):
     )
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
-    localized_fields = ("title", "excerpt", "body")
 
     objects = PublishedQuerySet.as_manager()
 
@@ -714,13 +701,12 @@ class UserMemoryVerseProgress(TimestampedModel):
         constraints = [models.UniqueConstraint(fields=["user", "memory_verse"], name="unique_user_memory_verse")]
 
 
-class University(LocalizedModel):
+class University(TimestampedModel):
     name = models.CharField(max_length=180, unique=True)
     country = models.CharField(max_length=100)
     city = models.CharField(max_length=100, blank=True)
     website = models.URLField(blank=True)
     is_active = models.BooleanField(default=True)
-    localized_fields = ("name", "country", "city")
 
     class Meta:
         ordering = ["name"]
@@ -729,33 +715,31 @@ class University(LocalizedModel):
         return self.name
 
 
-class Campus(LocalizedModel):
+class Campus(TimestampedModel):
     university = models.ForeignKey(University, on_delete=models.CASCADE, related_name="campuses")
     name = models.CharField(max_length=180)
     location = models.CharField(max_length=220, blank=True)
     is_active = models.BooleanField(default=True)
-    localized_fields = ("name", "location")
 
     class Meta:
         ordering = ["university__name", "name"]
         constraints = [models.UniqueConstraint(fields=["university", "name"], name="unique_university_campus")]
 
 
-class Fellowship(LocalizedModel):
+class Fellowship(TimestampedModel):
     campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="fellowships")
     name = models.CharField(max_length=180)
     description = models.TextField(blank=True)
     meeting_schedule = models.CharField(max_length=220, blank=True)
     is_public = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
-    localized_fields = ("name", "description", "meeting_schedule")
 
     class Meta:
         ordering = ["campus__university__name", "name"]
         constraints = [models.UniqueConstraint(fields=["campus", "name"], name="unique_campus_fellowship")]
 
 
-class DiscipleshipGroup(LocalizedModel):
+class DiscipleshipGroup(TimestampedModel):
     class Visibility(models.TextChoices):
         PUBLIC = "public", "Discoverable"
         PRIVATE = "private", "Members only"
@@ -768,7 +752,6 @@ class DiscipleshipGroup(LocalizedModel):
     capacity = models.PositiveSmallIntegerField(null=True, blank=True)
     visibility = models.CharField(max_length=12, choices=Visibility.choices, default=Visibility.PUBLIC)
     is_active = models.BooleanField(default=True)
-    localized_fields = ("name", "description", "group_type")
 
     class Meta:
         ordering = ["name"]
@@ -792,7 +775,7 @@ class GroupMembership(TimestampedModel):
         constraints = [models.UniqueConstraint(fields=["user", "group"], name="unique_user_group_membership")]
 
 
-class Event(LocalizedModel):
+class Event(TimestampedModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
@@ -809,7 +792,6 @@ class Event(LocalizedModel):
     online_url = models.URLField(blank=True)
     capacity = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
-    localized_fields = ("title", "description", "location")
 
     class Meta:
         ordering = ["starts_at"]
@@ -956,3 +938,39 @@ class ContentVersion(models.Model):
         cls.objects.get_or_create(pk=1, defaults={"value": 0})
         cls.objects.filter(pk=1).update(value=F("value") + 1)
         return cls.objects.get(pk=1).value
+
+
+class UserNotification(TimestampedModel):
+    """An account-owned inbox item, optionally linked to an app destination."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    title = models.CharField(max_length=160)
+    body = models.TextField(max_length=600)
+    kind = models.CharField(max_length=40, default="announcement")
+    destination = models.CharField(max_length=240, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "read_at", "-created_at"], name="content_notif_user_read_idx")]
+
+    def __str__(self):
+        return f"{self.title} ({self.user_id})"
+
+
+class NotificationDevice(TimestampedModel):
+    """A push-capable app installation owned by one signed-in account."""
+
+    class Platform(models.TextChoices):
+        ANDROID = "android", "Android"
+        IOS = "ios", "iOS"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notification_devices")
+    token = models.CharField(max_length=4096, unique=True)
+    platform = models.CharField(max_length=12, choices=Platform.choices)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.platform} device for {self.user_id}"

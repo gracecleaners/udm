@@ -15,7 +15,6 @@ const config: ResourceConfig = {
     "A step is one screen of a guide: the teaching, the verse it stands on, and the video the ministry chose "
       + "to attach. Nothing plays inside the app, so an empty video link means the reader sees no Watch control.",
   state: datedPublishState,
-  localized: ["title", "excerpt", "body"],
   searchPlaceholder: "Search titles, references or authors",
   parentFilter: { name: "topic", label: "Guide", optionsFrom: topicOptions },
   columns: [

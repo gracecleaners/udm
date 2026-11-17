@@ -13,17 +13,11 @@ import '../providers/udm_api.dart';
 /// written, which is what lets a screen tell its cached rows are older than
 /// whatever the ministry published next.
 class DevotionsRepository {
-  DevotionsRepository(
-    this._api,
-    this._cache, {
-    String Function()? languageCode,
-    int? Function()? contentVersion,
-  }) : _languageCode = languageCode ?? (() => 'en'),
-       _contentVersion = contentVersion ?? (() => null);
+  DevotionsRepository(this._api, this._cache, {int? Function()? contentVersion})
+    : _contentVersion = contentVersion ?? (() => null);
 
   final UdmApi _api;
   final LocalCache _cache;
-  final String Function() _languageCode;
   final int? Function() _contentVersion;
 
   static const String gridKey = 'udm.devotionGrid.v1';
@@ -33,10 +27,8 @@ class DevotionsRepository {
   Future<List<DevotionSeries>> grid() async {
     try {
       final fresh = await _api.devotionSeries();
-      final stamped = fresh
-          .map((series) => _stamp(series))
-          .toList(growable: false);
-      await _cache.writeJson(_gridKey, {
+      final stamped = fresh.map((series) => _stamp(series)).toList(growable: false);
+      await _cache.writeJson(gridKey, {
         'series': stamped.map((series) => series.toJson()).toList(),
       });
       return stamped;
@@ -56,7 +48,7 @@ class DevotionsRepository {
   Future<List<Devotional>> devotionals() async {
     try {
       final fresh = await _api.devotionals();
-      await _cache.writeJson(_feedKey, {
+      await _cache.writeJson(feedKey, {
         'devotionals': fresh.map((devotional) => devotional.toJson()).toList(),
       });
       return fresh;
@@ -97,16 +89,10 @@ class DevotionsRepository {
     version: series.contentVersion ?? _contentVersion(),
   );
 
-  String get _gridKey => _localized(gridKey);
-  String _seriesKeyFor(String id) => _localized('$seriesKey.$id');
-  String get _feedKey => _localized(feedKey);
-
-  /// French and English copies of the same series are different text, so they
-  /// are different cache entries.
-  String _localized(String key) => _languageCode() == 'fr' ? '$key.fr' : key;
+  String _seriesKeyFor(String id) => '$seriesKey.$id';
 
   List<DevotionSeries>? _cachedGrid() {
-    final raw = _cache.readJson(_gridKey)?['series'];
+    final raw = _cache.readJson(gridKey)?['series'];
     if (raw is! List) return null;
     return raw
         .whereType<Map<String, dynamic>>()
@@ -121,11 +107,8 @@ class DevotionsRepository {
   }
 
   List<Devotional>? _cachedFeed() {
-    final raw = _cache.readJson(_feedKey)?['devotionals'];
+    final raw = _cache.readJson(feedKey)?['devotionals'];
     if (raw is! List) return null;
-    return raw
-        .whereType<Map<String, dynamic>>()
-        .map(Devotional.fromJson)
-        .toList();
+    return raw.whereType<Map<String, dynamic>>().map(Devotional.fromJson).toList();
   }
 }

@@ -16,7 +16,6 @@ const config: ResourceConfig = {
     "SOMA, Uliza, the podcast — the shelves of teaching recordings the Learn tab opens on. "
       + "A shelf reaches students only when it is Live and holds at least one published recording.",
   state: datedPublishState,
-  localized: ["title", "description"],
   ordering: "order",
   searchPlaceholder: "Search shelf titles or descriptions",
   columns: [

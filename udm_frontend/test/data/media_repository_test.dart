@@ -15,14 +15,9 @@ void main() {
   late LocalCache cache;
   late int serverVersion;
 
-  MediaRepository build({String Function()? languageCode}) {
+  MediaRepository build() {
     serverVersion = 31;
-    return MediaRepository(
-      api,
-      cache,
-      languageCode: languageCode,
-      contentVersion: () => serverVersion,
-    );
+    return MediaRepository(api, cache, contentVersion: () => serverVersion);
   }
 
   setUp(() async {
@@ -192,14 +187,6 @@ void main() {
     expect(api.mediaWatches.single.positionSeconds, 420);
     expect(saved.positionSeconds, 420);
     expect(saved.completed, isFalse);
-  });
-
-  test('the French shelves are saved separately from the English ones', () async {
-    await build(languageCode: () => 'fr').shelves();
-
-    expect(cache.readJson('${MediaRepository.shelvesKey}.fr'), isNotNull);
-    expect(cache.readJson(MediaRepository.shelvesKey), isNull);
-    expect(build().cachedShelves(), isNull);
   });
 
   test('cached shelves come back labelled as this device copy', () async {

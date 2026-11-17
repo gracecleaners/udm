@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import '../settings/app_language_controller.dart';
 
 import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
@@ -19,7 +18,6 @@ class CoursesController extends GetxController with RefetchesOnContentChange {
   CoursesController(this._resources);
 
   final ResourcesRepository _resources;
-  Worker? _languageWorker;
 
   final RxList<ResourceTopic> topics = <ResourceTopic>[].obs;
   final Rx<ViewState> state = ViewState.loading.obs;
@@ -38,16 +36,7 @@ class CoursesController extends GetxController with RefetchesOnContentChange {
   @override
   void onInit() {
     super.onInit();
-    if (Get.isRegistered<AppLanguageController>()) {
-      _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
-    }
     load();
-  }
-
-  @override
-  void onClose() {
-    _languageWorker?.dispose();
-    super.onClose();
   }
 
   @override

@@ -28,6 +28,7 @@ const Events = lazy(() => import("./pages/Events"));
 const Students = lazy(() => import("./pages/Students"));
 const StaffAccounts = lazy(() => import("./pages/StaffAccounts"));
 const PrayerQueue = lazy(() => import("./pages/PrayerQueue"));
+const Notifications = lazy(() => import("./pages/Notifications"));
 const Account = lazy(() => import("./pages/Account"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -81,6 +82,7 @@ const App = () => (
                   }
                 />
                 <Route path="/prayers" element={<PrayerQueue />} />
+                <Route path="/notifications" element={<Notifications />} />
                 <Route path="/account" element={<Account />} />
               </Route>
               <Route path="*" element={<NotFound />} />

@@ -17,6 +17,8 @@ import 'package:udm_frontend/app/data/models/resource_step.dart';
 import 'package:udm_frontend/app/data/models/resource_topic.dart';
 import 'package:udm_frontend/app/data/models/resume_item.dart';
 import 'package:udm_frontend/app/data/models/session.dart';
+import 'package:udm_frontend/app/data/models/todays_reading.dart';
+import 'package:udm_frontend/app/data/models/user_notification.dart';
 import 'package:udm_frontend/app/data/models/user_profile.dart';
 import 'package:udm_frontend/app/data/models/walk_summary.dart';
 import 'package:udm_frontend/app/data/providers/udm_api.dart';
@@ -28,11 +30,14 @@ import 'package:udm_frontend/app/data/repositories/media_repository.dart';
 import 'package:udm_frontend/app/data/repositories/resources_repository.dart';
 import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
+import 'package:udm_frontend/app/modules/notifications/notifications_controller.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
 import 'package:udm_frontend/app/modules/settings/appearance_controller.dart';
 
-/// Test payload shaped exactly like `/api/v1/home/`.
-HomePayload sampleHome() => HomePayload(
+/// Test payload shaped exactly like `/api/v1/home/`. Pass [reading] to move the
+/// day of the plan the dashboard carries, or [withoutReading] for a ministry
+/// that has not marked a plan as the daily one yet.
+HomePayload sampleHome({TodaysReading? reading, bool withoutReading = false}) => HomePayload(
       greeting: 'Good morning, Grace',
       memoryVerse: const MemoryVerse(
         id: 'v1',
@@ -48,8 +53,29 @@ HomePayload sampleHome() => HomePayload(
         reflectionQuestions: ['What makes God\'s voice hard to hear?'],
       ),
       articles: const [Article(id: 'a1', title: 'How to Study a Chapter', body: 'Read once.', category: 'Bible study')],
+      reading: withoutReading ? null : (reading ?? sampleReading()),
       resources: sampleResourceTopics(),
       serverTime: DateTime.utc(2026, 11, 2, 7, 30),
+    );
+
+/// The daily plan exactly as `/home/` answers it: the day the student is on,
+/// written in the four sections the ministry authors, with the plan's length
+/// beside it so the progress line has something to be drawn from.
+TodaysReading sampleReading({bool completed = false, int completedDays = 2}) => TodaysReading(
+      planTitle: 'Romans in a month',
+      total: 30,
+      completed: completedDays + (completed ? 1 : 0),
+      day: ReadingDay(
+        id: 'day-3',
+        day: 3,
+        title: 'The righteous shall live by faith',
+        reference: 'Romans 1:16-17',
+        verseReference: 'Romans 1:17',
+        verseText: 'The just shall live by faith.',
+        whatItSays: 'Paul is not ashamed, because the gospel is the power of God.',
+        whatToLearn: 'Faith is what the gospel produces in you, not what you produce first.',
+        completed: completed,
+      ),
     );
 
 /// The home "Find resources on" list as the ministry leaves it: named guides in
@@ -248,7 +274,97 @@ DevotionSeries sampleSeriesDetail() => const DevotionSeries(
   ],
 );
 
-class FakeUdmApi implements UdmApi {
+/// Two notices as `/api/v1/notifications/` answers them: one the student has
+/// not opened, one already read.
+final List<UserNotification> sampleNotifications = [
+  UserNotification(
+    id: 'n1',
+    title: 'Camp service tonight',
+    body: 'The worship team starts at 7 at the main hall.',
+    kind: 'announcement',
+    destination: '/community',
+    createdAt: DateTime.utc(2026, 11, 2, 15),
+  ),
+  UserNotification(
+    id: 'n2',
+    title: 'Romans in a month is on day 3',
+    body: 'Your reading for today is waiting.',
+    kind: 'reading',
+    destination: '',
+    createdAt: DateTime.utc(2026, 10, 31, 9),
+    readAt: DateTime.utc(2026, 11, 1, 8),
+  ),
+];
+
+/// The inbox half of [UdmApi], carried by every API fake so a screen that reads
+/// the bell has the same three answers as the server. A test that wants an
+/// unread badge sets [notificationRows] and [unreadCountValue] rather than
+/// reaching for a network.
+mixin FakeNotifications {
+  List<UserNotification> notificationRows = sampleNotifications;
+  int unreadCountValue = 1;
+  int notificationCalls = 0;
+
+  /// Tokens the app handed the ministry, and those it asked it to forget.
+  final List<String> devicesRegistered = [];
+  final List<String> devicesUnregistered = [];
+
+  Failure? notificationsFailure;
+
+  Future<({List<UserNotification> items, int unreadCount})> notifications() async {
+    notificationCalls++;
+    if (notificationsFailure != null) throw notificationsFailure!;
+    return (items: notificationRows, unreadCount: unreadCountValue);
+  }
+
+  Future<UserNotification> markNotificationRead(String id) async {
+    if (notificationsFailure != null) throw notificationsFailure!;
+    final updated = notificationRows
+        .map((item) => item.id == id
+            ? UserNotification(
+                id: item.id,
+                title: item.title,
+                body: item.body,
+                kind: item.kind,
+                destination: item.destination,
+                createdAt: item.createdAt,
+                readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
+              )
+            : item)
+        .toList();
+    notificationRows = updated;
+    unreadCountValue = updated.where((item) => !item.isRead).length;
+    return updated.firstWhere((item) => item.id == id);
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    if (notificationsFailure != null) throw notificationsFailure!;
+    notificationRows = notificationRows
+        .map((item) => UserNotification(
+              id: item.id,
+              title: item.title,
+              body: item.body,
+              kind: item.kind,
+              destination: item.destination,
+              createdAt: item.createdAt,
+              readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
+            ))
+        .toList();
+    unreadCountValue = 0;
+  }
+
+  Future<void> registerNotificationDevice({required String token, required String platform}) async {
+    if (notificationsFailure != null) throw notificationsFailure!;
+    devicesRegistered.add('$platform:$token');
+  }
+
+  Future<void> unregisterNotificationDevice(String token) async {
+    if (notificationsFailure != null) throw notificationsFailure!;
+    devicesUnregistered.add(token);
+  }
+}
+
+class FakeUdmApi with FakeNotifications implements UdmApi {
   HomePayload? homePayload;
   Failure? failure;
   int homeCalls = 0;
@@ -474,7 +590,7 @@ class FakeUdmApi implements UdmApi {
 /// reader, so a test can host the whole app without a network. Anything the
 /// shell does not render is left to `noSuchMethod`, which fails loudly instead
 /// of silently answering with null.
-class FakeShellApi implements UdmApi {
+class FakeShellApi with FakeNotifications implements UdmApi {
   int contentVersionCalls = 0;
 
   @override
@@ -580,6 +696,16 @@ class FakeHomeRepository implements HomeRepository {
   Future<void> markVerseMemorized(String verseId) async {
     if (memorizeFailure != null) throw memorizeFailure!;
     memorized.add(verseId);
+  }
+
+  /// Plan days the student marked read, in the order the app was asked.
+  final List<String> readingsRead = [];
+  Failure? readingFailure;
+
+  @override
+  Future<void> markReadingFinished(String assignmentId) async {
+    if (readingFailure != null) throw readingFailure!;
+    readingsRead.add(assignmentId);
   }
 
   @override
@@ -1021,3 +1147,18 @@ class FakeResourcesRepository implements ResourcesRepository {
 /// business inventing one.
 AppearanceController putAppearance(LocalCache cache) =>
     Get.put(AppearanceController(SettingsRepository(cache)), permanent: true);
+
+/// The inbox controller home's bell and the notifications screen read.
+/// `configureDependencies()` puts it permanently in the real app; a widget test
+/// hosts its screens without that pass, so it puts the same object here, wired
+/// to whatever API and session the test already registered.
+NotificationsController putNotifications({UdmApi? api, SessionController? session}) {
+  final resolvedApi = api ??
+      (Get.isRegistered<UdmApi>() ? Get.find<UdmApi>() : FakeUdmApi());
+  final resolvedSession = session ??
+      (Get.isRegistered<SessionController>() ? Get.find<SessionController>() : fakeSession());
+  return Get.put<NotificationsController>(
+    NotificationsController(resolvedApi, resolvedSession),
+    permanent: true,
+  );
+}

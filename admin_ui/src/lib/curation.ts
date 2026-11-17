@@ -210,11 +210,6 @@ export interface ResourceConfig<T extends Row = Row> {
   columns: Column<T>[];
   fields?: FieldSpec[];
   /**
-   * Field names this model accepts French overrides for, straight from the
-   * API's `localized_fields`. Any other name is rejected on write.
-   */
-  localized?: string[];
-  /**
    * Which console role the API takes writes from. Defaults to `"staff"` because
    * that is what every curation endpoint checks. A `"superuser"` resource is
    * still listed and searchable for staff — reading is their monitoring job —

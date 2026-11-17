@@ -9,7 +9,6 @@ const config: ResourceConfig = {
   description:
     "The place a student fellowship actually meets. Groups, fellowships and events are filtered by campus in the student app.",
   state: activeState,
-  localized: ["name", "location"],
   parentFilter: { name: "university", label: "University", optionsFrom: universityOptions },
   searchPlaceholder: "Search campuses or universities",
   columns: [

@@ -5,9 +5,6 @@ These deliberately do not reuse the student serializers in
 
 * curation must show drafts and unpublished rows, so none of the
   `published()` / `is_active` filtering can be inherited here;
-* French overrides come back as the raw `translations` map rather than a
-  resolved string, because staff review what is actually stored instead of
-  reading a translation provider's best guess;
 * artwork is staff's choice of an upload or a link here, while the student API
   only ever reads one address back — which is why `MediaItemAdminSerializer`
   carries `image`, `image_link` and `image_url` while the student serializer
@@ -37,10 +34,6 @@ from .models import (Article, BibleReadingAssignment, BibleReadingPlan, BibleTra
                      DevotionalSeries, DiscipleshipGroup, Event, Fellowship,
                      MediaCollection, MediaItem, MemoryVerse, ResourceStep, ResourceTopic, University)
 from .services import artwork_url
-
-# `content.translation.translate_strings` only ever speaks French, so accepting
-# any other locale here would store a key no reader can ever resolve.
-SUPPORTED_LOCALES = ("fr",)
 
 
 class CurationSerializerMixin:
@@ -87,40 +80,6 @@ class CurationSerializerMixin:
             resolved[source] = value
         return resolved.items()
 
-    def validate_translations(self, value):
-        if value in (None, ""):
-            return {}
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Translations must be an object keyed by locale.")
-        allowed = set(self.Meta.model.localized_fields)
-        cleaned = {}
-        for locale, entries in value.items():
-            if locale not in SUPPORTED_LOCALES:
-                raise serializers.ValidationError(
-                    f"Only {', '.join(SUPPORTED_LOCALES)} translations are stored; got '{locale}'."
-                )
-            if not isinstance(entries, dict):
-                raise serializers.ValidationError(f"The '{locale}' entry must map field names to text.")
-            unknown = sorted(set(entries) - allowed)
-            if unknown:
-                raise serializers.ValidationError(
-                    f"{', '.join(unknown)} cannot be translated on a {self.Meta.model.__name__}."
-                )
-            rows = {}
-            for name, text in entries.items():
-                if isinstance(text, str):
-                    if text.strip():
-                        rows[name] = text
-                elif isinstance(text, list):
-                    rows[name] = text
-                else:
-                    raise serializers.ValidationError(
-                        f"The French '{name}' must be text or a list of strings."
-                    )
-            if rows:
-                cleaned[locale] = rows
-        return cleaned
-
 
 class PublishStateFields(serializers.Serializer):
     """`draft` / `scheduled` / `live`, the three states the Django Admin list
@@ -154,7 +113,7 @@ class DevotionalSeriesAdminSerializer(CurationSerializerMixin, PublishStateField
         fields = (
             "id", "title", "description", "cover_image_url", "order",
             "is_published", "publish_at", "publish_state", "day_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "publish_state", "day_count", "created_at", "updated_at")
 
@@ -218,7 +177,7 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
             "reflection_questions", "application", "prayer", "memory_scripture_reference",
             "reading_minutes", "series", "series_title", "day", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "series_title", "image_url", "publish_state", "created_at", "updated_at")
 
@@ -246,7 +205,7 @@ class ArticleAdminSerializer(CurationSerializerMixin, PublishStateFields, serial
             "id", "title", "author", "category", "excerpt", "body", "reading_minutes",
             "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "image_url", "publish_state", "created_at", "updated_at")
 
@@ -263,7 +222,7 @@ class ResourceTopicAdminSerializer(CurationSerializerMixin, PublishStateFields, 
         fields = (
             "id", "title", "summary", "order", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state", "step_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "image_url", "publish_state", "step_count", "created_at", "updated_at")
 
@@ -283,7 +242,7 @@ class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, s
             "id", "topic", "topic_title", "title", "author", "scripture_reference",
             "excerpt", "body", "reading_minutes", "order", "video_url",
             "is_published", "publish_at", "publish_state",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "topic_title", "publish_state", "created_at", "updated_at")
 
@@ -305,18 +264,25 @@ class BibleReadingPlanAdminSerializer(CurationSerializerMixin, PublishStateField
     class Meta:
         model = BibleReadingPlan
         fields = (
-            "id", "title", "description", "is_published", "publish_state", "assignment_count",
-            "translations", "created_at", "updated_at",
+            "id", "title", "description", "is_published", "publish_state", "is_daily", "assignment_count",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "publish_state", "assignment_count", "created_at", "updated_at")
 
 
 class BibleReadingAssignmentAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer):
+    """A day of a plan, written in the four sections the reader works through.
+
+    The console gets the same four fields the phone renders, so a staff member
+    authors the study rather than a chapter number the app has to explain.
+    """
+
     class Meta:
         model = BibleReadingAssignment
         fields = (
-            "id", "plan", "day", "reference",
-            "translations", "created_at", "updated_at",
+            "id", "plan", "day", "title", "reference",
+            "verse_reference", "verse_text", "what_it_says", "what_to_learn",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "plan", "created_at", "updated_at")
 
@@ -334,7 +300,7 @@ class MediaCollectionAdminSerializer(CurationSerializerMixin, PublishStateFields
         fields = (
             "id", "title", "description", "order", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state", "item_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "image_url", "publish_state", "item_count", "created_at", "updated_at")
 
@@ -355,7 +321,7 @@ class MediaItemAdminSerializer(CurationSerializerMixin, PublishStateFields, seri
             "id", "collection", "collection_title", "title", "author", "excerpt", "body",
             "order", "youtube_url", "download_url", "duration_seconds", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = (
             "id", "collection_title", "image_url", "publish_state", "created_at", "updated_at",
@@ -404,7 +370,7 @@ class MemoryVerseAdminSerializer(CurationSerializerMixin, PublishStateFields, se
             "display_reference", "display_text", "display_translation", "display_attribution",
             "allowed_translation_codes", "prompt", "image", "image_link", "image_url", "start_date", "end_date",
             "is_published", "publish_state",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = (
             "id", "display_reference", "display_text", "display_translation",
@@ -440,7 +406,7 @@ class UniversityAdminSerializer(CurationSerializerMixin, serializers.ModelSerial
         model = University
         fields = (
             "id", "name", "country", "city", "website", "is_active", "campus_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "campus_count", "created_at", "updated_at")
 
@@ -456,7 +422,7 @@ class CampusAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer
         fields = (
             "id", "university", "university_name", "name", "location", "is_active",
             "fellowship_count", "group_count", "event_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "university_name", "fellowship_count", "group_count", "event_count",
                             "created_at", "updated_at")
@@ -470,7 +436,7 @@ class FellowshipAdminSerializer(CurationSerializerMixin, serializers.ModelSerial
         fields = (
             "id", "campus", "campus_name", "name", "description", "meeting_schedule",
             "is_public", "is_active",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "campus_name", "created_at", "updated_at")
 
@@ -488,7 +454,7 @@ class GroupAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer)
         fields = (
             "id", "campus", "campus_name", "name", "description", "group_type",
             "leader", "leader_name", "visibility", "capacity", "is_active", "member_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "campus_name", "leader_name", "member_count", "created_at", "updated_at")
 
@@ -504,7 +470,7 @@ class EventAdminSerializer(CurationSerializerMixin, serializers.ModelSerializer)
             "id", "campus", "campus_name", "organizer", "organizer_name",
             "title", "description", "starts_at", "ends_at", "timezone", "location",
             "online_url", "capacity", "status", "registration_count",
-            "translations", "created_at", "updated_at",
+            "created_at", "updated_at",
         )
         read_only_fields = ("id", "campus_name", "organizer_name", "registration_count",
                             "created_at", "updated_at")

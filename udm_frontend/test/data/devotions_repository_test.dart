@@ -11,14 +11,9 @@ void main() {
   late LocalCache cache;
   late int serverVersion;
 
-  DevotionsRepository build({String Function()? languageCode}) {
+  DevotionsRepository build() {
     serverVersion = 12;
-    return DevotionsRepository(
-      api,
-      cache,
-      languageCode: languageCode,
-      contentVersion: () => serverVersion,
-    );
+    return DevotionsRepository(api, cache, contentVersion: () => serverVersion);
   }
 
   setUp(() async {
@@ -96,21 +91,6 @@ void main() {
     expect(stored?.fromCache, isTrue);
     expect(stored?.days, hasLength(3));
     expect(repository.cachedSeries('s2'), isNull);
-  });
-
-  test('the French copy is saved separately from the English copy', () async {
-    await DevotionsRepository(
-      api,
-      cache,
-      languageCode: () => 'fr',
-      contentVersion: () => 4,
-    ).grid();
-
-    expect(cache.readJson('${DevotionsRepository.gridKey}.fr'), isNotNull);
-    expect(cache.readJson(DevotionsRepository.gridKey), isNull);
-
-    final rows = DevotionsRepository(api, cache).cachedGrid();
-    expect(rows, isNull);
   });
 
   test('cached rows come back labelled as this device copy', () async {

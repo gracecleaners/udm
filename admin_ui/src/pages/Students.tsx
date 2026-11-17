@@ -21,10 +21,17 @@ const config: ResourceConfig = {
     {
       header: "Account",
       cell: (row) => (
-        <>
-          <strong>{String(row.display_name)}</strong>
-          <span className="console-cell-sub">{String(row.email)}</span>
-        </>
+        <span className="console-cell-person">
+          {row.photo_url ? (
+            <img className="console-avatar" src={String(row.photo_url)} alt="" />
+          ) : (
+            <span className="console-avatar console-avatar-empty" aria-hidden="true" />
+          )}
+          <span>
+            <strong>{String(row.display_name)}</strong>
+            <span className="console-cell-sub">{String(row.email)}</span>
+          </span>
+        </span>
       ),
     },
     {

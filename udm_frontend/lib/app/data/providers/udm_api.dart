@@ -14,6 +14,7 @@ import '../models/resource_topic.dart';
 import '../models/resume_item.dart';
 import '../models/session.dart';
 import '../models/user_profile.dart';
+import '../models/user_notification.dart';
 import '../models/walk_summary.dart';
 
 /// Typed surface of the UDM v1 API. Controllers never call Dio directly.
@@ -124,8 +125,7 @@ class UdmApi {
   Future<List<ResumeItem>> mediaResume() async =>
       (await _list('/media/resume/')).map(ResumeItem.fromJson).toList();
 
-  Future<List<Map<String, dynamic>>> bibleTranslations({String language = 'en'}) =>
-      _list('/bible/translations/?language=$language');
+  Future<List<Map<String, dynamic>>> bibleTranslations() => _list('/bible/translations/');
   Future<List<Map<String, dynamic>>> bibleBooks(String code) =>
       _list('/bible/$code/books/');
   Future<List<int>> bibleBookChapters(String code, String book) =>
@@ -421,6 +421,38 @@ class UdmApi {
   /// What this student finished, newest first and already named.
   Future<List<ReadHistoryRow>> readHistory() async =>
       (await _list('/progress/')).map(ReadHistoryRow.fromJson).toList();
+
+  Future<({List<UserNotification> items, int unreadCount})> notifications() => _client.guard(() async {
+        final response = await _client.dio.get<dynamic>('/notifications/');
+        final data = _json(response);
+        final rows = data['results'];
+        if (rows is! List) throw const FormatException('Expected notification results.');
+        return (
+          items: rows.whereType<Map<String, dynamic>>().map(UserNotification.fromJson).toList(),
+          unreadCount: (data['unread_count'] as num?)?.toInt() ?? 0,
+        );
+      });
+
+  Future<UserNotification> markNotificationRead(String id) => _client.guard(() async {
+        final response = await _client.dio.post<dynamic>('/notifications/$id/read/');
+        return UserNotification.fromJson(_json(response));
+      });
+
+  Future<void> markAllNotificationsRead() => _client.guard(() async {
+        await _client.dio.post<dynamic>('/notifications/read-all/');
+      });
+
+  Future<void> registerNotificationDevice({required String token, required String platform}) =>
+      _client.guard(() async {
+        await _client.dio.post<dynamic>(
+          '/notifications/devices/',
+          data: {'token': token, 'platform': platform},
+        );
+      });
+
+  Future<void> unregisterNotificationDevice(String token) => _client.guard(() async {
+        await _client.dio.delete<dynamic>('/notifications/devices/', data: {'token': token});
+      });
 
   Future<Session> _session(String path, Map<String, dynamic> body) =>
       _client.guard(() async {

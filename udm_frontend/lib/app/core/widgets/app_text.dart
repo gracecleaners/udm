@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
-import '../localization/app_translations.dart';
-
-/// Text that translates matching app-owned copy and otherwise leaves
-/// server-authored content unchanged.
+/// The app's one Text. Every label and every line of server-authored copy is
+/// drawn through it, so the reading styles and the text scale apply everywhere
+/// without each screen repeating them.
 class AppText extends StatelessWidget {
   const AppText(
     this.data, {
@@ -41,7 +39,7 @@ class AppText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        AppTranslations.localize(data ?? '', Get.locale?.languageCode ?? 'en'),
+        (data ?? ''),
         style: style,
         strutStyle: strutStyle,
         textAlign: textAlign,

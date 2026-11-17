@@ -21,7 +21,7 @@ class EmailField extends StatelessWidget {
         textInputAction: TextInputAction.next,
         autofillHints: const [AutofillHints.email],
         decoration: InputDecoration(
-          labelText: 'Email'.tr,
+          labelText: 'Email',
           hintText: 'you@udm.ac.ug',
           prefixIcon: const Icon(AppIcons.mail),
         ),
@@ -43,7 +43,7 @@ class NameField extends StatelessWidget {
         textCapitalization: TextCapitalization.words,
         maxLength: AuthValidators.maximumNameLength,
         decoration: InputDecoration(
-          labelText: 'Full name'.tr,
+          labelText: 'Full name',
           prefixIcon: const Icon(AppIcons.person),
         ),
         validator: AuthValidators.fullName,
@@ -78,13 +78,13 @@ class PasswordField extends StatelessWidget {
           autofillHints: autofillHints,
           maxLength: 128,
           decoration: InputDecoration(
-            labelText: label.tr,
+            labelText: label,
 
             prefixIcon: const Icon(AppIcons.lock),
             counterText: '',
             suffixIcon: IconButton(
               onPressed: () => revealed.value = !revealed.value,
-              tooltip: revealed.value ? 'Hide password'.tr : 'Show password'.tr,
+              tooltip: revealed.value ? 'Hide password' : 'Show password',
               icon: Icon(revealed.value ? AppIcons.eyeOff : AppIcons.eye),
             ),
           ),

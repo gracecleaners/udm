@@ -15,7 +15,6 @@ const config: ResourceConfig = {
     "What the Learn tab plays: a recording the ministry put on YouTube, with its write-up underneath. "
       + "Download is offered to students only when a file the ministry hosts is attached here.",
   state: datedPublishState,
-  localized: ["title", "excerpt", "body"],
   parentFilter: { name: "collection", label: "Shelf", optionsFrom: mediaShelfOptions },
   searchPlaceholder: "Search titles, authors or write-ups",
   columns: [

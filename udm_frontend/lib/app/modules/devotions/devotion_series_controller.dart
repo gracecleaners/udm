@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import '../settings/app_language_controller.dart';
 
 import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
@@ -16,7 +15,6 @@ class DevotionSeriesController extends GetxController
 
   final DevotionsRepository _devotions;
   final String seriesId;
-  Worker? _languageWorker;
 
   final Rxn<DevotionSeries> series = Rxn<DevotionSeries>();
   final Rx<ViewState> state = ViewState.loading.obs;
@@ -29,16 +27,7 @@ class DevotionSeriesController extends GetxController
   @override
   void onInit() {
     super.onInit();
-    if (Get.isRegistered<AppLanguageController>()) {
-      _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
-    }
     load();
-  }
-
-  @override
-  void onClose() {
-    _languageWorker?.dispose();
-    super.onClose();
   }
 
   @override

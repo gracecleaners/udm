@@ -11,13 +11,11 @@ import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
 import 'package:udm_frontend/app/data/providers/udm_api.dart';
-import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/bible/bible_controller.dart';
 import 'package:udm_frontend/app/modules/bible/bible_view.dart';
 import 'package:udm_frontend/app/modules/bible/verse_detail_view.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
-import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 
 import '../support/fakes.dart';
 
@@ -136,7 +134,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final api = _FakeBibleApi(translations: translations, passage: passage);
     final cache = LocalCache(await SharedPreferences.getInstance());
-    Get.put(AppLanguageController(SettingsRepository(cache)), permanent: true);
     Get.put(
       SessionController(
         FakeAuthRepository(),

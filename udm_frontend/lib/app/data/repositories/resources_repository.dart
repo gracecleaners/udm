@@ -11,17 +11,11 @@ import '../providers/udm_api.dart';
 /// written, which is what lets a screen tell its cached rows are older than
 /// whatever the ministry published next.
 class ResourcesRepository {
-  ResourcesRepository(
-    this._api,
-    this._cache, {
-    String Function()? languageCode,
-    int? Function()? contentVersion,
-  }) : _languageCode = languageCode ?? (() => 'en'),
-       _contentVersion = contentVersion ?? (() => null);
+  ResourcesRepository(this._api, this._cache, {int? Function()? contentVersion})
+    : _contentVersion = contentVersion ?? (() => null);
 
   final UdmApi _api;
   final LocalCache _cache;
-  final String Function() _languageCode;
   final int? Function() _contentVersion;
 
   static const String topicsKey = 'udm.resourceTopics.v1';
@@ -29,12 +23,8 @@ class ResourcesRepository {
 
   Future<List<ResourceTopic>> topics() async {
     try {
-      final fresh = (await _api.resourceTopics())
-          .map(_stamp)
-          .toList(growable: false);
-      await _cache.writeJson(_topicsKey, {
-        'topics': fresh.map((topic) => topic.toJson()).toList(),
-      });
+      final fresh = (await _api.resourceTopics()).map(_stamp).toList(growable: false);
+      await _cache.writeJson(topicsKey, {'topics': fresh.map((topic) => topic.toJson()).toList()});
       return fresh;
     } on Failure {
       final stored = _cachedTopics();
@@ -70,15 +60,10 @@ class ResourcesRepository {
     version: topic.contentVersion ?? _contentVersion(),
   );
 
-  String get _topicsKey => _localized(topicsKey);
-  String _topicKeyFor(String id) => _localized('$topicKey.$id');
-
-  /// French and English copies of the same guide are different text, so they
-  /// are different cache entries.
-  String _localized(String key) => _languageCode() == 'fr' ? '$key.fr' : key;
+  String _topicKeyFor(String id) => '$topicKey.$id';
 
   List<ResourceTopic>? _cachedTopics() {
-    final raw = _cache.readJson(_topicsKey)?['topics'];
+    final raw = _cache.readJson(topicsKey)?['topics'];
     if (raw is! List) return null;
     return raw
         .whereType<Map<String, dynamic>>()

@@ -4,6 +4,10 @@ from django.core.exceptions import PermissionDenied, ValidationError as DjangoVa
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+# `media_file_url` is this project's one rule for turning an uploaded file into
+# an address a device loads; a profile picture is such a file, so the accounts
+# app reads it rather than restating the missing-bytes guard beside it.
+from content.services import media_file_url
 from .models import User, UserProfile
 from .permissions import capabilities_for, role_for
 
@@ -22,9 +26,10 @@ class UserSummarySerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    # Uploads arrive with the media-library work; accepting them here without
-    # size and content validation would be a fake implementation.
-    photo = serializers.ImageField(read_only=True)
+    # A picture is read here, never written: uploads arrive with the
+    # media-library work, and accepting them without size and content
+    # validation would be a fake implementation.
+    photo = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -43,6 +48,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "interests",
             "preferred_translation_code",
         )
+
+    def get_photo(self, profile):
+        """The picture as an address the device can load, or None.
+
+        The same rule every other uploaded image in this project follows, in
+        `content.services`: `ImageField.url` raises when the row exists but its
+        bytes were never written, and the app draws the student's initials for
+        that state rather than asking the server to fail.
+        """
+        return media_file_url(profile.photo, self.context.get("request"))
 
     def validate_year_of_study(self, value):
         if value is not None and not 1 <= value <= 13:
@@ -282,13 +297,23 @@ class StudentDirectorySerializer(serializers.ModelSerializer):
     """
 
     display_name = serializers.CharField(read_only=True)
+    photo_url = serializers.SerializerMethodField()
     groups_led = serializers.IntegerField(read_only=True)
     events_organized = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = (
-            "id", "email", "display_name", "is_staff", "is_superuser", "is_active", "created_at",
+            "id", "email", "display_name", "photo_url", "is_staff", "is_superuser", "is_active", "created_at",
             "groups_led", "events_organized",
         )
         read_only_fields = fields
+
+    def get_photo_url(self, user):
+        """The roster avatar, from the profile the view already joined.
+
+        Served here but not on the community wall unless the student published
+        a name: staff are reading an identity list, the wall is not.
+        """
+        profile = getattr(user, "profile", None)
+        return media_file_url(profile.photo, self.context.get("request")) if profile else None

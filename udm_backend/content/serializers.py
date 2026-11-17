@@ -3,39 +3,14 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .media_refs import youtube_thumbnail
-from .services import artwork_url
-from .translation import translate_value
+from .services import artwork_url, media_file_url
 from .models import (Article, BibleBookmark, BibleBook, BibleChapter, BibleNote, BibleReadingAssignment,
                      BibleReadingPlan, BibleReadingProgress, BibleTranslation, BibleVerse, ContentVersion,
                      MediaCollection, MediaItem, MediaNote, MediaWatch,
                      MemoryVerse, UserMemoryVerseProgress,
                      Campus, DiscipleshipGroup, Event, EventRegistration, Fellowship, GroupMembership,
                      PrayerAffirmation, PrayerComment, PrayerRequest, University, Devotional, DevotionalSeries, ResourceStep, ResourceTopic,
-                     UserContentProgress)
-
-
-def request_language(context):
-    request = context.get("request")
-    if request is None:
-        return "en"
-    requested = request.query_params.get("language") or request.headers.get("Accept-Language", "")
-    return "fr" if str(requested).strip().lower().startswith("fr") else "en"
-
-
-def localized_value(instance, field, context):
-    value = getattr(instance, field)
-    if request_language(context) != "fr":
-        return value
-    translations = getattr(instance, "translations", {}) or {}
-    french = translations.get("fr", {}) if isinstance(translations, dict) else {}
-    translated = french.get(field) if isinstance(french, dict) else None
-    if translated not in (None, ""):
-        return translated
-    # Scripture text and references must come from a reviewed Bible edition,
-    # never from general-purpose machine translation.
-    if field in getattr(instance, "translation_excluded_fields", ()):
-        return value
-    return translate_value(value, "fr")
+                     UserContentProgress, UserNotification, NotificationDevice)
 
 
 def wall_name(user):
@@ -48,23 +23,25 @@ def wall_name(user):
     return profile.full_name if profile and profile.full_name else "A student"
 
 
+def wall_photo(user, request):
+    """The picture a shared item is printed under, or None.
+
+    This is `wall_name`'s other half. A student who has not published a name
+    appears on the wall as "A student", and putting their face beside that
+    label would undo the choice that kept them anonymous, so a photo follows the
+    name out rather than being served on its own. Without a name nothing is
+    served at all; the app draws the initials tile it already draws.
+    """
+    profile = getattr(user, "profile", None)
+    if not profile or not profile.full_name:
+        return None
+    return media_file_url(profile.photo, request)
+
+
 def _count_or_query(row, annotated, related):
     """An annotated list row answers from the page's own query; a single row counts."""
     value = getattr(row, annotated, None)
     return value if value is not None else getattr(row, related).count()
-
-
-class LocalizedModelSerializer(serializers.ModelSerializer):
-    localized_fields = ()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if request_language(self.context) != "fr":
-            return data
-        for field in self.localized_fields:
-            if field in data:
-                data[field] = localized_value(instance, field, self.context)
-        return data
 
 
 class ContentStampedSerializerMixin(serializers.Serializer):
@@ -85,6 +62,39 @@ class ContentStampedSerializerMixin(serializers.Serializer):
 
     def get_content_version(self, instance):
         return ContentVersion.current()
+
+
+class UserNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNotification
+        fields = ("id", "title", "body", "kind", "destination", "created_at", "read_at")
+
+
+class NotificationDeviceSerializer(serializers.ModelSerializer):
+    """One installation's token.
+
+    The model's unique token is enforced by the view's `update_or_create`, not by
+    a field validator: a phone that signs out of one account and into the next
+    re-presents the token it already has, and refusing that would leave the old
+    account holding a device nobody uses.
+    """
+
+    class Meta:
+        model = NotificationDevice
+        fields = ("token", "platform")
+        extra_kwargs = {"token": {"validators": []}}
+
+
+class NotificationBroadcastSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=160, trim_whitespace=True)
+    body = serializers.CharField(max_length=600, trim_whitespace=True)
+    kind = serializers.CharField(max_length=40, default="announcement")
+    destination = serializers.CharField(max_length=240, required=False, allow_blank=True)
+
+    def validate_destination(self, value):
+        if value and (not value.startswith("/") or value.startswith("//")):
+            raise serializers.ValidationError("Use an internal app route beginning with a single slash.")
+        return value
 
 
 class BibleTranslationSerializer(serializers.ModelSerializer):
@@ -123,21 +133,29 @@ class BibleChapterSerializer(serializers.ModelSerializer):
         fields = ("id", "book", "number", "translation", "verses")
 
 
-class BibleAssignmentSerializer(LocalizedModelSerializer):
-    localized_fields = BibleReadingAssignment.localized_fields
+class BibleAssignmentSerializer(serializers.ModelSerializer):
     completed = serializers.SerializerMethodField()
 
     class Meta:
         model = BibleReadingAssignment
-        fields = ("id", "day", "reference", "completed")
+        fields = (
+            "id",
+            "day",
+            "title",
+            "reference",
+            "verse_reference",
+            "verse_text",
+            "what_it_says",
+            "what_to_learn",
+            "completed",
+        )
 
     def get_completed(self, assignment):
         user = self.context["request"].user
         return BibleReadingProgress.objects.filter(user=user, assignment=assignment, completed_at__isnull=False).exists() if user.is_authenticated else False
 
 
-class BiblePlanSerializer(LocalizedModelSerializer):
-    localized_fields = BibleReadingPlan.localized_fields
+class BiblePlanSerializer(serializers.ModelSerializer):
     assignments = BibleAssignmentSerializer(many=True, read_only=True)
 
     class Meta:
@@ -203,7 +221,7 @@ class BibleProgressSerializer(serializers.ModelSerializer):
         return BibleReadingProgress.objects.update_or_create(user=self.context["request"].user, assignment=data["assignment"], defaults={"completed_at": timezone.now()})[0]
 
 
-class MediaCollectionSerializer(ContentStampedSerializerMixin, LocalizedModelSerializer):
+class MediaCollectionSerializer(ContentStampedSerializerMixin, serializers.ModelSerializer):
     """One shelf of recordings in the Learn tab.
 
     `item_count` is what the app dares to promise: the list only returns shelves
@@ -212,7 +230,6 @@ class MediaCollectionSerializer(ContentStampedSerializerMixin, LocalizedModelSer
     not the place to promise it.
     """
 
-    localized_fields = MediaCollection.localized_fields
     item_count = serializers.IntegerField(read_only=True)
     image_url = serializers.SerializerMethodField()
 
@@ -247,10 +264,9 @@ class MediaCollectionDetailSerializer(MediaCollectionSerializer):
         return MediaItemRowSerializer(collection.items_live(), many=True, context=self.context).data
 
 
-class MediaItemRowSerializer(LocalizedModelSerializer):
+class MediaItemRowSerializer(serializers.ModelSerializer):
     """A recording in a list: enough to choose one, none of the description."""
 
-    localized_fields = MediaItem.localized_fields
     image_url = serializers.SerializerMethodField()
     youtube_video_id = serializers.SerializerMethodField()
     watched = serializers.SerializerMethodField()
@@ -400,7 +416,7 @@ class MediaResumeSerializer(serializers.ModelSerializer):
         fields = ("id", "title", "image_url", "duration_seconds", "position_seconds", "collection")
 
     def get_title(self, watch):
-        return localized_value(watch.item, "title", self.context)
+        return watch.item.title
 
     def get_image_url(self, watch):
         return artwork_url(watch.item, self.context.get("request")) or youtube_thumbnail(
@@ -413,16 +429,17 @@ class MediaResumeSerializer(serializers.ModelSerializer):
             return None
         return {
             "id": str(collection.pk),
-            "title": localized_value(collection, "title", self.context),
+            "title": collection.title,
         }
 
 
-class MemoryVerseSerializer(LocalizedModelSerializer):
+class MemoryVerseSerializer(serializers.ModelSerializer):
     """The same row the home screen features and the Learn tab drills.
 
-    Text is either a synced verse — whose own translation edition governs it,
-    including in French — or a reviewed copy stored on this row, where a French
-    override may exist.
+    Two authored copies answer the same fields: a synced `BibleVerse` row,
+    whose own translation edition governs the text and the attribution, or the
+    copy stored on this memory verse for scripture whose translation was never
+    imported. Whichever the console left filled is what the app prints.
     """
 
     verse_id = serializers.SerializerMethodField()
@@ -432,7 +449,6 @@ class MemoryVerseSerializer(LocalizedModelSerializer):
     attribution = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
-    localized_fields = ("prompt",)
 
     class Meta:
         model = MemoryVerse
@@ -442,7 +458,7 @@ class MemoryVerseSerializer(LocalizedModelSerializer):
         return artwork_url(item, self.context.get("request"))
 
     def _stored_or_linked(self, item, field, linked_value):
-        return linked_value if item.verse_id is not None else localized_value(item, field, self.context)
+        return linked_value if item.verse_id is not None else getattr(item, field)
 
     def get_verse_id(self, item):
         return str(item.verse_id) if item.verse_id is not None else ""
@@ -492,17 +508,15 @@ class MemoryVerseProgressSerializer(serializers.ModelSerializer):
         return row
 
 
-class UniversitySerializer(LocalizedModelSerializer):
-    localized_fields = University.localized_fields
+class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
         model = University
         fields = ("id", "name", "country", "city", "website")
         read_only_fields = fields
 
 
-class CampusSerializer(LocalizedModelSerializer):
+class CampusSerializer(serializers.ModelSerializer):
     university = serializers.SerializerMethodField()
-    localized_fields = Campus.localized_fields
 
     class Meta:
         model = Campus
@@ -510,13 +524,12 @@ class CampusSerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_university(self, campus):
-        return localized_value(campus.university, "name", self.context)
+        return campus.university.name
 
 
-class FellowshipSerializer(LocalizedModelSerializer):
+class FellowshipSerializer(serializers.ModelSerializer):
     campus = serializers.SerializerMethodField()
     university = serializers.SerializerMethodField()
-    localized_fields = Fellowship.localized_fields
 
     class Meta:
         model = Fellowship
@@ -524,18 +537,17 @@ class FellowshipSerializer(LocalizedModelSerializer):
         read_only_fields = fields
 
     def get_campus(self, fellowship):
-        return localized_value(fellowship.campus, "name", self.context)
+        return fellowship.campus.name
 
     def get_university(self, fellowship):
-        return localized_value(fellowship.campus.university, "name", self.context)
+        return fellowship.campus.university.name
 
 
-class GroupSerializer(LocalizedModelSerializer):
+class GroupSerializer(serializers.ModelSerializer):
     campus = serializers.SerializerMethodField()
     membership_status = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     is_leader = serializers.SerializerMethodField()
-    localized_fields = DiscipleshipGroup.localized_fields
 
     class Meta:
         model = DiscipleshipGroup
@@ -549,7 +561,7 @@ class GroupSerializer(LocalizedModelSerializer):
         return GroupMembership.objects.filter(user=user, group=group).values_list("status", flat=True).first()
 
     def get_campus(self, group):
-        return localized_value(group.campus, "name", self.context) if group.campus else None
+        return group.campus.name if group.campus else None
 
     def get_member_count(self, group):
         return GroupMembership.objects.filter(group=group, status=GroupMembership.Status.APPROVED).count()
@@ -569,15 +581,14 @@ class GroupMembershipSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_group(self, membership):
-        return localized_value(membership.group, "name", self.context)
+        return membership.group.name
 
 
-class EventSerializer(LocalizedModelSerializer):
+class EventSerializer(serializers.ModelSerializer):
     campus = serializers.SerializerMethodField()
     registered = serializers.SerializerMethodField()
     registration_count = serializers.SerializerMethodField()
     online_url = serializers.SerializerMethodField()
-    localized_fields = Event.localized_fields
 
     class Meta:
         model = Event
@@ -589,7 +600,7 @@ class EventSerializer(LocalizedModelSerializer):
         return EventRegistration.objects.filter(user=user, event=event, status="registered").exists() if user.is_authenticated else False
 
     def get_campus(self, event):
-        return localized_value(event.campus, "name", self.context) if event.campus else None
+        return event.campus.name if event.campus else None
 
     def get_registration_count(self, event):
         return EventRegistration.objects.filter(event=event, status="registered").count()
@@ -612,6 +623,7 @@ class PrayerRequestSerializer(serializers.ModelSerializer):
 
     is_owner = serializers.SerializerMethodField()
     owner_name = serializers.SerializerMethodField()
+    owner_photo = serializers.SerializerMethodField()
     category = serializers.ChoiceField(
         choices=PrayerRequest.Category.choices, default=PrayerRequest.Category.PRAYER
     )
@@ -623,7 +635,7 @@ class PrayerRequestSerializer(serializers.ModelSerializer):
         model = PrayerRequest
         fields = (
             "id", "body", "category", "visibility", "group", "share_consent",
-            "moderation_state", "created_at", "is_owner", "owner_name",
+            "moderation_state", "created_at", "is_owner", "owner_name", "owner_photo",
             "affirmed", "affirmation_count", "comment_count",
         )
         read_only_fields = ("id", "moderation_state", "created_at")
@@ -633,6 +645,9 @@ class PrayerRequestSerializer(serializers.ModelSerializer):
 
     def get_owner_name(self, prayer):
         return wall_name(prayer.owner)
+
+    def get_owner_photo(self, prayer):
+        return wall_photo(prayer.owner, self.context.get("request"))
 
     def get_affirmed(self, prayer):
         annotated = getattr(prayer, "viewer_affirmed", None)
@@ -682,6 +697,7 @@ class PrayerCommentSerializer(serializers.ModelSerializer):
     """One word of encouragement under a request the writer can already see."""
 
     author_name = serializers.SerializerMethodField()
+    author_photo = serializers.SerializerMethodField()
 
     # The write endpoint below refuses anybody but the writer, so the app needs
     # the same answer in order to hide a control that would only fail.
@@ -697,11 +713,14 @@ class PrayerCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PrayerComment
-        fields = ("id", "body", "author_name", "created_at", "is_owner")
+        fields = ("id", "body", "author_name", "author_photo", "created_at", "is_owner")
         read_only_fields = ("id", "created_at")
 
     def get_author_name(self, comment):
         return wall_name(comment.user)
+
+    def get_author_photo(self, comment):
+        return wall_photo(comment.user, self.context.get("request"))
 
     def get_is_owner(self, comment):
         return self.context["request"].user.is_authenticated and comment.user_id == self.context["request"].user.id
@@ -724,8 +743,7 @@ class PrayerModerationSerializer(serializers.ModelSerializer):
         return value
 
 
-class DevotionalSerializer(LocalizedModelSerializer):
-    localized_fields = Devotional.localized_fields
+class DevotionalSerializer(serializers.ModelSerializer):
     series_title = serializers.CharField(source="series.title", read_only=True, default="")
     image_url = serializers.SerializerMethodField()
     class Meta:
@@ -754,10 +772,9 @@ class DevotionalSerializer(LocalizedModelSerializer):
         return artwork_url(devotional, self.context.get("request"))
 
 
-class DevotionalSeriesSerializer(ContentStampedSerializerMixin, LocalizedModelSerializer):
+class DevotionalSeriesSerializer(ContentStampedSerializerMixin, serializers.ModelSerializer):
     """One card in the Devotions grid, with how many days a student can read."""
 
-    localized_fields = DevotionalSeries.localized_fields
     day_count = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -775,10 +792,9 @@ class DevotionalSeriesSerializer(ContentStampedSerializerMixin, LocalizedModelSe
         read_only_fields = fields
 
 
-class DevotionalDaySerializer(LocalizedModelSerializer):
+class DevotionalDaySerializer(serializers.ModelSerializer):
     """A row in a series: enough to choose, none of the body."""
 
-    localized_fields = Devotional.localized_fields
     image_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -811,8 +827,7 @@ class DevotionalSeriesDetailSerializer(DevotionalSeriesSerializer):
         ).data
 
 
-class ArticleSerializer(LocalizedModelSerializer):
-    localized_fields = Article.localized_fields
+class ArticleSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     class Meta:
         model = Article
@@ -833,7 +848,7 @@ class ArticleSerializer(LocalizedModelSerializer):
         return artwork_url(article, self.context.get("request"))
 
 
-class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSerializer):
+class ResourceTopicSerializer(ContentStampedSerializerMixin, serializers.ModelSerializer):
     """One row of the home 'Find resources on' list.
 
     `step_count` is what the app dares to promise: the list view only returns
@@ -843,7 +858,6 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSeria
     bar from the two numbers and never has to ask about the other guides.
     """
 
-    localized_fields = ResourceTopic.localized_fields
     step_count = serializers.IntegerField(read_only=True)
     steps_completed = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
@@ -874,14 +888,13 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, LocalizedModelSeria
         return artwork_url(topic, self.context.get("request"))
 
 
-class ResourceStepRowSerializer(LocalizedModelSerializer):
+class ResourceStepRowSerializer(serializers.ModelSerializer):
     """A step inside a guide: enough to choose, none of the body.
 
     `completed` comes from the same pass that counted the guide, so the reader's
     checklist agrees with the progress bar above it.
     """
 
-    localized_fields = ResourceStep.localized_fields
     completed = serializers.SerializerMethodField()
 
     class Meta:
@@ -914,10 +927,9 @@ class ResourceTopicDetailSerializer(ResourceTopicSerializer):
         return ResourceStepRowSerializer(item.steps_live(), many=True, context=self.context).data
 
 
-class ResourceStepSerializer(LocalizedModelSerializer):
+class ResourceStepSerializer(serializers.ModelSerializer):
     """The reader's copy of one step, plus where it sits in its guide."""
 
-    localized_fields = ResourceStep.localized_fields
     topic = serializers.SerializerMethodField()
 
     class Meta:
@@ -951,6 +963,7 @@ class HomeSerializer(ContentStampedSerializerMixin, serializers.Serializer):
     greeting = serializers.CharField()
     memory_verse = MemoryVerseSerializer(allow_null=True)
     devotion = DevotionalSerializer(allow_null=True)
+    reading = serializers.SerializerMethodField()
     articles = ArticleSerializer(many=True)
     resources = serializers.SerializerMethodField()
     server_time = serializers.DateTimeField()
@@ -959,6 +972,24 @@ class HomeSerializer(ContentStampedSerializerMixin, serializers.Serializer):
         return ResourceTopicSerializer(
             payload["resources"], many=True, context=self.context
         ).data
+
+    def get_reading(self, payload):
+        """The day the student is on, with the plan's length beside it.
+
+        The counts are in the payload rather than left to the app because the
+        progress line is the plan's own size, which only the server has read.
+        """
+        reading = payload.get("reading")
+        if reading is None:
+            return None
+        return {
+            "plan_title": reading["plan_title"],
+            "total": reading["total"],
+            "completed": reading["completed"],
+            "assignment": BibleAssignmentSerializer(
+                reading["assignment"], context=self.context
+            ).data,
+        }
 
 
 class ContentVersionSerializer(serializers.Serializer):
@@ -1033,6 +1064,6 @@ def _progress_titles(kind, user, context):
         "content_id", flat=True
     )
     return {
-        str(item.pk): localized_value(item, "title", context)
+        str(item.pk): item.title
         for item in model.objects.filter(pk__in=finished)
     }

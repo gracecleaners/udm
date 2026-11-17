@@ -6,7 +6,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
-import '../../core/widgets/language_menu_button.dart';
 import '../../core/widgets/udm_widgets.dart';
 
 class SplashView extends StatelessWidget {
@@ -30,13 +29,6 @@ class SplashView extends StatelessWidget {
           SafeArea(
             child: Stack(
               children: [
-                const Align(
-                  alignment: AlignmentDirectional.topEnd,
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.sm),
-                    child: _GhostLanguageMenu(),
-                  ),
-                ),
                 Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -120,11 +112,4 @@ class _LoadingRule extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _GhostLanguageMenu extends StatelessWidget {
-  const _GhostLanguageMenu();
-
-  @override
-  Widget build(BuildContext context) => const LanguageMenuButton(onDark: true);
 }

@@ -1,4 +1,3 @@
-import 'package:udm_frontend/app/core/localization/localized_snackbar.dart';
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,7 +8,6 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
-import '../../core/widgets/language_menu_button.dart';
 import '../../data/models/user_profile.dart';
 import '../session/session_controller.dart';
 import '../shell/shell_controller.dart';
@@ -22,33 +20,33 @@ class ProfileView extends GetView<SessionController> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const AppText('Profile'),
-          actions: [
-            const LanguageMenuButton(),
-            Obx(
-              () => controller.isSignedIn
-                  ? IconButton(
-                      key: const Key('udm.signOutAction'),
-                      tooltip: 'Sign out'.tr,
-                      icon: const Icon(AppIcons.logout),
-                      onPressed: () => _confirmSignOut(context, controller),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
+    appBar: AppBar(
+      title: const AppText('Profile'),
+      actions: [
+        Obx(
+          () => controller.isSignedIn
+              ? IconButton(
+                  key: const Key('udm.signOutAction'),
+                  tooltip: 'Sign out',
+                  icon: const Icon(AppIcons.logout),
+                  onPressed: () => _confirmSignOut(context, controller),
+                )
+              : const SizedBox.shrink(),
         ),
-        body: SafeArea(
-          child: Obx(
-            () => switch (controller.status.value) {
-              SessionStatus.unknown || SessionStatus.restoring =>
-                const CenteredSlot(child: UdmProgress(label: 'Checking your session…')),
-              SessionStatus.signedOut => const _SignedOut(),
-              SessionStatus.signedIn => _ProfileBody(session: controller),
-            },
+      ],
+    ),
+    body: SafeArea(
+      child: Obx(
+        () => switch (controller.status.value) {
+          SessionStatus.unknown || SessionStatus.restoring => const CenteredSlot(
+            child: UdmProgress(label: 'Checking your session…'),
           ),
-        ),
-      );
+          SessionStatus.signedOut => const _SignedOut(),
+          SessionStatus.signedIn => _ProfileBody(session: controller),
+        },
+      ),
+    ),
+  );
 }
 
 class _SignedOut extends GetView<SessionController> {
@@ -56,35 +54,36 @@ class _SignedOut extends GetView<SessionController> {
 
   @override
   Widget build(BuildContext context) => CenteredSlot(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // What the last sign-out left behind has to survive the screen
-            // change, or the student never learns the session is still live on
-            // the server.
-            Obx(() => NoticeBanner(message: controller.error.value, tone: NoticeTone.problem)),
-            Obx(() => NoticeBanner(message: controller.notice.value)),
-            MessagePanel(
-              icon: AppIcons.person,
-              title: 'Not signed in',
-              message: 'Devotions, verses and articles stay readable without an account. '
-                  'Sign in to save your campus details and your reading progress.',
-              actionLabel: 'Sign in',
-              onAction: () => Get.toNamed(AppRoutes.signIn),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                key: const Key('udm.registerFromProfile'),
-                onPressed: () => Get.toNamed(AppRoutes.register),
-                icon: const Icon(AppIcons.personAdd, size: 18),
-                label: const AppText('Create an account'),
-              ),
-            ),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // What the last sign-out left behind has to survive the screen
+        // change, or the student never learns the session is still live on
+        // the server.
+        Obx(() => NoticeBanner(message: controller.error.value, tone: NoticeTone.problem)),
+        Obx(() => NoticeBanner(message: controller.notice.value)),
+        MessagePanel(
+          icon: AppIcons.person,
+          title: 'Not signed in',
+          message:
+              'Devotions, verses and articles stay readable without an account. '
+              'Sign in to save your campus details and your reading progress.',
+          actionLabel: 'Sign in',
+          onAction: () => Get.toNamed(AppRoutes.signIn),
         ),
-      );
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const Key('udm.registerFromProfile'),
+            onPressed: () => Get.toNamed(AppRoutes.register),
+            icon: const Icon(AppIcons.personAdd, size: 18),
+            label: const AppText('Create an account'),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ProfileBody extends StatelessWidget {
@@ -122,7 +121,12 @@ class _ProfileBody extends StatelessWidget {
       }
 
       return ListView(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          AppSpacing.md,
+          AppSpacing.screen,
+          AppSpacing.xl,
+        ),
         children: [
           NoticeBanner(message: notice),
           NoticeBanner(message: error, tone: NoticeTone.problem),
@@ -154,10 +158,13 @@ class _ProfileBody extends StatelessWidget {
                 _DetailRow(
                   icon: AppIcons.home,
                   label: 'Where you live',
-                  value: [profile.city, profile.country].where((part) => part.isNotEmpty).join(', '),
+                  value: [
+                    profile.city,
+                    profile.country,
+                  ].where((part) => part.isNotEmpty).join(', '),
                 ),
                 _DetailRow(
-                  icon: AppIcons.language,
+                  icon: AppIcons.bookOpen,
                   label: 'Bible version',
                   value: ProfileEditorSheet.translationLabel(profile.preferredTranslationCode),
                   last: true,
@@ -173,7 +180,10 @@ class _ProfileBody extends StatelessWidget {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: profile.interests
-                  .map((interest) => MetaPill(icon: AppIcons.check, label: interest, tone: AppColors.gold))
+                  .map(
+                    (interest) =>
+                        MetaPill(icon: AppIcons.check, label: interest, tone: AppColors.gold),
+                  )
                   .toList(),
             ),
           ],
@@ -338,7 +348,7 @@ class _AccountRows extends StatelessWidget {
               NavRow(
                 icon: AppIcons.settings,
                 label: 'Settings',
-                subtitle: 'Light, text size and language on this device.',
+                subtitle: 'Light and text size on this device.',
                 onTap: () => Get.toNamed(AppRoutes.settings),
                 last: true,
               ),
@@ -371,7 +381,9 @@ class _IdentityCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
-          const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.sheen))),
+          const Positioned.fill(
+            child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.sheen)),
+          ),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -387,7 +399,11 @@ class _IdentityCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.18),
                         border: Border.all(color: Colors.white24),
                       ),
-                      child: UdmAvatar(initials: profile.initials, size: 56),
+                      child: UdmAvatar(
+                        initials: profile.initials,
+                        size: 56,
+                        photoUrl: profile.photoUrl ?? '',
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -478,9 +494,14 @@ Future<void> _confirmSignOut(BuildContext context, SessionController session) as
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const AppText('Sign out?'),
-      content: const AppText('Your content stays readable. Your saved profile and progress stay on your account.'),
+      content: const AppText(
+        'Your content stays readable. Your saved profile and progress stay on your account.',
+      ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const AppText('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const AppText('Cancel'),
+        ),
         FilledButton(
           key: const Key('udm.confirmSignOut'),
           onPressed: () => Navigator.pop(dialogContext, true),
@@ -493,7 +514,12 @@ Future<void> _confirmSignOut(BuildContext context, SessionController session) as
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label, required this.value, this.last = false});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.last = false,
+  });
 
   final IconData icon;
   final String label;
@@ -519,7 +545,12 @@ class _DetailRow extends StatelessWidget {
               // than pushing the label off a 320dp screen.
               Expanded(
                 flex: 6,
-                child: AppText(label, style: theme.textTheme.bodyMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: AppText(
+                  label,
+                  style: theme.textTheme.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -530,7 +561,9 @@ class _DetailRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: filled ? theme.textTheme.bodyLarge?.color : theme.textTheme.bodySmall?.color,
+                    color: filled
+                        ? theme.textTheme.bodyLarge?.color
+                        : theme.textTheme.bodySmall?.color,
                     fontWeight: filled ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
@@ -549,7 +582,8 @@ class _DetailRow extends StatelessWidget {
 class ProfileEditorSheet extends StatefulWidget {
   const ProfileEditorSheet({super.key, required this.initial});
 
-  static const List<({String key, String label, int maxLength, TextInputType keyboard})> textFields = [
+  static const List<({String key, String label, int maxLength, TextInputType keyboard})>
+  textFields = [
     (key: 'full_name', label: 'Full name', maxLength: 150, keyboard: TextInputType.name),
     (key: 'phone_number', label: 'Phone number', maxLength: 32, keyboard: TextInputType.phone),
     (key: 'university', label: 'University', maxLength: 200, keyboard: TextInputType.text),
@@ -608,16 +642,16 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
   }
 
   static String _valueOf(UserProfile profile, String key) => switch (key) {
-        'full_name' => profile.fullName,
-        'phone_number' => profile.phoneNumber,
-        'university' => profile.university,
-        'campus' => profile.campus,
-        'course' => profile.course,
-        'church' => profile.church,
-        'city' => profile.city,
-        'country' => profile.country,
-        _ => '',
-      };
+    'full_name' => profile.fullName,
+    'phone_number' => profile.phoneNumber,
+    'university' => profile.university,
+    'campus' => profile.campus,
+    'course' => profile.course,
+    'church' => profile.church,
+    'city' => profile.city,
+    'country' => profile.country,
+    _ => '',
+  };
 
   /// The fields in the order the sheet shows them, which is the API's own
   /// order with the year of study set beside the course it belongs to.
@@ -652,10 +686,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
         key: const Key('udm.field.year_of_study'),
         controller: _year,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: 'Year of study'.tr,
-          counterText: '',
-        ),
+        decoration: InputDecoration(labelText: 'Year of study', counterText: ''),
         validator: _validateYear,
       );
     }
@@ -666,10 +697,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
       maxLength: field.maxLength,
       keyboardType: field.keyboard,
       textCapitalization: TextCapitalization.words,
-      decoration: InputDecoration(
-        labelText: field.label.tr,
-        counterText: '',
-      ),
+      decoration: InputDecoration(labelText: field.label, counterText: ''),
     );
   }
 
@@ -688,7 +716,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     setState(_interest.clear);
     if (label.isEmpty || _interests.contains(label)) return;
     if (_interests.length >= UserProfile.maxInterests) {
-      showLocalizedSnackbar('Interests', 'Choose at most ${UserProfile.maxInterests} interests.');
+      Get.snackbar('Interests', 'Choose at most ${UserProfile.maxInterests} interests.');
       return;
     }
     setState(() => _interests.add(label));
@@ -711,10 +739,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     if (text.isEmpty) return null;
     final year = int.tryParse(text);
     if (year == null || year < UserProfile.minYearOfStudy || year > UserProfile.maxYearOfStudy) {
-      return 'Between @min and @max.'.trParams({
-        'min': '${UserProfile.minYearOfStudy}',
-        'max': '${UserProfile.maxYearOfStudy}',
-      });
+      return 'Between ${UserProfile.minYearOfStudy} and ${UserProfile.maxYearOfStudy}.';
     }
     return null;
   }
@@ -741,7 +766,12 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.sm),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.lg,
+                AppSpacing.screen,
+                AppSpacing.sm,
+              ),
               child: AppText(
                 'Edit your details',
                 style: AppTypography.editorialTitle(theme.textTheme.bodyLarge!.color!, size: 26),
@@ -777,11 +807,12 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         key: const Key('udm.field.translation'),
                         initialValue: _translation,
                         isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: 'Bible version'.tr,
-                        ),
+                        decoration: InputDecoration(labelText: 'Bible version'),
                         items: ProfileEditorSheet.translations.entries
-                            .map((entry) => DropdownMenuItem(value: entry.key, child: AppText(entry.value)))
+                            .map(
+                              (entry) =>
+                                  DropdownMenuItem(value: entry.key, child: AppText(entry.value)),
+                            )
                             .toList(),
                         onChanged: (value) => setState(() => _translation = value ?? _translation),
                       ),
@@ -795,7 +826,10 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         scrollDirection: Axis.horizontal,
                         child: SegmentedButton<String>(
                           segments: ProfileEditorSheet.genders.entries
-                              .map((entry) => ButtonSegment(value: entry.key, label: AppText(entry.value)))
+                              .map(
+                                (entry) =>
+                                    ButtonSegment(value: entry.key, label: AppText(entry.value)),
+                              )
                               .toList(),
                           selected: {_gender},
                           showSelectedIcon: false,
@@ -803,7 +837,11 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      Eyebrow('Interests', color: theme.colorScheme.primary, icon: AppIcons.sparkles),
+                      Eyebrow(
+                        'Interests',
+                        color: theme.colorScheme.primary,
+                        icon: AppIcons.sparkles,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       AppText(
                         'Used to suggest devotion and group content. Up to ${UserProfile.maxInterests}.',
@@ -832,7 +870,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                               controller: _interest,
                               maxLength: UserProfile.maxInterestLength,
                               decoration: InputDecoration(
-                                labelText: 'Add an interest'.tr,
+                                labelText: 'Add an interest',
                                 counterText: '',
                               ),
                               onSubmitted: (_) => _addInterest(),
@@ -853,7 +891,12 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.sm, AppSpacing.screen, AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.sm,
+                AppSpacing.screen,
+                AppSpacing.md,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

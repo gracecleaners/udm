@@ -17,6 +17,7 @@ class PrayerPost {
     required this.affirmationCount,
     required this.commentCount,
     this.groupId = '',
+    this.ownerPhotoUrl = '',
   });
 
   final String id;
@@ -41,40 +42,46 @@ class PrayerPost {
   final int commentCount;
   final String groupId;
 
+  /// The writer's own picture, empty when they have none or keep their name
+  /// off the wall. The card then draws the initials tile instead.
+  final String ownerPhotoUrl;
+
   bool get isTestimony => category == 'testimony';
 
   factory PrayerPost.fromJson(Map<String, dynamic> json) => PrayerPost(
-        id: json['id'] as String? ?? '',
-        body: json['body'] as String? ?? '',
-        category: json['category'] as String? ?? 'prayer',
-        visibility: json['visibility'] as String? ?? 'private',
-        moderationState: json['moderation_state'] as String? ?? 'pending',
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime(2000),
-        isOwner: json['is_owner'] as bool? ?? false,
-        ownerName: json['owner_name'] as String? ?? 'A student',
-        affirmed: json['affirmed'] as bool? ?? false,
-        affirmationCount: (json['affirmation_count'] as num?)?.toInt() ?? 0,
-        commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
-        groupId: json['group'] as String? ?? '',
-      );
+    id: json['id'] as String? ?? '',
+    body: json['body'] as String? ?? '',
+    category: json['category'] as String? ?? 'prayer',
+    visibility: json['visibility'] as String? ?? 'private',
+    moderationState: json['moderation_state'] as String? ?? 'pending',
+    createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime(2000),
+    isOwner: json['is_owner'] as bool? ?? false,
+    ownerName: json['owner_name'] as String? ?? 'A student',
+    affirmed: json['affirmed'] as bool? ?? false,
+    affirmationCount: (json['affirmation_count'] as num?)?.toInt() ?? 0,
+    commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
+    groupId: json['group'] as String? ?? '',
+    ownerPhotoUrl: json['owner_photo'] as String? ?? '',
+  );
 
   /// The card after the reader makes or takes back a promise. The wall's two
   /// numbers come from the affirmation call itself, so a card is rewritten in
   /// place rather than the whole feed refetched.
   PrayerPost copyWith({bool? affirmed, int? affirmationCount, int? commentCount}) => PrayerPost(
-        id: id,
-        body: body,
-        category: category,
-        visibility: visibility,
-        moderationState: moderationState,
-        createdAt: createdAt,
-        isOwner: isOwner,
-        ownerName: ownerName,
-        affirmed: affirmed ?? this.affirmed,
-        affirmationCount: affirmationCount ?? this.affirmationCount,
-        commentCount: commentCount ?? this.commentCount,
-        groupId: groupId,
-      );
+    id: id,
+    body: body,
+    category: category,
+    visibility: visibility,
+    moderationState: moderationState,
+    createdAt: createdAt,
+    isOwner: isOwner,
+    ownerName: ownerName,
+    affirmed: affirmed ?? this.affirmed,
+    affirmationCount: affirmationCount ?? this.affirmationCount,
+    commentCount: commentCount ?? this.commentCount,
+    groupId: groupId,
+    ownerPhotoUrl: ownerPhotoUrl,
+  );
 
   /// Two letters for the avatar, from the name the ministry chose to print.
   String get initials {
@@ -96,6 +103,7 @@ class PrayerComment {
     required this.authorName,
     required this.createdAt,
     required this.isOwner,
+    this.authorPhotoUrl = '',
   });
 
   final String id;
@@ -107,13 +115,18 @@ class PrayerComment {
   /// than leaving the app to guess from a name two students can share.
   final bool isOwner;
 
+  /// Empty when the writer has no picture or no published name, which is the
+  /// same rule the card above the comment follows.
+  final String authorPhotoUrl;
+
   factory PrayerComment.fromJson(Map<String, dynamic> json) => PrayerComment(
-        id: json['id'] as String? ?? '',
-        body: json['body'] as String? ?? '',
-        authorName: json['author_name'] as String? ?? 'A student',
-        createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime(2000),
-        isOwner: json['is_owner'] as bool? ?? false,
-      );
+    id: json['id'] as String? ?? '',
+    body: json['body'] as String? ?? '',
+    authorName: json['author_name'] as String? ?? 'A student',
+    createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime(2000),
+    isOwner: json['is_owner'] as bool? ?? false,
+    authorPhotoUrl: json['author_photo'] as String? ?? '',
+  );
 }
 
 /// The wall's tabs, in the order the API documents them. `all` is a client-side
@@ -144,7 +157,7 @@ class AffirmationState {
   final int count;
 
   factory AffirmationState.fromJson(Map<String, dynamic> json) => AffirmationState(
-        affirmed: json['affirmed'] as bool? ?? false,
-        count: (json['count'] as num?)?.toInt() ?? 0,
-      );
+    affirmed: json['affirmed'] as bool? ?? false,
+    count: (json['count'] as num?)?.toInt() ?? 0,
+  );
 }

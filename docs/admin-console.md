@@ -1,8 +1,8 @@
 # Ministry console (`admin_ui/`)
 
 The staff-facing web console for UDM content and the campus directory. It replaces nothing on the mobile app and
-does not duplicate Django Admin: the console is the day-to-day curation surface (lists, search, publishing,
-French copies, the prayer queue), while Django Admin keeps the records with structural collateral — deleting a
+does not duplicate Django Admin: the console is the day-to-day curation surface (lists, search, publishing and
+the prayer queue), while Django Admin keeps the records with structural collateral — deleting a
 Bible translation and everything hanging off its verses, users, or migrations.
 
 React 18 + Vite 5 + TypeScript, TanStack Query for server state, axios for the session, Radix/shadcn primitives
@@ -80,8 +80,8 @@ route on this page can hide or close the last admin account.
 | Devotional series | `admin/devotion-series/` | full CRUD, dated publishing; this list *is* the grid the app's Devotions tab opens on |
 | Devotions | `admin/devotions/` | full CRUD, filtered by series, dated publishing |
 | Articles | `admin/articles/` | full CRUD, dated publishing |
-| Reading plans | `admin/reading-plans/` | full CRUD |
-| ↳ Readings | `admin/reading-plans/{id}/assignments/` | nested dialog, one passage per day |
+| Reading plans | `admin/reading-plans/` | full CRUD; `is_daily` marks the one plan the home feed opens on, and when several carry it the first by title wins |
+| ↳ Readings | `admin/reading-plans/{id}/assignments/` | nested dialog, one day written in the four parts the reader works through: the passage, the verse, what it says and what to learn |
 | Translations | `admin/translations/` | `is_active` only, and only for a platform admin — no form, no delete |
 | Media shelves | `admin/media-collections/` | full CRUD, dated publishing; this list *is* the Learn tab, in `order`, and a shelf with nothing published on it is hidden from students |
 | ↳ artwork | the same row, as `multipart/form-data` or as a pasted link | `image` is the console's only file type, on five resources: shelves, recordings, devotions, articles and memory verses. Each of them pairs it with `image_link` for a picture that already lives on another host; an upload wins when both are set |
@@ -93,6 +93,7 @@ route on this page can hide or close the last admin account.
 | Students | `admin/students/` | read-only roster |
 | Staff accounts | `admin/accounts/`, `admin/accounts/{id}/` | platform admin only, and only for staff: open an account with an email, a name and a password; rename, suspend or close one. Nothing here writes a role flag, and the owner's own account is not listed |
 | Prayer queue | `prayers/moderation/` | `moderation_state` approve/decline, plus a wall choice (`category`) corrected on the same PATCH while the row is still pending |
+| Notifications | `admin/notifications/` | one write and no rows to edit: a title, a body, a `kind` and a `destination` taken from the routes the app opens without an id. It asks twice, answers how many inboxes received the notice, and keeps no history of its own — the copy a student reads lives in their own inbox |
 | Account | `auth/admin/me/`, `users/me/` | own name only (`full_name`); the page also repeats the capability list the API sent |
 
 Content screens are config-driven: each page under `src/pages/` is a `ResourceConfig` descriptor consumed by
@@ -116,6 +117,16 @@ of a URL the device cannot load. Video is never uploaded: a recording's play lin
 file is reached through `download_url`. That is the whole of the app's media policy — the phone ships artwork for the
 splash and the three onboarding slides and takes every other picture from this console.
 
+Notifications is not a `ResourceConfig` page, because there is nothing to list. It posts one write to
+`admin/notifications/`, reads the server's answer — how many active students the notice was written for — and stops
+there on purpose: no draft, no schedule, no queue of sent notices, because the copy a student reads belongs to their
+own inbox and a second record of it here is something this console could neither edit nor delete. The screen asks twice
+before sending, since one write reaches every account at once and cannot be taken back. Its `destination` choices are
+the routes the app opens without an id, which is the same list the phone accepts, so a notice can only promise a screen
+that actually builds. Waking the handset is a separate matter and is stated on the screen rather than pretended at: the
+server pushes through `firebase_admin` only when `UDM_FIREBASE_SERVICE_ACCOUNT` is configured, and with no credentials
+the write still lands in every inbox and arrives the next time the student opens the app.
+
 ## Rules the console inherits rather than re-implements
 
 - **Publishing is a field write.** `publish_state` is read-only and derived from `is_published` + `publish_at`, so
@@ -135,9 +146,6 @@ splash and the three onboarding slides and takes every other picture from this c
 - **Saving here reaches a phone without a release.** Every write lands on a tracked model, whose signal moves the
   single `ContentVersion` number the app polls at `GET /api/v1/content-version/` and that is stamped into the home
   and series payloads. No console screen has to tell anyone to refresh.
-- **French is an override, never a replacement.** The localized panel writes `translations.fr` for the fields each
-  resource declares; a blank box leaves that field reading the English text, and saving preserves locales the form
-  cannot see. List-shaped fields (a devotion's reflection questions, a reading's reference) go back as arrays, prose as text.
 - **Validation lives in `Model.clean()`.** Every admin write runs `full_clean()`, so the console enforces exactly
   what Django Admin does: HTTPS media, an artwork link that is a full `http(s)` address or empty, end-after-start
   events, IANA event time zones, unique campus+name fellowships, one reading per plan day, one memory verse per verse
@@ -148,9 +156,11 @@ splash and the three onboarding slides and takes every other picture from this c
 
 ## Privacy boundaries
 
-The roster has no create, update or delete route, so the console renders no such button on it. It carries identity,
-the staff flag and two counts of work the app already shows publicly — never what a student reads, bookmarks,
-notes or prays. `UserContentProgress` is not exposed by any console route, matching its exclusion from Django
+The roster has no create, update or delete route, so the console renders no such button on it. It carries identity —
+the name, the address, and `photo_url`, the student's own picture, which the Account column prints as a disc beside
+the name and leaves as an empty ring when there is none — the staff flag and two counts of work the app already shows
+publicly — never what a student reads, bookmarks, notes or prays. Nothing here writes a profile, so attaching that
+picture belongs to Django Admin. `UserContentProgress` is not exposed by any console route, matching its exclusion from Django
 Admin. The prayer queue only ever lists requests their owner submitted to the community wall with explicit
 consent, and only the ones still waiting: a group's pending requests are moderated by that group's own leader inside
 the student app, and nothing a student kept private is reachable from any console route. Approving one is a
@@ -173,12 +183,11 @@ On 2026-11-11, against the dev PostgreSQL database with the console served by Vi
   ten of them for the home feed and the Learn tab's reviews.
 - Writes proven end to end: university → campus (foreign-key dropdown populated in the same visit), fellowship,
   group with a student leader, event, reading plan → reading, course → module → lesson, quiz → question,
-  memory verse chosen from `admin/verses/`, French overrides on a text field and on a list field, row state
+  memory verse chosen from `admin/verses/`, row state
   Active ⇄ Hidden, publish/draft through `is_published`, and `publish_state` reading `scheduled` for a future
   `publish_at`.
 - Refusals proven: unlicensed `translation_code`, duplicate campus+name, duplicate plan day, non-HTTPS lesson
-  media, event ending before it starts, unknown IANA time zone, blank quiz choice, `translations.fr` value that
-  is neither text nor a list of strings — each surfaced as its field message.
+  media, event ending before it starts, unknown IANA time zone, blank quiz choice — each surfaced as its field message.
 - `npm run build`, `npx tsc --noEmit` and `npm run lint` pass (lint reports only `react-refresh/only-export-components`
   warnings from shadcn primitives and the `useAuth` export), and `python manage.py test` is green at 59 tests.
 
@@ -216,15 +225,14 @@ On 2026-11-12, on the Learn shelves and recordings, with Django on `127.0.0.1:80
   the shared client's default `Content-Type: application/json` makes axios convert a `FormData` into JSON before it
   leaves the page; `uploadFiles` now takes that header off the request so the browser sets it, boundary included.
 - Writes proven on a recording: a YouTube watch link (accepted, and the row then reports YouTube's own thumbnail as
-  its artwork), a ministry-hosted `https` file (accepted, and the source column changes to *Also a ministry file*,
-  which is the only condition under which the app shows Download), and a French title override, which the public
-  API serves at `?language=fr` while English keeps reading the stored text.
+  its artwork), and a ministry-hosted `https` file (accepted, and the source column changes to *Also a ministry file*,
+  which is the only condition under which the app shows Download).
 - Refusals proven, each surfaced as its own field message: `https://vimeo.com/1234` → *Youtube url: That is not a
   YouTube link the app can play. Paste the video's watch or youtu.be address.*, and a plain `http://` ministry file
   → *Download url: Media must be served over a secure HTTPS URL.*
 - The shelf dropdown above the recordings table renders with the seeded shelves and their counts; the query
   parameter it sends is the parent-filter mechanism the Devotions screen already uses, so it was not re-proven here.
-- Everything written for this check was undone afterwards: the shelf picture, the links and the French override are
+- Everything written for this check was undone afterwards: the shelf picture and the links are
   back to the seeded state, the uploaded file is gone from `MEDIA_ROOT`, and the two temporary accounts the check
   needed are deleted. `npx tsc --noEmit`, `npm run lint` (0 errors, the same 10 `react-refresh` warnings) and
   `npm run build` pass.
@@ -268,6 +276,32 @@ surface as before, and nothing below claims how a screen looks:
   the pre-existing `tailwind.config.ts` error. `python manage.py test` is green at 233 tests. The new
   `image_link` columns arrive in migration `0016`, which has run against the test database but **not** yet against
   the dev or the AWS database.
+
+On 2026-11-17, second pass, on notices, reading sections and profile pictures. Again **no browser pass was run** for
+the new screen, and nothing below claims how it looks:
+
+- `src/pages/Notifications.tsx` writes one notice to `admin/notifications/` and reads back the count the server
+  answers. Its `destination` choices are exactly the routes the app builds without an id, which is the same list
+  `notifications_view.dart` will accept, so a notice cannot promise a screen that opens empty. The screen keeps no
+  history table on purpose, and says on itself that pushing to a handset needs `UDM_FIREBASE_SERVICE_ACCOUNT`.
+- `admin/reading-plans/` gained the `is_daily` switch, and the nested day dialog now authors four parts: the passage,
+  the verse with its own reference, what it says and what to learn. `ReadingSectionsFromTheConsoleTests` writes a
+  plan and its days through those routes and then reads `GET /api/v1/home/`, which proves the console's wording is
+  what the phone is handed, that `is_daily` alone decides which plan the feed opens, and that finishing a day moves
+  the count the progress line is built from.
+- The roster's Account column prints `photo_url` as a disc and an empty ring when there is no file. On the wall the
+  same file is served only beside a published name: `ProfilePhotoApiTests` covers both halves — `photo` at
+  `/users/me/`, `owner_photo` and `author_photo` on the wall, `photo_url` on the roster, and the unnamed writer whose
+  face stays back together with their name. Nothing in the console writes a profile, so attaching one is Django
+  Admin's `UserProfile` form.
+- The French machinery is out of the console: `ResourceConfig.localized`, the `__fr__` draft key, the localized
+  section renderer and the fourteen descriptors that set it. The backend stopped asking the provider for a second
+  language range, and `makemigrations` proves the models match: nothing is pending.
+- `npx tsc --noEmit` and `npm run build` pass and `npx eslint src/` reports only the ten `react-refresh` warnings.
+  `python manage.py test` is green at 265 tests. **`0016`, `0017` and `0018` are still unapplied on the dev and AWS
+  databases**, and `0018` is the one that drops the `translations` columns, adds the reading-day sections and
+  creates `UserNotification` and `NotificationDevice` — so the notice routes, the authored sections and the home
+  payload itself all wait on that command running.
 
 ## Known gaps
 

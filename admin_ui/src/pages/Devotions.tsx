@@ -10,7 +10,6 @@ const config: ResourceConfig = {
     "One reading. Filed under a series it becomes a numbered day in the Devotions grid; left unfiled it is only "
       + "the daily reading on a student’s home screen. Drafts stay here until you set a row to Live.",
   state: datedPublishState,
-  localized: ["title", "excerpt", "body", "reflection_questions", "application", "prayer"],
   searchPlaceholder: "Search titles, references or authors",
   parentFilter: { name: "series", label: "Series", optionsFrom: seriesOptions },
   columns: [

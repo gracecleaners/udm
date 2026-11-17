@@ -18,64 +18,79 @@ class CommunityView extends GetView<CommunityController> {
 
   @override
   Widget build(BuildContext context) => Obx(() {
-        if (controller.loading.value && controller.universities.isEmpty && controller.groups.isEmpty) {
-          return ListView(
-            shrinkWrap: true,
-            padding: EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.lg, AppSpacing.screen, AppSpacing.xl),
+    if (controller.loading.value && controller.universities.isEmpty && controller.groups.isEmpty) {
+      return ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          AppSpacing.lg,
+          AppSpacing.screen,
+          AppSpacing.xl,
+        ),
+        children: [
+          SkeletonCard(),
+          SizedBox(height: AppSpacing.sm),
+          SkeletonCard(),
+          SizedBox(height: AppSpacing.sm),
+          SkeletonCard(),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screen,
+            AppSpacing.md,
+            AppSpacing.screen,
+            AppSpacing.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonCard(),
-              SizedBox(height: AppSpacing.sm),
-              SkeletonCard(),
-              SizedBox(height: AppSpacing.sm),
-              SkeletonCard(),
+              const SectionHeader(
+                eyebrow: 'Together',
+                title: 'Community',
+                subtitle: 'Campuses, groups, events and prayer.',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Four short sections fit on one line at 390dp and two at
+              // 320dp; a scroller would hide that the list is finite.
+              PillSelector(
+                options: sections,
+                selectedIndex: controller.selectedSection.value,
+                onSelect: (index) => controller.selectedSection.value = index,
+              ),
             ],
-          );
-        }
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.sm),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SectionHeader(
-                    eyebrow: 'Together',
-                    title: 'Community',
-                    subtitle: 'Campuses, groups, events and prayer.',
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Four short sections fit on one line at 390dp and two at
-                  // 320dp; a scroller would hide that the list is finite.
-                  PillSelector(
-                    options: sections,
-                    selectedIndex: controller.selectedSection.value,
-                    onSelect: (index) => controller.selectedSection.value = index,
-                  ),
-                ],
+          ),
+        ),
+        if (controller.error.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+            child: NoticeBanner(message: controller.error.value, tone: NoticeTone.problem),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.load,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.md,
+                AppSpacing.screen,
+                AppSpacing.xl,
               ),
+              children: switch (controller.selectedSection.value) {
+                0 => _campus(context),
+                1 => _groups(context),
+                2 => _events(context),
+                _ => _wall(context),
+              },
             ),
-            if (controller.error.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                child: NoticeBanner(message: controller.error.value, tone: NoticeTone.problem),
-              ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: controller.load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
-                  children: switch (controller.selectedSection.value) {
-                    0 => _campus(context),
-                    1 => _groups(context),
-                    2 => _events(context),
-                    _ => _wall(context),
-                  },
-                ),
-              ),
-            ),
-          ],
-        );
-      });
+          ),
+        ),
+      ],
+    );
+  });
 
   List<Widget> _campus(BuildContext context) {
     final theme = Theme.of(context);
@@ -84,65 +99,82 @@ class CommunityView extends GetView<CommunityController> {
     }
     final widgets = <Widget>[];
     for (final university in controller.universities) {
-      final campusRows = controller.campuses.where((row) => row['university'] == university['name']).toList();
-      widgets.add(Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: _Tile(
-          icon: AppIcons.building,
-          title: university['name'] as String,
-          subtitle: [university['city'], university['country']]
-              .whereType<String>()
-              .where((part) => part.isNotEmpty)
-              .join(' · '),
-          children: campusRows
-              .map((campus) => ListTile(
+      final campusRows = controller.campuses
+          .where((row) => row['university'] == university['name'])
+          .toList();
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: _Tile(
+            icon: AppIcons.building,
+            title: university['name'] as String,
+            subtitle: [
+              university['city'],
+              university['country'],
+            ].whereType<String>().where((part) => part.isNotEmpty).join(' · '),
+            children: campusRows
+                .map(
+                  (campus) => ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     leading: const Icon(AppIcons.pin, color: AppColors.primaryBlue),
                     title: AppText(campus['name'] as String),
                     subtitle: AppText(campus['location'] as String? ?? ''),
-                  ))
-              .toList(),
+                  ),
+                )
+                .toList(),
+          ),
         ),
-      ));
+      );
     }
     if (controller.fellowships.isNotEmpty) {
-      widgets.add(Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.xs, AppSpacing.lg, AppSpacing.xs, AppSpacing.sm),
-        child: const Eyebrow('Fellowships'),
-      ));
-      widgets.addAll(controller.fellowships.map(
-        (fellowship) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: Panel(
-            child: Row(
-              children: [
-                const IconBadge(icon: AppIcons.community, size: 40, filled: false),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(fellowship['name'] as String, style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 3),
-                      AppText(
-                        '${fellowship['campus']} · ${fellowship['meeting_schedule'] ?? fellowship['description'] ?? ''}',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xs,
+            AppSpacing.lg,
+            AppSpacing.xs,
+            AppSpacing.sm,
+          ),
+          child: const Eyebrow('Fellowships'),
+        ),
+      );
+      widgets.addAll(
+        controller.fellowships.map(
+          (fellowship) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Panel(
+              child: Row(
+                children: [
+                  const IconBadge(icon: AppIcons.community, size: 40, filled: false),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppText(fellowship['name'] as String, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 3),
+                        AppText(
+                          '${fellowship['campus']} · ${fellowship['meeting_schedule'] ?? fellowship['description'] ?? ''}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ));
+      );
     }
     return widgets;
   }
 
   List<Widget> _groups(BuildContext context) {
     final theme = Theme.of(context);
-    if (controller.groups.isEmpty) return [_empty(context, 'No discoverable groups are available yet.')];
+    if (controller.groups.isEmpty) {
+      return [_empty(context, 'No discoverable groups are available yet.')];
+    }
     return controller.groups.map((group) {
       final id = group['id'] as String;
       final membership = group['membership_status'] as String?;
@@ -187,40 +219,58 @@ class CommunityView extends GetView<CommunityController> {
             if (isLeader && requests.isNotEmpty) ...[
               const Divider(),
               const ListTile(title: AppText('Membership requests')),
-              ...requests.map((request) => ListTile(
-                title: AppText(request['member_name'] as String? ?? 'Student'),
-                trailing: Wrap(spacing: 4, children: [
-                  IconButton(
-                    tooltip: 'Approve'.tr,
-                    icon: const Icon(AppIcons.check, color: AppColors.success),
-                    onPressed: () => controller.decideMembership(id, request['id'] as String, 'approved'),
+              ...requests.map(
+                (request) => ListTile(
+                  title: AppText(request['member_name'] as String? ?? 'Student'),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        tooltip: 'Approve',
+                        icon: const Icon(AppIcons.check, color: AppColors.success),
+                        onPressed: () =>
+                            controller.decideMembership(id, request['id'] as String, 'approved'),
+                      ),
+                      IconButton(
+                        tooltip: 'Decline',
+                        icon: const Icon(AppIcons.close),
+                        onPressed: () =>
+                            controller.decideMembership(id, request['id'] as String, 'rejected'),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    tooltip: 'Decline'.tr,
-                    icon: const Icon(AppIcons.close),
-                    onPressed: () => controller.decideMembership(id, request['id'] as String, 'rejected'),
-                  ),
-                ]),
-              )),
+                ),
+              ),
             ],
             if (isLeader && prayerQueue.isNotEmpty) ...[
               const Divider(),
               const ListTile(title: AppText('Prayer requests to review')),
-              ...prayerQueue.map((prayer) => ListTile(
-                title: AppText(prayer['body'] as String, maxLines: 3, overflow: TextOverflow.ellipsis),
-                trailing: Wrap(spacing: 4, children: [
-                  IconButton(
-                    tooltip: 'Share with group'.tr,
-                    icon: const Icon(AppIcons.check, color: AppColors.success),
-                    onPressed: () => controller.moderatePrayer(id, prayer['id'] as String, 'approved'),
+              ...prayerQueue.map(
+                (prayer) => ListTile(
+                  title: AppText(
+                    prayer['body'] as String,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  IconButton(
-                    tooltip: 'Decline'.tr,
-                    icon: const Icon(AppIcons.close),
-                    onPressed: () => controller.moderatePrayer(id, prayer['id'] as String, 'rejected'),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        tooltip: 'Share with group',
+                        icon: const Icon(AppIcons.check, color: AppColors.success),
+                        onPressed: () =>
+                            controller.moderatePrayer(id, prayer['id'] as String, 'approved'),
+                      ),
+                      IconButton(
+                        tooltip: 'Decline',
+                        icon: const Icon(AppIcons.close),
+                        onPressed: () =>
+                            controller.moderatePrayer(id, prayer['id'] as String, 'rejected'),
+                      ),
+                    ],
                   ),
-                ]),
-              )),
+                ),
+              ),
             ],
           ],
         ),
@@ -230,14 +280,18 @@ class CommunityView extends GetView<CommunityController> {
 
   List<Widget> _events(BuildContext context) {
     final theme = Theme.of(context);
-    if (controller.events.isEmpty) return [_empty(context, 'No upcoming events have been published yet.')];
+    if (controller.events.isEmpty) {
+      return [_empty(context, 'No upcoming events have been published yet.')];
+    }
     return controller.events.map((event) {
       final start = DateTime.tryParse(event['starts_at'] as String? ?? '')?.toLocal();
-      final where = [event['campus'], event['location']]
-          .whereType<String>()
-          .where((part) => part.isNotEmpty)
-          .join(' · ');
-      final full = event['capacity'] != null && (event['registration_count'] as int) >= (event['capacity'] as int);
+      final where = [
+        event['campus'],
+        event['location'],
+      ].whereType<String>().where((part) => part.isNotEmpty).join(' · ');
+      final full =
+          event['capacity'] != null &&
+          (event['registration_count'] as int) >= (event['capacity'] as int);
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: Panel(
@@ -270,11 +324,11 @@ class CommunityView extends GetView<CommunityController> {
                               ),
                               MetaPill(
                                 icon: AppIcons.clock,
-                                label: '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}',
+                                label:
+                                    '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}',
                               ),
                             ],
-                            if (where.isNotEmpty)
-                              MetaPill(icon: AppIcons.location, label: where),
+                            if (where.isNotEmpty) MetaPill(icon: AppIcons.location, label: where),
                           ],
                         ),
                       ],
@@ -385,72 +439,121 @@ class CommunityView extends GetView<CommunityController> {
     var category = 'prayer';
     String? selectedGroup;
     var consent = false;
-    final joined = controller.groups.where((group) => group['membership_status'] == 'approved').toList();
-    final result = await showDialog<({String body, String category, String visibility, String? group, bool consent})>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
-        title: const AppText('Prayer request'),
-        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          TextField(controller: input, maxLines: 4, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'What would you like prayer for?'.tr)),
-          const SizedBox(height: 12),
-          // Which wall the request belongs on is the writer's choice, and the
-          // three answers are the server's own categories rather than a list
-          // this screen invented.
-          DropdownButtonFormField<String>(
-            initialValue: category,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: 'Which wall?'.tr),
-            items: PrayerCategory.values
-                .map((option) => DropdownMenuItem(value: option.value, child: AppText(option.label.tr)))
-                .toList(),
-            onChanged: (value) => setState(() { if (value != null) category = value; }),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: visibility,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: 'Who can see this?'.tr),
-            items: const [
-              DropdownMenuItem(value: 'private', child: AppText('Only me')),
-              DropdownMenuItem(value: 'group', child: AppText('My group')),
-              DropdownMenuItem(value: 'public', child: AppText('Community prayer wall')),
-            ],
-            onChanged: (value) => setState(() { if (value != null) { visibility = value; consent = false; } }),
-          ),
-          if (visibility == 'group') ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: selectedGroup,
-              isExpanded: true,
-              decoration: InputDecoration(labelText: 'Group'.tr),
-              items: joined.map((group) => DropdownMenuItem(value: group['id'] as String, child: AppText(group['name'] as String))).toList(),
-              onChanged: (value) => setState(() => selectedGroup = value),
+    final joined = controller.groups
+        .where((group) => group['membership_status'] == 'approved')
+        .toList();
+    final result =
+        await showDialog<
+          ({String body, String category, String visibility, String? group, bool consent})
+        >(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setState) => AlertDialog(
+              title: const AppText('Prayer request'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: input,
+                      maxLines: 4,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(labelText: 'What would you like prayer for?'),
+                    ),
+                    const SizedBox(height: 12),
+                    // Which wall the request belongs on is the writer's choice, and the
+                    // three answers are the server's own categories rather than a list
+                    // this screen invented.
+                    DropdownButtonFormField<String>(
+                      initialValue: category,
+                      isExpanded: true,
+                      decoration: InputDecoration(labelText: 'Which wall?'),
+                      items: PrayerCategory.values
+                          .map(
+                            (option) =>
+                                DropdownMenuItem(value: option.value, child: AppText(option.label)),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() {
+                        if (value != null) category = value;
+                      }),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: visibility,
+                      isExpanded: true,
+                      decoration: InputDecoration(labelText: 'Who can see this?'),
+                      items: const [
+                        DropdownMenuItem(value: 'private', child: AppText('Only me')),
+                        DropdownMenuItem(value: 'group', child: AppText('My group')),
+                        DropdownMenuItem(value: 'public', child: AppText('Community prayer wall')),
+                      ],
+                      onChanged: (value) => setState(() {
+                        if (value != null) {
+                          visibility = value;
+                          consent = false;
+                        }
+                      }),
+                    ),
+                    if (visibility == 'group') ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedGroup,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: 'Group'),
+                        items: joined
+                            .map(
+                              (group) => DropdownMenuItem(
+                                value: group['id'] as String,
+                                child: AppText(group['name'] as String),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) => setState(() => selectedGroup = value),
+                      ),
+                    ],
+                    if (visibility != 'private')
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: consent,
+                        onChanged: (value) => setState(() => consent = value ?? false),
+                        title: AppText(
+                          visibility == 'public'
+                              ? 'I consent to sharing this publicly after moderator review.'
+                              : 'I consent to sharing this with my group after leader review.',
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                    if (visibility == 'group' && joined.isEmpty)
+                      const AppText('Join a group before sharing a group prayer request.'),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const AppText('Cancel'),
+                ),
+                FilledButton(
+                  onPressed:
+                      input.text.trim().isEmpty ||
+                          (visibility != 'private' && !consent) ||
+                          (visibility == 'group' && selectedGroup == null)
+                      ? null
+                      : () => Navigator.pop(dialogContext, (
+                          body: input.text.trim(),
+                          category: category,
+                          visibility: visibility,
+                          group: selectedGroup,
+                          consent: consent,
+                        )),
+                  child: const AppText('Save'),
+                ),
+              ],
             ),
-          ],
-          if (visibility != 'private')
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: consent,
-              onChanged: (value) => setState(() => consent = value ?? false),
-              title: AppText(visibility == 'public'
-                  ? 'I consent to sharing this publicly after moderator review.'
-                  : 'I consent to sharing this with my group after leader review.'),
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-          if (visibility == 'group' && joined.isEmpty)
-            const AppText('Join a group before sharing a group prayer request.'),
-        ])),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const AppText('Cancel')),
-          FilledButton(
-            onPressed: input.text.trim().isEmpty || (visibility != 'private' && !consent) || (visibility == 'group' && selectedGroup == null)
-                ? null
-                : () => Navigator.pop(dialogContext, (body: input.text.trim(), category: category, visibility: visibility, group: selectedGroup, consent: consent)),
-            child: const AppText('Save'),
           ),
-        ],
-      )),
-    );
+        );
     input.dispose();
     if (result != null) {
       await controller.createPrayer(
@@ -464,17 +567,17 @@ class CommunityView extends GetView<CommunityController> {
   }
 
   Widget _empty(BuildContext context, String message) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Panel(
-          child: Row(
-            children: [
-              const IconBadge(icon: AppIcons.inbox, size: 36, filled: false),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(child: AppText(message, style: Theme.of(context).textTheme.bodyMedium)),
-            ],
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+    child: Panel(
+      child: Row(
+        children: [
+          const IconBadge(icon: AppIcons.inbox, size: 36, filled: false),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: AppText(message, style: Theme.of(context).textTheme.bodyMedium)),
+        ],
+      ),
+    ),
+  );
 }
 
 /// One request on the wall, printed the way the ministry prints it: whose it
@@ -504,7 +607,7 @@ class _WallCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              UdmAvatar(initials: post.initials, size: 38),
+              UdmAvatar(initials: post.initials, size: 38, photoUrl: post.ownerPhotoUrl),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
@@ -522,7 +625,7 @@ class _WallCard extends StatelessWidget {
               ),
               if (post.isOwner)
                 IconButton(
-                  tooltip: 'Delete my request'.tr,
+                  tooltip: 'Delete my request',
                   icon: const Icon(AppIcons.delete),
                   onPressed: () => controller.deletePrayer(post.id),
                 ),
@@ -542,11 +645,11 @@ class _WallCard extends StatelessWidget {
             children: [
               if (category != null)
                 MetaPill(
-                  label: category.label.tr,
+                  label: category.label,
                   icon: category == PrayerCategory.testimony ? AppIcons.quote : AppIcons.heart,
                 ),
               MetaPill(
-                label: post.visibility.tr,
+                label: post.visibility,
                 tone: isPrivate ? AppColors.secondaryText : AppColors.success,
               ),
               if (post.moderationState == 'pending')
@@ -560,14 +663,14 @@ class _WallCard extends StatelessWidget {
             children: [
               _WallAction(
                 icon: AppIcons.heart,
-                label: post.affirmationCount > 0 ? '${post.affirmationCount}' : 'Pray for this'.tr,
+                label: post.affirmationCount > 0 ? '${post.affirmationCount}' : 'Pray for this',
                 active: post.affirmed,
                 onTap: () => controller.toggleAffirm(post),
               ),
               const SizedBox(width: AppSpacing.lg),
               _WallAction(
                 icon: AppIcons.comment,
-                label: post.commentCount > 0 ? '${post.commentCount}' : 'Encourage'.tr,
+                label: post.commentCount > 0 ? '${post.commentCount}' : 'Encourage',
                 active: isOpen,
                 onTap: () => controller.toggleComments(post),
               ),
@@ -583,7 +686,12 @@ class _WallCard extends StatelessWidget {
 /// A count that is also the verb: tapping a number promises the prayer, or
 /// opens the words under it.
 class _WallAction extends StatelessWidget {
-  const _WallAction({required this.icon, required this.label, required this.active, required this.onTap});
+  const _WallAction({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -662,39 +770,51 @@ class _CommentThreadState extends State<_CommentThread> {
             if (rows.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: AppText('No words yet. Be the first to encourage.'
-                    .tr, style: theme.textTheme.bodySmall),
+                child: AppText(
+                  'No words yet. Be the first to encourage.',
+                  style: theme.textTheme.bodySmall,
+                ),
               ),
-            ...rows.map((comment) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppText(comment.authorName, style: theme.textTheme.labelLarge),
-                            const SizedBox(height: 2),
-                            AppText(
-                              comment.body,
-                              style: AppTypography.scriptureBody(theme.textTheme.bodyMedium!.color!)
-                                  .copyWith(fontSize: 15.5, height: 1.5),
-                            ),
-                          ],
-                        ),
+            ...rows.map(
+              (comment) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // The same face rule as the card above: the writer's own
+                    // picture when they publish one, initials underneath.
+                    UdmAvatar(
+                      initials: UdmAvatar.initialsFor(comment.authorName),
+                      size: 26,
+                      photoUrl: comment.authorPhotoUrl,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(comment.authorName, style: theme.textTheme.labelLarge),
+                          const SizedBox(height: 2),
+                          AppText(
+                            comment.body,
+                            style: AppTypography.scriptureBody(theme.textTheme.bodyMedium!.color!)
+                                .copyWith(fontSize: 15.5, height: 1.5),
+                          ),
+                        ],
                       ),
-                      // The endpoint only ever accepts the writer's own delete,
-                      // so the control appears on exactly those rows.
-                      if (comment.isOwner)
-                        IconButton(
-                          tooltip: 'Remove my word'.tr,
-                          icon: const Icon(AppIcons.delete, size: 18),
-                          onPressed: () => widget.controller.removeComment(widget.post, comment.id),
-                        ),
-                    ],
-                  ),
-                )),
+                    ),
+                    // The endpoint only ever accepts the writer's own delete,
+                    // so the control appears on exactly those rows.
+                    if (comment.isOwner)
+                      IconButton(
+                        tooltip: 'Remove my word',
+                        icon: const Icon(AppIcons.delete, size: 18),
+                        onPressed: () => widget.controller.removeComment(widget.post, comment.id),
+                      ),
+                  ],
+                ),
+              ),
+            ),
             Row(
               children: [
                 Expanded(
@@ -702,11 +822,11 @@ class _CommentThreadState extends State<_CommentThread> {
                     controller: _input,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    decoration: InputDecoration(labelText: 'Write a word'.tr),
+                    decoration: InputDecoration(labelText: 'Write a word'),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                FilledButton(onPressed: _send, child: AppText('Send'.tr)),
+                FilledButton(onPressed: _send, child: AppText('Send')),
               ],
             ),
           ],
@@ -718,7 +838,12 @@ class _CommentThreadState extends State<_CommentThread> {
 
 /// An expandable directory or group entry on the brand tile.
 class _Tile extends StatelessWidget {
-  const _Tile({required this.icon, required this.title, required this.subtitle, required this.children});
+  const _Tile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
 
   final IconData icon;
   final String title;
@@ -727,18 +852,23 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Panel(
-        padding: EdgeInsets.zero,
-        child: ExpansionTile(
-          shape: const Border(),
-          collapsedShape: const Border(),
-          leading: IconBadge(icon: icon, size: 36, filled: false),
-          title: AppText(title, style: Theme.of(context).textTheme.titleMedium),
-          subtitle: subtitle.isEmpty
-              ? null
-              : AppText(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-          children: children,
-        ),
-      );
+    padding: EdgeInsets.zero,
+    child: ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
+      leading: IconBadge(icon: icon, size: 36, filled: false),
+      title: AppText(title, style: Theme.of(context).textTheme.titleMedium),
+      subtitle: subtitle.isEmpty
+          ? null
+          : AppText(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+      children: children,
+    ),
+  );
 }
 
 /// Day number and weekday as a stamped block, so an event reads like a diary

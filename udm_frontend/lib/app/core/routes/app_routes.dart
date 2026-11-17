@@ -18,7 +18,9 @@ abstract class AppRoutes {
   static const String community = '/community';
   static const String verse = '/verse';
   static const String readingHistory = '/reading-history';
+  static const String readingDay = '/reading-day';
   static const String settings = '/settings';
+  static const String notifications = '/notifications';
 }
 
 /// Keys for `Get.arguments` maps, so a caller and its route never drift apart.

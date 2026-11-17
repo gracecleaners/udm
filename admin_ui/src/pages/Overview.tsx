@@ -14,6 +14,7 @@ import {
   Lightbulb,
   ListChecks,
   MapPinned,
+  Megaphone,
   ScrollText,
   UsersRound,
 } from "lucide-react";
@@ -38,7 +39,7 @@ const sections: Section[] = [
     icon: Compass,
     note: "The home “Find resources on” list, and the steps inside each guide.",
   },
-  { title: "Reading plans", url: "/plans", icon: ListChecks, note: "Published plans and their day-by-day assignments." },
+  { title: "Reading plans", url: "/plans", icon: ListChecks, note: "Published plans, the day the app shows as Today’s reading, and each day’s four sections." },
   { title: "Translations", url: "/translations", icon: BookOpen, note: "Which Bible editions students may read, and offline." },
   {
     title: "Media shelves",
@@ -63,6 +64,7 @@ const sections: Section[] = [
   { title: "Fellowships", url: "/fellowships", icon: UsersRound, note: "Public and members-only gatherings." },
   { title: "Groups", url: "/groups", icon: HeartHandshake, note: "Discipleship groups, capacity and membership." },
   { title: "Events", url: "/events", icon: CalendarDays, note: "Upcoming gatherings and registration limits." },
+  { title: "Notifications", url: "/notifications", icon: Megaphone, note: "One message written into every active student’s inbox." },
 ];
 
 export default function Overview() {

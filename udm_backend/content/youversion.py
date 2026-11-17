@@ -71,8 +71,8 @@ def normalize_translation(row):
     code = str(identifier)
     title = str(row.get("localized_title") or row.get("title") or code)
     language_tag = str(row.get("language_tag") or "")
-    language_name = "French" if language_tag.lower().startswith("fr") else (
-        "English" if language_tag.lower().startswith("en") else language_tag or "Unknown language"
+    language_name = "English" if language_tag.lower().startswith("en") else (
+        language_tag or "Unknown language"
     )
     copyright_text = str(row.get("copyright") or "").strip()
     publisher_url = str(row.get("publisher_url") or row.get("youversion_deep_link") or "")
@@ -86,13 +86,16 @@ def normalize_translation(row):
     }
 
 
-def available_translations(language_range="en"):
-    language_range = str(language_range).lower()
-    if language_range not in ("en", "fr"):
-        language_range = "en"
+def available_translations():
+    """The English Bible range of the provider catalog, paged in full.
+
+    The app has no second interface language to browse, so a French range is
+    never requested; rows older integrations left in the database stay visible
+    to the bookmarks and notes that reference them.
+    """
     results, token, seen = [], None, set()
     for _ in range(100):
-        params = [("language_ranges[]", language_range), ("page_size", 99)]
+        params = [("language_ranges[]", "en"), ("page_size", 99)]
         if token:
             params.append(("page_token", token))
         payload = fetch_json("/bibles", params=params, cache_seconds=60 * 60)

@@ -18,7 +18,6 @@ import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/onboarding/onboarding_controller.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
-import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 import 'package:udm_frontend/app/modules/shell/shell_controller.dart';
 import 'package:udm_frontend/app/modules/shell/shell_view.dart';
 
@@ -53,10 +52,6 @@ void main() {
     final api = FakeShellApi();
     Get.put<LocalCache>(cache, permanent: true);
     Get.put<UdmApi>(api, permanent: true);
-    Get.put<AppLanguageController>(
-      AppLanguageController(SettingsRepository(cache)),
-      permanent: true,
-    );
     putAppearance(cache);
     Get.put<ContentVersionController>(ContentVersionController(api), permanent: true);
     Get.put<SettingsRepository>(SettingsRepository(cache), permanent: true);
@@ -98,6 +93,8 @@ void main() {
       ),
       permanent: true,
     );
+    // Home carries the bell, and the bell is one controller's unread count.
+    putNotifications();
 
     await tester.pumpWidget(
       GetMaterialApp(theme: theme, getPages: AppPages.pages, initialRoute: AppRoutes.shell),

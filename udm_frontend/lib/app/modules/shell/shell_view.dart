@@ -179,7 +179,7 @@ class _TabItem extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: AppText(
-                  tab.label.tr,
+                  tab.label,
                   // The label sits inside the gradient pill, so it is white
                   // while selected rather than the brand blue it wears outside.
                   style: theme.textTheme.labelSmall?.copyWith(

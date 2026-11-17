@@ -41,8 +41,10 @@ from .admin_views import (
     UniversityAdminDetailView,
     UniversityAdminListView,
 )
+from .notification_views import NotificationBroadcastView
 
 admin_urlpatterns = [
+    path("notifications/", NotificationBroadcastView.as_view(), name="admin-notifications"),
     path("devotions/", DevotionalAdminListView.as_view(), name="admin-devotions"),
     path("devotions/<uuid:pk>/", DevotionalAdminDetailView.as_view(), name="admin-devotion-detail"),
     path("devotion-series/", DevotionalSeriesAdminListView.as_view(), name="admin-devotion-series"),

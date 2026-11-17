@@ -11,14 +11,9 @@ void main() {
   late LocalCache cache;
   late int serverVersion;
 
-  ResourcesRepository build({String Function()? languageCode}) {
+  ResourcesRepository build() {
     serverVersion = 12;
-    return ResourcesRepository(
-      api,
-      cache,
-      languageCode: languageCode,
-      contentVersion: () => serverVersion,
-    );
+    return ResourcesRepository(api, cache, contentVersion: () => serverVersion);
   }
 
   setUp(() async {
@@ -107,15 +102,6 @@ void main() {
     expect(stored.fromCache, isTrue);
     expect(stored.title, 'Receive Christ');
     expect(stored.steps, hasLength(4));
-  });
-
-  test('the French copy is saved separately from the English copy', () async {
-    await ResourcesRepository(api, cache, languageCode: () => 'fr', contentVersion: () => 4).topics();
-
-    expect(cache.readJson('${ResourcesRepository.topicsKey}.fr'), isNotNull);
-    expect(cache.readJson(ResourcesRepository.topicsKey), isNull);
-
-    expect(ResourcesRepository(api, cache).cachedTopics(), isNull);
   });
 
   test('cached rows come back labelled as this device copy', () async {

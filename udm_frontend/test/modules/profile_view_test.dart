@@ -2,16 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
-import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/data/models/walk_summary.dart';
 import 'package:udm_frontend/app/data/repositories/home_repository.dart';
-import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/profile/profile_controller.dart';
-import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 import 'package:udm_frontend/app/modules/shell/shell_controller.dart';
 import 'package:udm_frontend/app/core/routes/app_pages.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
@@ -41,11 +37,6 @@ void main() {
     Failure? summaryFailure,
   }) async {
     Get.put<SessionController>(SessionController(repository, client));
-    // The profile app bar carries the language menu, whose controller the app
-    // registers permanently at startup.
-    SharedPreferences.setMockInitialValues({});
-    final cache = LocalCache(await SharedPreferences.getInstance());
-    Get.put<AppLanguageController>(AppLanguageController(SettingsRepository(cache)));
     // The two controllers the shell registers around this tab: the student's
     // own numbers, and the bar the bookmarks row moves.
     final home = FakeHomeRepository(payload: sampleHome())

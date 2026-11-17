@@ -14,6 +14,7 @@ import '../../modules/devotion/devotion_binding.dart';
 import '../../modules/devotion/devotion_view.dart';
 import '../../modules/devotions/devotion_series_binding.dart';
 import '../../modules/devotions/devotion_series_view.dart';
+import '../../modules/home/reading_day_view.dart';
 import '../../modules/media/media_collection_binding.dart';
 import '../../modules/media/media_collection_view.dart';
 import '../../modules/media/media_item_binding.dart';
@@ -29,6 +30,7 @@ import '../../modules/resources/resource_step_view.dart';
 import '../../modules/resources/resource_topic_binding.dart';
 import '../../modules/resources/resource_topic_view.dart';
 import '../../modules/settings/settings_view.dart';
+import '../../modules/notifications/notifications_view.dart';
 import '../../modules/shell/shell_binding.dart';
 import '../../modules/shell/shell_view.dart';
 import '../../modules/splash/splash_binding.dart';
@@ -132,10 +134,24 @@ abstract class AppPages {
       transitionDuration: transitionDuration,
     ),
     // No binding: every choice on this screen already lives in a controller the
-    // app keeps for the whole run — the light, the reading size, the language.
+    // app keeps for the whole run — the light and the reading size.
     GetPage(
       name: AppRoutes.settings,
       page: () => const SettingsView(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => const NotificationsView(),
+      transition: Transition.rightToLeft,
+      transitionDuration: transitionDuration,
+    ),
+    // No binding: the day is opened from the home feed, whose controller
+    // already holds the plan position the screen draws.
+    GetPage(
+      name: AppRoutes.readingDay,
+      page: () => const ReadingDayView(),
       transition: Transition.rightToLeft,
       transitionDuration: transitionDuration,
     ),

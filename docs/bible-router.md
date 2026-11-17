@@ -142,8 +142,8 @@ live passage pages on 2026-11-11 for all eleven routed versions — worth
 recording because `version=NV` (the old NIV code) now renders an empty page
 while `version=NIV` serves text. The bible.com link appears only when an
 operator supplies numeric Bible ids in `UDM_BIBLE_YOUVERSION_IDS`: those ids are
-per-app licence, and this app's own `YVP_APP_KEY` enables 11 English and 4
-French Bibles, none of them NIV, NLT or ESV, so no id is guessed here.
+per-app licence, and this app's own `YVP_APP_KEY` covers eleven English
+editions, none of them NIV, NLT or ESV, so no id is guessed here.
 Attribution strings must stay attached to any licensed text the app renders.
 
 ## In the mobile app
@@ -242,12 +242,14 @@ reference that names no book. It passed 6/6 against this deployment on
   development environment, so only its 403 and the fallback have been observed.
 - **NLT has never served a verse.** The vendor endpoint is dead; the route is
   configurable, not working.
-- **Only English codes are routed.** `bible-api.com` returned 404 for
-  `french`, `ostervald` and `lrth` on 2026-11-11, so there is no verified
-  public-domain French text source to route to yet. French readers keep the
-  YouVersion browse endpoints, whose app key enables Segond 1910, Martin 1744,
-  Darby and Ostervald; adding one here means a confirmed public-domain copy
-  imported with `manage.py import_bible` or a new provider.
+- **Only English codes are routed.** `bible-api.com` returned 404 for the
+  non-English codes tested there (`ostervald`, `lrth`) on 2026-11-11, so there
+  is no verified
+  public-domain text source for them to route to. The catalog the app is handed
+  is requested from YouVersion in its English range only, because the app itself
+  has no second interface language; adding a non-English edition here means a
+  confirmed public-domain copy imported with `manage.py import_bible` or a new
+  provider.
 - **Chapter counts are not checked locally.** `John 40:1` reaches the provider
   and comes back 404, which costs a request; per-book chapter tables would move
   that to a local refusal.

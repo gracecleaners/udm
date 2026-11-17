@@ -13,102 +13,7 @@ from .models import (Article, BibleBook, BibleChapter, BibleReadingAssignment, B
 from .models import Campus, DiscipleshipGroup, Event, Fellowship, University
 
 
-class LocalizedContentAdminForm(forms.ModelForm):
-    """Adds ordinary French fields while keeping translations in a JSON map."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        french = (self.instance.translations or {}).get("fr", {}) if self.instance.pk else {}
-        for name in self._meta.model.localized_fields:
-            key = f"french_{name}"
-            if key in self.initial:
-                continue
-            self.initial[key] = french.get(name, "") if isinstance(french, dict) else ""
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        translations = dict(instance.translations or {})
-        french = dict(translations.get("fr") or {})
-        for name in self._meta.model.localized_fields:
-            value = self.cleaned_data.get(f"french_{name}")
-            if value in (None, ""):
-                french.pop(name, None)
-            else:
-                french[name] = value
-        if french:
-            translations["fr"] = french
-        else:
-            translations.pop("fr", None)
-        instance.translations = translations
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
-
-
-class LocalizedAdminMixin:
-    form = LocalizedContentAdminForm
-
-    def get_exclude(self, request, obj=None):
-        excluded = list(super().get_exclude(request, obj) or ())
-        excluded.append("translations")
-        return tuple(dict.fromkeys(excluded))
-
-    def get_form(self, request, obj=None, change=False, **kwargs):
-        extra_fields = {}
-        for name in self.model.localized_fields:
-            model_field = self.model._meta.get_field(name)
-            french_name = f"french_{name}"
-            if isinstance(model_field, models.JSONField):
-                extra_fields[french_name] = forms.JSONField(
-                    required=False,
-                    label=f"French — {model_field.verbose_name}",
-                    help_text="Enter a French list or object as JSON.",
-                    widget=forms.Textarea(attrs={"rows": 3}),
-                )
-            else:
-                widget = forms.Textarea(attrs={"rows": 5}) if isinstance(model_field, models.TextField) else forms.TextInput()
-                extra_fields[french_name] = forms.CharField(
-                    required=False,
-                    max_length=model_field.max_length,
-                    label=f"French — {model_field.verbose_name}",
-                    widget=widget,
-                )
-        form_class = type(
-            f"{self.model.__name__}FrenchAdminForm",
-            (self.form,),
-            extra_fields,
-        )
-        return super().get_form(request, obj, change, form=form_class, **kwargs)
-
-    def get_fieldsets(self, request, obj=None):
-        fieldsets = []
-        french_fields = {f"french_{name}" for name in self.model.localized_fields}
-        for title, options in super().get_fieldsets(request, obj):
-            options = dict(options)
-            configured = options.get("fields")
-            if configured:
-                options["fields"] = tuple(name for name in configured if name not in french_fields)
-            fieldsets.append((title, options))
-        if french_fields:
-            fields = tuple(f"french_{name}" for name in self.model.localized_fields)
-            fieldsets.append(("French translation", {"fields": fields}))
-        return fieldsets
-
-
-class LocalizedModelAdmin(LocalizedAdminMixin, admin.ModelAdmin):
-    pass
-
-
-class LocalizedInlineAdmin(LocalizedAdminMixin, admin.TabularInline):
-    pass
-
-
-class LocalizedStackedInline(LocalizedAdminMixin, admin.StackedInline):
-    pass
-
-
-class PublishedContentAdmin(LocalizedAdminMixin, admin.ModelAdmin):
+class PublishedContentAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "reading_minutes", "publish_state", "publish_at", "updated_at")
     list_filter = ("is_published",)
     search_fields = ("title", "author", "body")
@@ -277,14 +182,25 @@ class BibleChapterAdmin(admin.ModelAdmin):
     inlines = (BibleVerseInline,)
 
 
-class BibleReadingAssignmentInline(LocalizedInlineAdmin):
+class BibleReadingAssignmentInline(admin.StackedInline):
+    """One day of a plan, authored as the sections a reader then works through."""
+
     model = BibleReadingAssignment
     extra = 0
+    fields = (
+        "day",
+        "title",
+        "reference",
+        "verse_reference",
+        "verse_text",
+        "what_it_says",
+        "what_to_learn",
+    )
 
 
 @admin.register(BibleReadingPlan)
-class BibleReadingPlanAdmin(LocalizedModelAdmin):
-    list_display = ("title", "is_published", "updated_at")
+class BibleReadingPlanAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_daily", "is_published", "updated_at")
     list_filter = ("is_published",)
     inlines = (BibleReadingAssignmentInline,)
 
@@ -332,7 +248,7 @@ class MediaItemAdmin(PublishedContentAdmin):
 
 
 @admin.register(MemoryVerse)
-class MemoryVerseAdmin(LocalizedModelAdmin):
+class MemoryVerseAdmin(admin.ModelAdmin):
     """One table for both jobs: the home memory verse and the memorization drill."""
 
     list_display = ("display_reference", "source", "translation_code", "window", "is_published", "updated_at")
@@ -356,35 +272,35 @@ class MemoryVerseAdmin(LocalizedModelAdmin):
 
 
 @admin.register(University)
-class UniversityAdmin(LocalizedModelAdmin):
+class UniversityAdmin(admin.ModelAdmin):
     list_display = ("name", "country", "city", "is_active")
     list_filter = ("country", "is_active")
     search_fields = ("name", "city")
 
 
 @admin.register(Campus)
-class CampusAdmin(LocalizedModelAdmin):
+class CampusAdmin(admin.ModelAdmin):
     list_display = ("name", "university", "location", "is_active")
     list_filter = ("university", "is_active")
     search_fields = ("name", "university__name", "location")
 
 
 @admin.register(Fellowship)
-class FellowshipAdmin(LocalizedModelAdmin):
+class FellowshipAdmin(admin.ModelAdmin):
     list_display = ("name", "campus", "is_public", "is_active")
     list_filter = ("is_public", "is_active", "campus__university")
     search_fields = ("name", "description")
 
 
 @admin.register(DiscipleshipGroup)
-class DiscipleshipGroupAdmin(LocalizedModelAdmin):
+class DiscipleshipGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "campus", "leader", "visibility", "is_active")
     list_filter = ("visibility", "is_active", "campus__university")
     search_fields = ("name", "description")
 
 
 @admin.register(Event)
-class EventAdmin(LocalizedModelAdmin):
+class EventAdmin(admin.ModelAdmin):
     list_display = ("title", "starts_at", "campus", "status")
     list_filter = ("status", "campus__university")
     search_fields = ("title", "description", "location")

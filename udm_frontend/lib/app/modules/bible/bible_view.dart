@@ -228,7 +228,7 @@ class _ReadingBar extends StatelessWidget {
           if (controller.translations.length > 20) ...[
             TextField(
               decoration: InputDecoration(
-                labelText: 'Find a translation'.tr,
+                labelText: 'Find a translation',
                 prefixIcon: const Icon(AppIcons.search),
               ),
               onChanged: (value) => controller.translationQuery.value = value,
@@ -241,7 +241,7 @@ class _ReadingBar extends StatelessWidget {
               initialValue: controller.selectedTranslation.value,
               isExpanded: true,
               style: theme.textTheme.bodyMedium,
-              decoration: InputDecoration(labelText: 'Translation'.tr),
+              decoration: InputDecoration(labelText: 'Translation'),
               // The closed field carries the name alone; the language belongs to
               // the choice, not to the value, and it truncates at 320dp.
               selectedItemBuilder: (_) => controller.visibleTranslations
@@ -690,8 +690,8 @@ class _ReferenceLookup extends StatelessWidget {
                       onChanged: (value) => controller.passageQuery.value = value,
                       onSubmitted: (value) => controller.searchPassage(value),
                       decoration: InputDecoration(
-                        labelText: 'Reference'.tr,
-                        hintText: 'John 3:16 · 1Jn 3:16-18 · Ps 23'.tr,
+                        labelText: 'Reference',
+                        hintText: 'John 3:16 · 1Jn 3:16-18 · Ps 23',
                         prefixIcon: const Icon(AppIcons.search),
                       ),
                     ),
@@ -710,7 +710,7 @@ class _ReferenceLookup extends StatelessWidget {
                   initialValue: controller.passageTranslation.value,
                   isExpanded: true,
                   style: theme.textTheme.bodyMedium,
-                  decoration: InputDecoration(labelText: 'Version'.tr),
+                  decoration: InputDecoration(labelText: 'Version'),
                   selectedItemBuilder: (_) => sources
                       .map(
                         (row) => DropdownMenuItem<String>(

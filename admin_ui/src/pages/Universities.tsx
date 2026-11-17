@@ -8,7 +8,6 @@ const config: ResourceConfig = {
   plural: "Universities",
   description: "The institutions this ministry works with. Campuses, groups and events are all filed under one.",
   state: activeState,
-  localized: ["name", "country", "city"],
   searchPlaceholder: "Search universities by name, city or country",
   columns: [
     {

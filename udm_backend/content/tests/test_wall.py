@@ -18,7 +18,7 @@ from django.test import override_settings
 from django.utils import timezone
 from PIL import Image
 
-from accounts.models import User
+from accounts.models import User, UserProfile
 from content.models import (
     Article,
     BibleBook,
@@ -618,3 +618,80 @@ class CurationArtworkLinkApiTests(UdmAPITestCase):
 
         cleared = self.client.patch(detail, {"image": ""}, format="multipart")
         self.assertEqual(cleared.json()["image_url"], self.LINK)
+
+
+class ProfilePhotoApiTests(UdmAPITestCase):
+    """A student's own picture, and the one wall rule that keeps it back.
+
+    The picture is the student's, not the ministry's, so it leaves the server
+    only where the student is already named. On the community wall that is
+    `wall_name`'s rule taken literally: an entry printed as "A student" carries
+    no face either, because a face would undo the choice to stay unnamed. The
+    staff roster is a list of identities rather than a wall, so it serves the
+    file with or without a published name.
+    """
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def setUp(self):
+        def photographed(email, full_name, filename):
+            """An account whose own picture was written, name or no name."""
+            user = User.objects.create_user(email=email, password="long-enough-pass")
+            profile = UserProfile.objects.create(user=user, full_name=full_name)
+            profile.photo.save(filename, uploaded(filename), save=False)
+            profile.save()
+            return user
+
+        self.named = photographed("named@udm.ac.ke", "Susan Kato", "susan.png")
+        # The same file, on an account that never gave a name to the wall.
+        self.quiet = photographed("quiet@udm.ac.ke", "", "quiet.png")
+        self.reader = User.objects.create_user(email="reader@udm.ac.ke", password="long-enough-pass")
+        self.staff = User.objects.create_user(email="pastor@udm.ac.ke", password="long-enough-pass", is_staff=True)
+
+    def assertOwnPicture(self, url, stem):
+        """A media address for this student's file, wherever it landed.
+
+        One shared media directory means a name the class reuses is stored with
+        a suffix, so the assertion reads the stem rather than an exact file.
+        """
+        self.assertTrue(url.startswith("http://testserver/media/profiles/"), url)
+        self.assertTrue(url.rsplit("/", 1)[-1].startswith(stem), url)
+
+    def test_my_own_profile_answers_the_picture_as_a_url(self):
+        self.client.force_authenticate(self.named)
+        photo = self.client.get("/api/v1/users/me/").json()["photo"]
+        self.assertOwnPicture(photo, "susan")
+
+    def test_a_profile_without_a_picture_answers_null(self):
+        self.client.force_authenticate(self.reader)
+        self.assertIsNone(self.client.get("/api/v1/users/me/").json()["photo"])
+
+    def test_the_wall_prints_the_picture_with_the_name(self):
+        shared(self.named)
+        row = self.client.get("/api/v1/prayers/").json()["results"][0]
+        self.assertEqual(row["owner_name"], "Susan Kato")
+        self.assertOwnPicture(row["owner_photo"], "susan")
+
+    def test_an_unnamed_wall_entry_withholds_the_face_with_the_name(self):
+        shared(self.quiet)
+        row = self.client.get("/api/v1/prayers/").json()["results"][0]
+        self.assertEqual(row["owner_name"], "A student")
+        self.assertIsNone(row["owner_photo"])
+
+    def test_a_comment_follows_the_same_rule_as_the_card_above_it(self):
+        prayer = shared(self.reader)
+        for writer, expected in ((self.named, True), (self.quiet, False)):
+            self.client.force_authenticate(writer)
+            self.client.post(f"/api/v1/prayers/{prayer.id}/comments/", {"body": "Praying with you."}, format="json")
+
+        self.client.force_authenticate(self.reader)
+        rows = self.client.get(f"/api/v1/prayers/{prayer.id}/comments/").json()
+        by_name = {row["author_name"]: row for row in rows}
+        self.assertOwnPicture(by_name["Susan Kato"]["author_photo"], "susan")
+        self.assertIsNone(by_name["A student"]["author_photo"])
+
+    def test_the_roster_serves_the_picture_whether_or_not_a_name_is_published(self):
+        self.client.force_authenticate(self.staff)
+        rows = {row["email"]: row for row in self.client.get("/api/v1/admin/students/").json()["results"]}
+        self.assertOwnPicture(rows["named@udm.ac.ke"]["photo_url"], "susan")
+        self.assertOwnPicture(rows["quiet@udm.ac.ke"]["photo_url"], "quiet")
+        self.assertIsNone(rows["reader@udm.ac.ke"]["photo_url"])

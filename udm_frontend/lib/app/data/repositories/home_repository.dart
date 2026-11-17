@@ -12,21 +12,14 @@ import '../providers/udm_api.dart';
 /// written, so the screen knows — as soon as the network answers again — whether
 /// what it is showing has already been superseded.
 class HomeRepository {
-  HomeRepository(
-    this._api,
-    this._cache, {
-    String Function()? languageCode,
-    int? Function()? contentVersion,
-  }) : _languageCode = languageCode ?? (() => 'en'),
-       _contentVersion = contentVersion ?? (() => null);
+  HomeRepository(this._api, this._cache, {int? Function()? contentVersion})
+    : _contentVersion = contentVersion ?? (() => null);
 
   final UdmApi _api;
   final LocalCache _cache;
-  final String Function() _languageCode;
   final int? Function() _contentVersion;
 
   static const String cacheKey = 'udm.home.v1';
-  String get _cacheKey => _languageCode() == 'fr' ? '$cacheKey.fr' : cacheKey;
 
   Future<HomePayload> load() async {
     try {
@@ -37,7 +30,7 @@ class HomeRepository {
         // server that predates the field.
         version: fresh.contentVersion ?? _contentVersion(),
       );
-      await _cache.writeJson(_cacheKey, stamped.toJson());
+      await _cache.writeJson(cacheKey, stamped.toJson());
       return stamped;
     } on Failure {
       final stored = cached();
@@ -50,6 +43,12 @@ class HomeRepository {
   /// device: whoever holds the phone should not find what another student
   /// learned on it.
   Future<void> markVerseMemorized(String verseId) => _api.reviewMemoryVerse(verseId);
+
+  /// One day of the ministry's reading plan, ticked on the account. The plan
+  /// itself is public copy and reads without an account; the tick is the
+  /// student's, and it is what moves the progress line.
+  Future<void> markReadingFinished(String assignmentId) =>
+      _api.completeBibleAssignment(assignmentId);
 
   /// Where this student stopped in the ministry's recordings. Read straight
   /// from the account and never cached, for the same reason the verse review
@@ -66,13 +65,10 @@ class HomeRepository {
   Future<WalkSummary> summary() => _api.walkSummary();
 
   HomePayload? cached() {
-    final raw = _cache.readJson(_cacheKey);
+    final raw = _cache.readJson(cacheKey);
     if (raw == null) return null;
     return HomePayload.fromJson(raw).asCached();
   }
 
-  Future<void> clearCache() async {
-    await _cache.remove(cacheKey);
-    await _cache.remove('$cacheKey.fr');
-  }
+  Future<void> clearCache() async => _cache.remove(cacheKey);
 }

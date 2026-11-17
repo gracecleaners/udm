@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from .models import (
     Article,
+    BibleReadingPlan,
     BibleReadingProgress,
     Devotional,
     MediaCollection,
@@ -27,7 +28,7 @@ GREETING_EVENING = "Good evening"
 GREETING_NIGHT = "Peace be with you"
 
 
-def greeting_for(user, now=None, language="en"):
+def greeting_for(user, now=None):
     now = now or timezone.localtime()
     hour = now.hour
     if 5 <= hour < 12:
@@ -38,13 +39,6 @@ def greeting_for(user, now=None, language="en"):
         base = GREETING_EVENING
     else:
         base = GREETING_NIGHT
-    if str(language).lower().startswith("fr"):
-        base = {
-            GREETING_MORNING: "Bonjour",
-            GREETING_AFTERNOON: "Bon après-midi",
-            GREETING_EVENING: "Bonsoir",
-            GREETING_NIGHT: "Que la paix soit avec vous",
-        }[base]
     if user is not None and user.is_authenticated:
         return f"{base}, {user.display_name}"
     return base
@@ -199,12 +193,44 @@ def live_media_collections(on_now=None):
     )
 
 
-def home_payload(user, on_now=None, language="en"):
+def todays_reading(user, on_now=None):
+    """Where a student stands in the plan the ministry marked as the daily one.
+
+    A plan is a run of days, so the reading a student is *on* is the first day
+    they have not finished rather than a date: nothing forces the plan to start
+    on the first of a month, and a student who misses two days is not told they
+    have no reading. The counts travel with it because the progress line is the
+    plan's length, not the day's number, and only the server knows both.
+    """
+    plan = BibleReadingPlan.objects.filter(is_published=True, is_daily=True).order_by("title").first()
+    if plan is None:
+        return None
+    assignments = list(plan.assignments.all())
+    if not assignments:
+        return None
+    finished = set()
+    if user is not None and user.is_authenticated:
+        finished = set(
+            BibleReadingProgress.objects.filter(
+                user=user, assignment__in=assignments, completed_at__isnull=False
+            ).values_list("assignment_id", flat=True)
+        )
+    current = next((row for row in assignments if row.pk not in finished), assignments[-1])
+    return {
+        "plan_title": plan.title,
+        "assignment": current,
+        "total": len(assignments),
+        "completed": len(finished),
+    }
+
+
+def home_payload(user, on_now=None):
     on_now = on_now or timezone.now()
     return {
-        "greeting": greeting_for(user, on_now, language),
+        "greeting": greeting_for(user, on_now),
         "memory_verse": memory_verse(on_now),
         "devotion": todays_devotional(on_now),
+        "reading": todays_reading(user, on_now),
         "articles": latest_articles(on_now=on_now),
         "resources": live_resource_topics(on_now),
         "server_time": on_now,

@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import '../settings/app_language_controller.dart';
 
 import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
@@ -14,7 +13,6 @@ class DevotionsController extends GetxController with RefetchesOnContentChange {
   DevotionsController(this._devotions);
 
   final DevotionsRepository _devotions;
-  Worker? _languageWorker;
 
   final RxList<DevotionSeries> series = <DevotionSeries>[].obs;
   final RxList<Devotional> feed = <Devotional>[].obs;
@@ -33,16 +31,7 @@ class DevotionsController extends GetxController with RefetchesOnContentChange {
   @override
   void onInit() {
     super.onInit();
-    if (Get.isRegistered<AppLanguageController>()) {
-      _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
-    }
     load();
-  }
-
-  @override
-  void onClose() {
-    _languageWorker?.dispose();
-    super.onClose();
   }
 
   /// Cached rows go up first when there is nothing on screen yet, so a returning

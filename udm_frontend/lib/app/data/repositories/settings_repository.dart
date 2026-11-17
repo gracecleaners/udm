@@ -8,7 +8,6 @@ class SettingsRepository {
   final LocalCache _cache;
 
   static const String onboardingCompleteKey = 'udm.onboarding.complete';
-  static const String languageKey = 'udm.app.language';
   static const String themeModeKey = 'udm.app.themeMode';
   static const String readingScaleKey = 'udm.app.readingScale';
 
@@ -17,10 +16,6 @@ class SettingsRepository {
   Future<void> completeOnboarding() => _cache.setFlag(onboardingCompleteKey, true);
 
   Future<void> restartOnboarding() => _cache.remove(onboardingCompleteKey);
-
-  String get languageCode => _cache.readString(languageKey) ?? 'en';
-
-  Future<void> setLanguageCode(String code) => _cache.writeString(languageKey, code);
 
   /// How the app should follow the light. The device default is system: a
   /// student who never opened Settings still gets what their phone asks for.

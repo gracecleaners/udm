@@ -9,7 +9,6 @@ const config: ResourceConfig = {
   description:
     "Discipleship groups: the small circles students meet in week to week. Membership counts here are approved members only.",
   state: activeState,
-  localized: ["name", "description", "group_type"],
   parentFilter: { name: "campus", label: "Campus", optionsFrom: campusOptions },
   searchPlaceholder: "Search groups, types or campuses",
   columns: [

@@ -1,4 +1,3 @@
-import 'package:udm_frontend/app/core/localization/localized_snackbar.dart';
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'dart:convert';
 
@@ -10,7 +9,6 @@ import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
 import '../../data/providers/udm_api.dart';
 import '../content_version/content_version_controller.dart';
-import '../settings/app_language_controller.dart';
 import '../session/session_controller.dart';
 
 class BibleController extends GetxController with RefetchesOnContentChange {
@@ -44,13 +42,11 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   final passageTranslation = ''.obs;
   String? _accountEmail;
   Worker? _sessionWorker;
-  Worker? _languageWorker;
 
   @override
   void onInit() {
     super.onInit();
     _captureAccount();
-    _languageWorker = ever(Get.find<AppLanguageController>().locale, (_) => load());
     _sessionWorker = ever(session.status, (status) {
       if (status == SessionStatus.signedIn) {
         _captureAccount();
@@ -66,7 +62,6 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   @override
   void onClose() {
     _sessionWorker?.dispose();
-    _languageWorker?.dispose();
     super.onClose();
   }
 
@@ -81,10 +76,9 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     message.value = '';
     _captureAccount();
     await _syncPending();
-    final language = Get.find<AppLanguageController>().locale.value.languageCode;
-    final catalogCacheKey = 'bible.translations.$language';
+    const catalogCacheKey = 'bible.translations';
     try {
-      translations.assignAll(await api.bibleTranslations(language: language));
+      translations.assignAll(await api.bibleTranslations());
       await cache.writeJson(catalogCacheKey, {
         'items': translations.toList(),
       });
@@ -304,7 +298,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   }
 
   Future<void> loadPlans() async {
-    final plansCacheKey = 'bible.plans.${Get.find<AppLanguageController>().locale.value.languageCode}';
+    const plansCacheKey = 'bible.plans';
     try {
       plans.assignAll(await api.biblePlans());
       if (session.isSignedIn) {
@@ -420,7 +414,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> bookmark(String verseId) async {
     if (!session.isSignedIn) {
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Sign in required',
         'Sign in to save bookmarks to your account.',
       );
@@ -430,14 +424,14 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     try {
       await api.addBibleBookmark(verseId);
       await loadSaved();
-      showLocalizedSnackbar('Saved', 'Verse added to your bookmarks.');
+      Get.snackbar('Saved', 'Verse added to your bookmarks.');
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not save bookmark', failure.message);
+        Get.snackbar('Could not save bookmark', failure.message);
         return;
       }
       await _queue({'kind': 'bookmark', 'verse_id': verseId});
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Bookmark will sync when you are back online.',
       );
@@ -451,12 +445,12 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       await loadSaved();
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not remove bookmark', failure.message);
+        Get.snackbar('Could not remove bookmark', failure.message);
         return;
       }
       bookmarks.removeWhere((bookmark) => bookmark['id'] == id);
       await _queue({'kind': 'remove_bookmark', 'bookmark_id': id});
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Bookmark removal will sync when you are back online.',
       );
@@ -465,7 +459,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> note(String verseId, {String initial = ''}) async {
     if (!session.isSignedIn) {
-      showLocalizedSnackbar('Sign in required', 'Sign in to keep private Bible notes.');
+      Get.snackbar('Sign in required', 'Sign in to keep private Bible notes.');
       return;
     }
     _captureAccount();
@@ -494,14 +488,14 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     try {
       await api.saveBibleNote(verseId, body);
       await loadSaved();
-      showLocalizedSnackbar('Saved privately', 'Your note is only visible to you.');
+      Get.snackbar('Saved privately', 'Your note is only visible to you.');
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not save note', failure.message);
+        Get.snackbar('Could not save note', failure.message);
         return;
       }
       await _queue({'kind': 'note', 'verse_id': verseId, 'body': body});
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Private note will sync when you are back online.',
       );
@@ -531,7 +525,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       await loadSaved();
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not update note', failure.message);
+        Get.snackbar('Could not update note', failure.message);
         return;
       }
       final index = notes.indexWhere((saved) => saved['id'] == note['id']);
@@ -541,7 +535,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
         'note_id': note['id'],
         'body': body,
       });
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Your change will sync when you are back online.',
       );
@@ -555,12 +549,12 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       await loadSaved();
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not remove note', failure.message);
+        Get.snackbar('Could not remove note', failure.message);
         return;
       }
       notes.removeWhere((note) => note['id'] == id);
       await _queue({'kind': 'remove_note', 'note_id': id});
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Note removal will sync when you are back online.',
       );
@@ -569,7 +563,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> completeAssignment(String id) async {
     if (!session.isSignedIn) {
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Sign in required',
         'Sign in to save reading plan progress.',
       );
@@ -581,12 +575,12 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       await loadPlans();
     } on Failure catch (failure) {
       if (!_canRetry(failure)) {
-        showLocalizedSnackbar('Could not save progress', failure.message);
+        Get.snackbar('Could not save progress', failure.message);
         return;
       }
       await _queue({'kind': 'plan_progress', 'assignment_id': id});
       await loadPlans();
-      showLocalizedSnackbar(
+      Get.snackbar(
         'Saved for sync',
         'Reading progress will sync when you are back online.',
       );

@@ -233,70 +233,6 @@ function FieldEditor({
   );
 }
 
-/**
- * French overrides, one input per field the model marks as localised. The API
- * stores them as `{"fr": {field: text}}` and rejects any field a record does
- * not translate, so the console only offers the fields it was told about.
- */
-function LocalizedSection({ fields, values, onChange }: {
-  fields: FieldSpec[];
-  values: Row;
-  onChange: (name: string, text: string) => void;
-}) {
-  return (
-    <div className="console-localized">
-      <p className="console-localized-head">
-        French overrides. Leave a field blank to keep reading the English text.
-      </p>
-      {fields.map((field) => {
-        const stored = values[field.name];
-        const text = Array.isArray(stored) ? stored.join("\n") : String(stored ?? "");
-        return (
-          <div className={`console-field${field.type !== "text" && field.type !== "number" && field.type !== "select" ? " console-field-wide" : ""}`} key={field.name}>
-            <Label htmlFor={`fr-${field.name}`}>{field.label} (fr)</Label>
-            {field.type === "text" || field.type === "number" || field.type === "select" ? (
-              <Input
-                id={`fr-${field.name}`}
-                value={text}
-                onChange={(event) => onChange(field.name, event.target.value)}
-              />
-            ) : (
-              <Textarea
-                id={`fr-${field.name}`}
-                rows={4}
-                value={text}
-                onChange={(event) => onChange(field.name, event.target.value)}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-const FR = "__fr__";
-
-/**
- * The `translations` payload for a save, or `undefined` when nothing about it
- * moved. Other locales already stored on the row are kept: this form only ever
- * speaks French, and rewriting the whole map would drop a locale it cannot see.
- */
-function translationsBody(fields: FieldSpec[], values: Row | undefined, stored: Row | undefined): Row | undefined {
-  const cleaned: Row = {};
-  for (const field of fields) {
-    const text = values?.[field.name];
-    if (typeof text !== "string" || !text.trim()) continue;
-    cleaned[field.name] = field.type === "lines"
-      ? text.split("\n").map((line) => line.trim()).filter(Boolean)
-      : text;
-  }
-  const next: Row = { ...(stored ?? {}) };
-  if (Object.keys(cleaned).length) next.fr = cleaned;
-  else delete next.fr;
-  return JSON.stringify(next) === JSON.stringify(stored ?? {}) ? undefined : next;
-}
-
 export function ResourceScreen<T extends Row>({ config }: { config: ResourceConfig<T> }) {
   const queryClient = useQueryClient();
   const { role } = useAuth();
@@ -388,19 +324,8 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
   const total = listQ.data?.count ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const localizedFields = useMemo(
-    () => (config.localized ?? []).map((name) => (config.fields ?? []).find((field) => field.name === name)).filter(
-      (field): field is FieldSpec => Boolean(field),
-    ),
-    [config.fields, config.localized],
-  );
-
-  const buildDraft = (row: T | null): Row => {
-    const next: Row = Object.fromEntries((config.fields ?? []).map((field) => [field.name, seedDraft(field, row)]));
-    const french = (row?.translations as Row | undefined)?.fr;
-    next[FR] = typeof french === "object" && french !== null ? { ...french } as Row : {};
-    return next;
-  };
+  const buildDraft = (row: T | null): Row =>
+    Object.fromEntries((config.fields ?? []).map((field) => [field.name, seedDraft(field, row)]));
 
   const openEdit = (row: T) => {
     setError("");
@@ -439,10 +364,6 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
       }
       if (value === undefined) continue;
       body[field.name] = value;
-    }
-    if (localizedFields.length) {
-      const translations = translationsBody(localizedFields, draft[FR] as Row | undefined, editing?.translations as Row | undefined);
-      if (translations) body.translations = translations;
     }
     if (creating) {
       const missing = (config.fields ?? []).find((field) => {
@@ -636,16 +557,6 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
                 />
               );
             })}
-            {localizedFields.length > 0 && (
-              <LocalizedSection
-                fields={localizedFields}
-                values={(draft[FR] as Row | undefined) ?? {}}
-                onChange={(name, text) => setDraft((current) => ({
-                  ...current,
-                  [FR]: { ...(current[FR] as Row | undefined), [name]: text },
-                }))}
-              />
-            )}
           </div>
 
           {(error || save.isError) && (

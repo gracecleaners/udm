@@ -16,7 +16,6 @@ const config: ResourceConfig = {
     "One guided answer to a question a student actually asks — Receive Christ, Prayer, The Bible. "
       + "A guide reaches the home list only when it is Live and has at least one published step.",
   state: datedPublishState,
-  localized: ["title", "summary"],
   ordering: "order",
   searchPlaceholder: "Search guide titles or summaries",
   columns: [

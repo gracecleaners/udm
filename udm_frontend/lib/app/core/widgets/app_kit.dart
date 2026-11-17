@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
-import '../localization/app_translations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'app_text.dart';
@@ -77,7 +75,7 @@ abstract class AppIcons {
   static const building = Icons.account_balance_rounded;
   static const pin = Icons.location_on_rounded;
   static const inbox = Icons.inbox_rounded;
-  static const language = Icons.translate_rounded;
+  static const notifications = Icons.notifications_none_rounded;
   static const settings = Icons.settings_rounded;
   static const logout = Icons.logout_rounded;
   static const list = Icons.format_list_numbered_rounded;
@@ -676,7 +674,7 @@ class _Pill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
           decoration: surfaces.pill(selected: selected),
           child: AppText(
-            label.tr,
+            label,
             style: theme.textTheme.labelMedium?.copyWith(
               fontSize: 13,
               color: selected ? AppColors.white : theme.textTheme.bodySmall?.color,
@@ -773,7 +771,7 @@ class AppIconButton extends StatelessWidget {
       ),
     );
     if (tooltip == null) return button;
-    return Tooltip(message: AppTranslations.localize(tooltip!, Get.locale?.languageCode ?? 'en'), child: button);
+    return Tooltip(message: tooltip!, child: button);
   }
 }
 

@@ -16,6 +16,7 @@ import {
   ListChecks,
   ListOrdered,
   MapPinned,
+  Megaphone,
   ScrollText,
   Settings2,
   UserCog,
@@ -78,6 +79,7 @@ const peopleItems: NavItem[] = [
   { title: "Students", url: "/students", icon: UsersRound },
   { title: "Staff accounts", url: "/staff-accounts", icon: UserCog, capability: "accounts" },
   { title: "Prayer queue", url: "/prayers", icon: HeartHandshake },
+  { title: "Notifications", url: "/notifications", icon: Megaphone },
   { title: "Account", url: "/account", icon: Settings2 },
 ];
 

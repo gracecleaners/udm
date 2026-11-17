@@ -242,13 +242,9 @@ UDM_BOLLS_TRANSLATIONS = env("UDM_BOLLS_TRANSLATIONS", "")
 # `asv:12,web:206`. They add a second authorized link; nothing is guessed.
 UDM_BIBLE_YOUVERSION_IDS = env("UDM_BIBLE_YOUVERSION_IDS", "")
 
-# Dynamic content can be translated on demand through Google Cloud Translation.
-# Keep the key server-side and leave it blank to use admin-entered translations.
-UDM_TRANSLATION_API_KEY = env("UDM_TRANSLATION_API_KEY", "")
-UDM_TRANSLATION_API_URL = env(
-    "UDM_TRANSLATION_API_URL",
-    "https://translation.googleapis.com/language/translate/v2",
-)
+# Push delivery is optional until a Firebase service account is configured.
+# The durable in-app inbox continues to work without it.
+UDM_FIREBASE_SERVICE_ACCOUNT = env("UDM_FIREBASE_SERVICE_ACCOUNT", "")
 
 # Logging ------------------------------------------------------------------
 

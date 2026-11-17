@@ -6,6 +6,8 @@ import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/routes/app_routes.dart';
 import 'package:udm_frontend/app/core/theme/app_theme.dart';
+import 'package:udm_frontend/app/core/widgets/app_kit.dart';
+import 'package:udm_frontend/app/core/widgets/udm_widgets.dart';
 import 'package:udm_frontend/app/data/models/home_payload.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/home/home_controller.dart';
@@ -27,6 +29,8 @@ void main() {
         ApiClient(dio: Dio(BaseOptions(baseUrl: 'http://127.0.0.1:1/api/v1')), tokenStore: InMemoryTokenStore()),
       ),
     );
+    // Home carries the bell, and the bell is one controller's unread count.
+    putNotifications(session: fakeSession(), api: FakeUdmApi());
     await tester.pumpWidget(
       GetMaterialApp(
         theme: AppTheme.light,
@@ -34,6 +38,8 @@ void main() {
           GetPage(name: AppRoutes.devotion, page: () => const Center(child: Text('DEVOTION SCREEN'))),
           GetPage(name: AppRoutes.article, page: () => const Center(child: Text('ARTICLE SCREEN'))),
           GetPage(name: AppRoutes.resourceTopic, page: () => const Center(child: Text('GUIDE SCREEN'))),
+          GetPage(name: AppRoutes.readingDay, page: () => const Center(child: Text('READING DAY SCREEN'))),
+          GetPage(name: AppRoutes.readingHistory, page: () => const Center(child: Text('HISTORY SCREEN'))),
           GetPage(name: AppRoutes.signIn, page: () => const Center(child: Text('SIGN IN SCREEN'))),
           GetPage(name: AppRoutes.register, page: () => const Center(child: Text('REGISTER SCREEN'))),
         ],
@@ -47,11 +53,15 @@ void main() {
   /// one, so the day's cards start below the fold. Reach them the way a
   /// student would: scroll, then look.
   ///
-  /// The scroll looks for any match — a lazy list has not built the row yet —
-  /// then settles on the first, because the feed names a devotion twice on
-  /// purpose: once as the plan row to tick off, once as the card to read.
+  /// The list names some content twice on purpose — the devotion is both the
+  /// row to tick and the card to read — so the helper drags only while nothing
+  /// matches and then settles on the first match.
   Future<void> scrollToCard(WidgetTester tester, Finder finder) async {
-    await tester.dragUntilVisible(finder, find.byType(ListView), const Offset(0, -200));
+    final list = find.byType(ListView).first;
+    for (var attempt = 0; attempt < 20 && finder.evaluate().isEmpty; attempt++) {
+      await tester.drag(list, const Offset(0, -200));
+      await tester.pumpAndSettle();
+    }
     await tester.ensureVisible(finder.first);
     await tester.pumpAndSettle();
   }
@@ -69,7 +79,9 @@ void main() {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
 
     expect(find.text('Good morning, Grace'), findsOneWidget);
-    expect(find.text("Today's plan"), findsOneWidget);
+    expect(find.text("Today's readings"), findsOneWidget);
+    expect(find.text('Romans 1:16-17'), findsOneWidget);
+    expect(find.text('Day 3 of 30 · Romans in a month'), findsOneWidget);
     expect(find.textContaining('Be not conformed to this world.'), findsOneWidget);
     await scrollToCard(tester, find.text('A Heart That Listens'));
     // The day's devotion is both the row to tick and the card to read, so the
@@ -144,25 +156,58 @@ void main() {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
 
     await scrollToCard(tester, find.text('GUIDED READING'));
-    final row = find.text('New Believer').last;
+    // The shortcut grid names the same guide, so the row is found by the card
+    // it sits in rather than by its label alone.
+    final row = find.descendant(of: find.byType(Panel), matching: find.text('New Believer'));
     await scrollToCard(tester, row);
-    await tester.tap(row);
+    await tester.tap(row.first);
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.resourceTopic);
     expect(find.text('GUIDE SCREEN'), findsOneWidget);
   });
 
-  testWidgets('home shortcuts use the four requested destinations', (tester) async {
+  testWidgets('home shortcuts are the three doors the ministry asked for', (tester) async {
     await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
-    await scrollToCard(tester, find.text('New Believer').first);
+    await scrollToCard(tester, find.text('New Believer'));
 
-    expect(find.text('Courses'), findsOneWidget);
-    expect(find.text('Articles'), findsOneWidget);
-    expect(find.text('New Believer'), findsWidgets);
-    expect(find.text('Media'), findsOneWidget);
-    expect(find.text('Community'), findsNothing);
-    expect(find.text('Bible'), findsNothing);
+    // 'Courses' is also the title of the guide list further down the feed, so
+    // the shortcut itself is counted where it is drawn rather than on screen.
+    final grid = find.byType(QuickActionGrid);
+    expect(find.descendant(of: grid, matching: find.text('Courses')), findsOneWidget);
+    expect(find.descendant(of: grid, matching: find.text('Articles')), findsOneWidget);
+    expect(find.descendant(of: grid, matching: find.text('New Believer')), findsOneWidget);
+    expect(find.descendant(of: grid, matching: find.text('Media')), findsNothing);
+    expect(find.descendant(of: grid, matching: find.text('Community')), findsNothing);
+    expect(find.descendant(of: grid, matching: find.text('Bible')), findsNothing);
+  });
+
+  testWidgets("today's reading card opens the day's four sections", (tester) async {
+    await pumpHome(tester, HomeController(FakeHomeRepository(payload: sampleHome()), fakeSession()));
+
+    final card = find.text('Day 3 of 30 · Romans in a month');
+    await scrollToCard(tester, card);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.readingDay);
+    expect(find.text('READING DAY SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('a day already read is ticked, not asked for again', (tester) async {
+    await pumpHome(
+      tester,
+      HomeController(
+        FakeHomeRepository(payload: sampleHome(reading: sampleReading(completed: true, completedDays: 3))),
+        fakeSession(),
+      ),
+    );
+
+    // The server counts the finished day into the plan, so the row still names
+    // day 4 — the one it sent — rather than sending the student back over work
+    // they have already done.
+    expect(find.text('Day 4 of 30 · Romans in a month'), findsOneWidget);
+    expect(find.byIcon(AppIcons.checkCircle), findsWidgets);
   });
 
   testWidgets('a home with no guides published shows no resources section', (tester) async {

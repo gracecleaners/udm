@@ -18,17 +18,11 @@ import '../providers/udm_api.dart';
 /// written, which is what lets a screen tell its cached rows are older than
 /// whatever the ministry published next.
 class MediaRepository {
-  MediaRepository(
-    this._api,
-    this._cache, {
-    String Function()? languageCode,
-    int? Function()? contentVersion,
-  }) : _languageCode = languageCode ?? (() => 'en'),
-       _contentVersion = contentVersion ?? (() => null);
+  MediaRepository(this._api, this._cache, {int? Function()? contentVersion})
+    : _contentVersion = contentVersion ?? (() => null);
 
   final UdmApi _api;
   final LocalCache _cache;
-  final String Function() _languageCode;
   final int? Function() _contentVersion;
 
   static const String shelvesKey = 'udm.mediaShelves.v1';
@@ -37,10 +31,8 @@ class MediaRepository {
 
   Future<List<MediaCollection>> shelves() async {
     try {
-      final fresh = (await _api.mediaCollections())
-          .map(_stampCollection)
-          .toList(growable: false);
-      await _cache.writeJson(_shelvesKey, {
+      final fresh = (await _api.mediaCollections()).map(_stampCollection).toList(growable: false);
+      await _cache.writeJson(shelvesKey, {
         'shelves': fresh.map((shelf) => shelf.toJson()).toList(),
       });
       return fresh;
@@ -120,27 +112,21 @@ class MediaRepository {
   /// the student is being sent. The locally known number only covers a server
   /// that predates the field, and cannot be trusted to line up with a response
   /// that raced the version request.
-  MediaCollection _stampCollection(MediaCollection shelf) =>
-      shelf.withCacheStamp(
-        DateTime.now().toUtc(),
-        version: shelf.contentVersion ?? _contentVersion(),
-      );
+  MediaCollection _stampCollection(MediaCollection shelf) => shelf.withCacheStamp(
+    DateTime.now().toUtc(),
+    version: shelf.contentVersion ?? _contentVersion(),
+  );
 
   MediaItem _stampItem(MediaItem item) => item.withCacheStamp(
     DateTime.now().toUtc(),
     version: item.contentVersion ?? _contentVersion(),
   );
 
-  String get _shelvesKey => _localized(shelvesKey);
-  String _shelfKeyFor(String id) => _localized('$shelfKey.$id');
-  String _itemKeyFor(String id) => _localized('$itemKey.$id');
-
-  /// French and English copies of the same shelf are different text, so they
-  /// are different cache entries.
-  String _localized(String key) => _languageCode() == 'fr' ? '$key.fr' : key;
+  String _shelfKeyFor(String id) => '$shelfKey.$id';
+  String _itemKeyFor(String id) => '$itemKey.$id';
 
   List<MediaCollection>? _cachedShelves() {
-    final raw = _cache.readJson(_shelvesKey)?['shelves'];
+    final raw = _cache.readJson(shelvesKey)?['shelves'];
     if (raw is! List) return null;
     return raw
         .whereType<Map<String, dynamic>>()
@@ -160,6 +146,5 @@ class MediaRepository {
     return MediaItem.fromJson(raw).asCached();
   }
 
-  static DateTime? _date(dynamic value) =>
-      value == null ? null : DateTime.tryParse('$value');
+  static DateTime? _date(dynamic value) => value == null ? null : DateTime.tryParse('$value');
 }

@@ -120,9 +120,8 @@ class HomeView(APIView):
     throttle_scope = "content"
 
     def get(self, request):
-        language = request.query_params.get("language", "en")
         return Response(HomeSerializer(
-            home_payload(request.user, language=language),
+            home_payload(request.user),
             context={"request": request, "guide_progress": guide_progress(request.user)},
         ).data)
 
@@ -286,8 +285,8 @@ class BibleTranslationsView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         # Provider records from older integrations or other languages may
         # remain in the database because bookmarks and notes reference their
-        # verse rows. The live YouVersion catalog below follows the requested
-        # app language, so retain only manual entries from local rows.
+        # verse rows. The live YouVersion catalog is always the English range,
+        # so retain only manual entries from local rows.
         local = list(
             BibleTranslation.objects.filter(is_active=True)
             .filter(source_provider="")
@@ -295,11 +294,8 @@ class BibleTranslationsView(generics.ListAPIView):
         )
         local_data = BibleTranslationSerializer(local, many=True).data
         local_by_code = {item["code"]: item for item in local_data}
-        language = request.query_params.get("language", "en").strip().lower()
-        if language not in ("en", "fr"):
-            language = "en"
         try:
-            provider_rows = available_translations(language)
+            provider_rows = available_translations()
         except YouVersionError as exc:
             provider_rows = []
             if not local:
@@ -319,7 +315,7 @@ class BibleTranslationsView(generics.ListAPIView):
             row for row in results
             if row.get("source_provider") != "youversion"
             or not row.get("language_code")
-            or language == str(row.get("language_code", "")).casefold().split("-")[0]
+            or str(row.get("language_code", "")).casefold().startswith("en")
         ]
         results.sort(key=lambda row: (
             not str(row.get("language_code", "")).casefold().startswith("en"),
@@ -843,7 +839,7 @@ class PrayerRequestListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         # `?category=` is the feed's filter row. A value the model does not
         # know is refused rather than silently answering with everything.
-        queryset = visible_prayers(self.request.user).select_related("owner", "group")
+        queryset = visible_prayers(self.request.user).select_related("owner__profile", "group")
         category = self.request.query_params.get("category")
         if category:
             if category not in PrayerRequest.Category.values:
@@ -902,7 +898,7 @@ class PrayerCommentListView(APIView):
 
     def get(self, request, pk):
         prayer = get_object_or_404(visible_prayers(request.user), pk=pk)
-        comments = prayer.comments.select_related("user").order_by("-created_at")
+        comments = prayer.comments.select_related("user__profile").order_by("-created_at")
         return Response(PrayerCommentSerializer(comments, many=True, context={"request": request}).data)
 
     def post(self, request, pk):

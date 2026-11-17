@@ -9,7 +9,6 @@ const config: ResourceConfig = {
   description:
     "Conferences, crusades and campus nights. Only Published events reach the student app, and a cancelled one keeps its registration list for the record.",
   state: eventState,
-  localized: ["title", "description", "location"],
   parentFilter: { name: "campus", label: "Campus", optionsFrom: campusOptions },
   searchPlaceholder: "Search events, venues or campuses",
   columns: [

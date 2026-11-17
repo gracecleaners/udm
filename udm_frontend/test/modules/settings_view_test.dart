@@ -7,7 +7,6 @@ import 'package:udm_frontend/app/core/theme/app_theme.dart';
 import 'package:udm_frontend/app/core/widgets/app_kit.dart';
 import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
-import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 import 'package:udm_frontend/app/modules/settings/appearance_controller.dart';
 import 'package:udm_frontend/app/modules/settings/reading_size_sheet.dart';
 import 'package:udm_frontend/app/modules/settings/settings_view.dart';
@@ -30,7 +29,6 @@ void main() {
     prefs = await SharedPreferences.getInstance();
     final settings = SettingsRepository(LocalCache(prefs));
     final appearance = Get.put(AppearanceController(settings), permanent: true);
-    Get.put(AppLanguageController(settings), permanent: true);
     Get.put<ContentVersionController>(FakeContentVersionController(), permanent: true);
     await tester.pumpWidget(
       GetMaterialApp(theme: AppTheme.light, home: const SettingsView()),
@@ -75,9 +73,9 @@ void main() {
     // out of view, so each group is checked while it is still on screen.
     await reveal(tester, find.text('READING'));
     expect(find.text('Text size'), findsOneWidget);
-
-    await reveal(tester, find.text('LANGUAGE'));
-    expect(find.text('English'), findsOneWidget);
+    // The app publishes in one language, so there is no language choice to
+    // offer here.
+    expect(find.text('LANGUAGE'), findsNothing);
 
     await reveal(tester, find.text('ABOUT UDM'));
     expect(find.text('Content on this device'), findsOneWidget);
@@ -120,23 +118,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ReadingSizeSheet), findsNothing);
     expect(find.text('Large'), findsOneWidget);
-  });
-
-  testWidgets('the language is the one choice that reaches the server', (tester) async {
-    await pumpSettings(tester);
-    final language = Get.find<AppLanguageController>();
-
-    await reveal(tester, find.text('Français'));
-    // Switching the language rebuilds the app with the new one, and that
-    // reassembly needs the real event loop rather than the test clock.
-    await tester.runAsync(() async {
-      await tester.tap(find.text('Français'));
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-    });
-
-    expect(language.locale.value, const Locale('fr'));
-    expect(prefs.getString(SettingsRepository.languageKey), 'fr');
-    expect(Get.locale, const Locale('fr'));
   });
 
   testWidgets('about names the published copy this device is reading', (tester) async {

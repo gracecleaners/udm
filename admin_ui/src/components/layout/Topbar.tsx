@@ -24,6 +24,7 @@ const routeTitles: Array<[string, string]> = [
   ["/events", "Events"],
   ["/students", "Students"],
   ["/prayers", "Prayer moderation"],
+  ["/notifications", "Notifications"],
   ["/account", "Account"],
 ];
 

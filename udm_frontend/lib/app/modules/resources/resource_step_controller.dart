@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/localization/localized_snackbar.dart';
 import '../../core/network/failure.dart';
 import '../../core/widgets/state_view.dart';
 import '../../data/models/content_kind.dart';
@@ -59,16 +58,16 @@ class ResourceStepController extends GetxController with TracksReadingProgress {
     final rawUrl = step.value?.videoUrl ?? '';
     final uri = Uri.tryParse(rawUrl);
     if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
-      showLocalizedSnackbar('Video unavailable', 'This step has no safe video link.');
+      Get.snackbar('Video unavailable', 'This step has no safe video link.');
       return;
     }
     try {
       final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened) {
-        showLocalizedSnackbar('Video unavailable', 'No app could open this video.');
+        Get.snackbar('Video unavailable', 'No app could open this video.');
       }
     } on Exception {
-      showLocalizedSnackbar('Video unavailable', 'No app could open this video.');
+      Get.snackbar('Video unavailable', 'No app could open this video.');
     }
   }
 }

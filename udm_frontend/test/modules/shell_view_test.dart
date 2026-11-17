@@ -10,11 +10,9 @@ import 'package:udm_frontend/app/data/providers/udm_api.dart';
 import 'package:udm_frontend/app/data/repositories/devotions_repository.dart';
 import 'package:udm_frontend/app/data/repositories/home_repository.dart';
 import 'package:udm_frontend/app/data/repositories/media_repository.dart';
-import 'package:udm_frontend/app/data/repositories/settings_repository.dart';
 import 'package:udm_frontend/app/modules/content_version/content_version_controller.dart';
 import 'package:udm_frontend/app/modules/devotions/devotions_view.dart';
 import 'package:udm_frontend/app/modules/session/session_controller.dart';
-import 'package:udm_frontend/app/modules/settings/app_language_controller.dart';
 import 'package:udm_frontend/app/modules/shell/shell_binding.dart';
 import 'package:udm_frontend/app/modules/shell/shell_controller.dart';
 import 'package:udm_frontend/app/modules/shell/shell_view.dart';
@@ -24,7 +22,7 @@ import '../support/fakes.dart';
 /// The tab bar hosts every feature at once, so this is the one fake that has to
 /// answer for all of them. Everything the shell does not render is left to
 /// `noSuchMethod`, which fails a test loudly instead of silently.
-class _ShellApi implements UdmApi {
+class _ShellApi with FakeNotifications implements UdmApi {
   int contentVersionCalls = 0;
 
   @override
@@ -84,7 +82,6 @@ void main() {
     final cache = LocalCache(await SharedPreferences.getInstance());
     final api = _ShellApi();
     Get.put<LocalCache>(cache, permanent: true);
-    Get.put<AppLanguageController>(AppLanguageController(SettingsRepository(cache)), permanent: true);
     putAppearance(cache);
     Get.put<UdmApi>(api, permanent: true);
     Get.put<ContentVersionController>(ContentVersionController(api), permanent: true);
@@ -107,6 +104,8 @@ void main() {
       ),
       permanent: true,
     );
+    // Home carries the bell, and the bell is one controller's unread count.
+    putNotifications();
     ShellBinding().dependencies();
     await tester.pumpWidget(
       GetMaterialApp(theme: AppTheme.light, home: const ShellView()),

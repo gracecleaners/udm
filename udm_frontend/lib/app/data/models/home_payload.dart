@@ -2,6 +2,7 @@ import 'article.dart';
 import 'devotional.dart';
 import 'memory_verse.dart';
 import 'resource_topic.dart';
+import 'todays_reading.dart';
 
 /// Server-curated dashboard. `fromCache` is set locally when the app had to fall
 /// back to the last downloaded payload, so the UI can label it as offline copy.
@@ -14,6 +15,7 @@ class HomePayload {
     required this.articles,
     this.memoryVerse,
     this.devotion,
+    this.reading,
     this.resources = const [],
     this.serverTime,
     this.cachedAt,
@@ -24,6 +26,10 @@ class HomePayload {
   final String greeting;
   final MemoryVerse? memoryVerse;
   final Devotional? devotion;
+
+  /// The day of the plan the ministry marked as the daily one, with the plan's
+  /// length beside it. Null when no plan is published for the app to point at.
+  final TodaysReading? reading;
   final List<Article> articles;
 
   /// The "Find resources on" list, in the order the ministry put it in. It
@@ -35,12 +41,17 @@ class HomePayload {
   final int? contentVersion;
 
   bool get isEmpty =>
-      memoryVerse == null && devotion == null && articles.isEmpty && resources.isEmpty;
+      memoryVerse == null &&
+      devotion == null &&
+      reading == null &&
+      articles.isEmpty &&
+      resources.isEmpty;
 
   factory HomePayload.fromJson(Map<String, dynamic> json) => HomePayload(
         greeting: json['greeting'] as String? ?? '',
         memoryVerse: _map(json['memory_verse'], MemoryVerse.fromJson),
         devotion: _map(json['devotion'], Devotional.fromJson),
+        reading: _map(json['reading'], TodaysReading.fromJson),
         articles: (json['articles'] as List<dynamic>? ?? [])
             .whereType<Map<String, dynamic>>()
             .map(Article.fromJson)
@@ -59,6 +70,7 @@ class HomePayload {
         'greeting': greeting,
         'memory_verse': memoryVerse?.toJson(),
         'devotion': devotion?.toJson(),
+        'reading': reading?.toJson(),
         'articles': articles.map((article) => article.toJson()).toList(),
         'resources': resources.map((topic) => topic.toJson()).toList(),
         'server_time': serverTime?.toIso8601String(),
@@ -68,12 +80,13 @@ class HomePayload {
       };
 
   /// The dashboard with one section replaced. A private action — marking the
-  /// verse memorized — belongs to a single card, and refetching the whole
-  /// screen to update it would flash every other card.
-  HomePayload copyWith({MemoryVerse? memoryVerse}) => HomePayload(
+  /// verse memorized, or a day of the plan ticked — belongs to a single card,
+  /// and refetching the whole screen to update it would flash every other card.
+  HomePayload copyWith({MemoryVerse? memoryVerse, TodaysReading? reading}) => HomePayload(
         greeting: greeting,
         memoryVerse: memoryVerse ?? this.memoryVerse,
         devotion: devotion,
+        reading: reading ?? this.reading,
         articles: articles,
         resources: resources,
         serverTime: serverTime,
@@ -86,6 +99,7 @@ class HomePayload {
         greeting: greeting,
         memoryVerse: memoryVerse,
         devotion: devotion,
+        reading: reading,
         articles: articles,
         resources: resources,
         serverTime: serverTime,
@@ -97,6 +111,7 @@ class HomePayload {
         greeting: greeting,
         memoryVerse: memoryVerse,
         devotion: devotion,
+        reading: reading,
         articles: articles,
         resources: resources,
         serverTime: serverTime,

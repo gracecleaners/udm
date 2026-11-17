@@ -9,7 +9,13 @@ import 'app_text.dart';
 /// The UDM mark: a lit book on the brand gradient, with a wordmark when a
 /// screen has room for it. Used by the splash, onboarding and home header.
 class UdmLogo extends StatelessWidget {
-  const UdmLogo({super.key, this.size = 44, this.showWordmark = true, this.tagline = '', this.onDark = false});
+  const UdmLogo({
+    super.key,
+    this.size = 44,
+    this.showWordmark = true,
+    this.tagline = '',
+    this.onDark = false,
+  });
 
   final double size;
   final bool showWordmark;
@@ -76,41 +82,47 @@ class Mark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          gradient: AppGradients.hero,
-          borderRadius: BorderRadius.circular(size * 0.32),
-          boxShadow: AppShadows.glow(AppColors.primaryBlue),
-        ),
-        child: Stack(
-          children: [
-            // A soft highlight across the top-left corner: the flat gradient
-            // alone reads like a coloured square rather than a lit object.
-            PositionedDirectional(
-              top: -size * 0.25,
-              start: -size * 0.2,
-              child: Container(
-                width: size * 0.8,
-                height: size * 0.8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [Colors.white.withValues(alpha: 0.34), Colors.white.withValues(alpha: 0)],
-                  ),
-                ),
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      gradient: AppGradients.hero,
+      borderRadius: BorderRadius.circular(size * 0.32),
+      boxShadow: AppShadows.glow(AppColors.primaryBlue),
+    ),
+    child: Stack(
+      children: [
+        // A soft highlight across the top-left corner: the flat gradient
+        // alone reads like a coloured square rather than a lit object.
+        PositionedDirectional(
+          top: -size * 0.25,
+          start: -size * 0.2,
+          child: Container(
+            width: size * 0.8,
+            height: size * 0.8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [Colors.white.withValues(alpha: 0.34), Colors.white.withValues(alpha: 0)],
               ),
             ),
-            Center(child: Icon(icon, color: AppColors.white, size: size * 0.48)),
-          ],
+          ),
         ),
-      );
+        Center(
+          child: Icon(icon, color: AppColors.white, size: size * 0.48),
+        ),
+      ],
+    ),
+  );
 
   /// Decorative arcs behind a brand screen. Purely visual: `IgnorePointer` plus
   /// `ExcludeSemantics` keeps it out of the tap and screen-reader paths.
-  static Widget backdrop({Color tint = AppColors.primaryBlue, double alpha = 0.10}) => IgnorePointer(
+  static Widget backdrop({Color tint = AppColors.primaryBlue, double alpha = 0.10}) =>
+      IgnorePointer(
         child: ExcludeSemantics(
-          child: CustomPaint(painter: _ArcPainter(tint: tint, alpha: alpha), size: Size.infinite),
+          child: CustomPaint(
+            painter: _ArcPainter(tint: tint, alpha: alpha),
+            size: Size.infinite,
+          ),
         ),
       );
 }
@@ -135,7 +147,10 @@ class _ArcPainter extends CustomPainter {
       ..shader = RadialGradient(
         center: const Alignment(0.9, -0.9),
         radius: 0.9,
-        colors: [tint.withValues(alpha: alpha * 1.6), tint.withValues(alpha: 0)],
+        colors: [
+          tint.withValues(alpha: alpha * 1.6),
+          tint.withValues(alpha: 0),
+        ],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, wash);
   }
@@ -168,7 +183,8 @@ class IconBadge extends StatelessWidget {
       IconBadgeTone.success => AppColors.success,
       IconBadgeTone.warning => AppColors.warning,
       IconBadgeTone.gold => AppColors.gold,
-      IconBadgeTone.neutral => Theme.of(context).textTheme.bodySmall?.color ?? AppColors.secondaryText,
+      IconBadgeTone.neutral =>
+        Theme.of(context).textTheme.bodySmall?.color ?? AppColors.secondaryText,
     };
     if (!filled) {
       return Container(
@@ -187,15 +203,15 @@ class IconBadge extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: switch (tone) {
           IconBadgeTone.success => const LinearGradient(
-              colors: [AppColors.success, Color(0xFF146B4E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            colors: [AppColors.success, Color(0xFF146B4E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           IconBadgeTone.gold => const LinearGradient(
-              colors: [AppColors.gold, Color(0xFFD08A1B)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            colors: [AppColors.gold, Color(0xFFD08A1B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           _ => AppGradients.hero,
         },
         borderRadius: BorderRadius.circular(size * 0.32),
@@ -211,13 +227,7 @@ enum IconBadgeTone { brand, success, warning, gold, neutral }
 /// A small labelled fact: reading time, translation, member count. One place so
 /// meta rows never drift into three different pill shapes.
 class MetaPill extends StatelessWidget {
-  const MetaPill({
-    super.key,
-    required this.label,
-    this.icon,
-    this.onDark = false,
-    this.tone,
-  });
+  const MetaPill({super.key, required this.label, this.icon, this.onDark = false, this.tone});
 
   final String label;
   final IconData? icon;
@@ -240,10 +250,7 @@ class MetaPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 5),
-          ],
+          if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 5)],
           Flexible(
             child: AppText(
               label,
@@ -322,7 +329,10 @@ class BrandBackdrop extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [tint.withValues(alpha: strength), Colors.transparent],
+              colors: [
+                tint.withValues(alpha: strength),
+                Colors.transparent,
+              ],
             ),
           ),
           child: SizedBox.expand(child: Mark.backdrop(tint: tint, alpha: 0.09)),
@@ -362,21 +372,21 @@ class _PressableScaleState extends State<PressableScale> {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: widget.onTap != null,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          onTapDown: (_) => _set(true),
-          onTapUp: (_) => _set(false),
-          onTapCancel: () => _set(false),
-          child: AnimatedScale(
-            scale: _down ? widget.scale : 1,
-            duration: const Duration(milliseconds: 90),
-            curve: Curves.easeOut,
-            child: widget.child,
-          ),
-        ),
-      );
+    button: widget.onTap != null,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      onTapDown: (_) => _set(true),
+      onTapUp: (_) => _set(false),
+      onTapCancel: () => _set(false),
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1,
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    ),
+  );
 }
 
 /// The gold hairline that opens a scripture block: a rule, not a divider, so it
@@ -389,13 +399,13 @@ class GoldRule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: height,
-        width: width,
-        decoration: BoxDecoration(
-          gradient: AppGradients.goldRule,
-          borderRadius: BorderRadius.circular(height / 2),
-        ),
-      );
+    height: height,
+    width: width,
+    decoration: BoxDecoration(
+      gradient: AppGradients.goldRule,
+      borderRadius: BorderRadius.circular(height / 2),
+    ),
+  );
 }
 
 /// Small all-caps label that opens a group of related rows.
@@ -420,7 +430,9 @@ class Eyebrow extends StatelessWidget {
         Flexible(
           child: AppText(
             text.toUpperCase(),
-            style: AppTypography.eyebrow(color ?? theme.textTheme.bodySmall?.color ?? AppColors.secondaryText),
+            style: AppTypography.eyebrow(
+              color ?? theme.textTheme.bodySmall?.color ?? AppColors.secondaryText,
+            ),
           ),
         ),
       ],
@@ -428,35 +440,67 @@ class Eyebrow extends StatelessWidget {
   }
 }
 
-/// Screen initials in a gradient ring, so a signed-in student has a face on the
-/// shell before photo uploads exist.
+/// A student's face: their own picture when the server has an address for one,
+/// the brand initials underneath it.
+///
+/// A photograph is a file on the ministry's host, so it can be absent, stale or
+/// unreachable at paint time. Each of those is the designed state the app
+/// already has — the initials ring — so an avatar never waits on a network to
+/// look finished and never shows a broken-image slot.
 class UdmAvatar extends StatelessWidget {
-  const UdmAvatar({super.key, required this.initials, this.size = 56});
+  const UdmAvatar({super.key, required this.initials, this.size = 56, this.photoUrl = ''});
 
   final String initials;
   final double size;
 
+  /// Empty for a student with no picture, and for one whose name the wall reads
+  /// "A student" — the server withholds the file together with the name.
+  final String photoUrl;
+
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    if (photoUrl.isEmpty) return _monogram();
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    return ClipOval(
+      child: SizedBox(
         width: size,
         height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: AppGradients.hero,
-          boxShadow: AppShadows.glow(AppColors.primaryBlue),
+        child: Image.network(
+          photoUrl,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+          // Avatars repeat down a feed at one small size, so the decoded bitmap
+          // is asked for at that size instead of at the photo's own.
+          cacheWidth: (size * dpr).ceil(),
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stack) => _monogram(),
+          loadingBuilder: (context, child, progress) => progress == null ? child : _monogram(),
         ),
-        child: AppText(
-          initials,
-          style: TextStyle(
-            fontFamily: AppFonts.ui,
-            fontSize: size * 0.36,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-            color: AppColors.white,
-          ),
-        ),
-      );
+      ),
+    );
+  }
+
+  Widget _monogram() => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      gradient: AppGradients.hero,
+      boxShadow: AppShadows.glow(AppColors.primaryBlue),
+    ),
+    child: AppText(
+      initials,
+      style: TextStyle(
+        fontFamily: AppFonts.ui,
+        fontSize: size * 0.36,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.5,
+        color: AppColors.white,
+      ),
+    ),
+  );
 
   static String initialsFor(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -521,7 +565,12 @@ class SectionHeader extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    AppText(seeAllLabel, style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+                    AppText(
+                      seeAllLabel,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
                     const SizedBox(width: 2),
                     Icon(Icons.chevron_right_rounded, size: 18, color: theme.colorScheme.primary),
                   ],
@@ -538,7 +587,12 @@ class SectionHeader extends StatelessWidget {
 
 /// Fades content in as it becomes ready, so a screen swap is not a hard cut.
 class FadeIn extends StatelessWidget {
-  const FadeIn({super.key, required this.child, this.delay = Duration.zero, this.duration = const Duration(milliseconds: 320)});
+  const FadeIn({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 320),
+  });
 
   final Widget child;
   final Duration delay;
@@ -546,18 +600,22 @@ class FadeIn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Ramp(
-        delay: delay,
-        duration: duration,
-        builder: (context, value) => Opacity(
-          opacity: value,
-          child: Transform.translate(offset: Offset(0, (1 - value) * 12), child: child),
-        ),
-      );
+    delay: delay,
+    duration: duration,
+    builder: (context, value) => Opacity(
+      opacity: value,
+      child: Transform.translate(offset: Offset(0, (1 - value) * 12), child: child),
+    ),
+  );
 }
 
 /// Drives a 0→1 value after [delay]; used by [FadeIn] and the splash.
 class _Ramp extends StatefulWidget {
-  const _Ramp({required this.builder, this.delay = Duration.zero, this.duration = const Duration(milliseconds: 320)});
+  const _Ramp({
+    required this.builder,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 320),
+  });
 
   final Duration delay;
   final Duration duration;
@@ -568,7 +626,10 @@ class _Ramp extends StatefulWidget {
 }
 
 class _RampState extends State<_Ramp> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, duration: widget.duration);
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+  );
 
   @override
   void initState() {
@@ -590,9 +651,10 @@ class _RampState extends State<_Ramp> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => widget.builder(context, Curves.easeOutCubic.transform(_controller.value)),
-      );
+    animation: _controller,
+    builder: (context, _) =>
+        widget.builder(context, Curves.easeOutCubic.transform(_controller.value)),
+  );
 }
 
 /// The greeting header on the home screen: brand gradient, arcs behind, greeting
@@ -605,7 +667,12 @@ class HeroPanel extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.children = const [],
-    this.padding = const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+    this.padding = const EdgeInsets.fromLTRB(
+      AppSpacing.lg,
+      AppSpacing.lg,
+      AppSpacing.lg,
+      AppSpacing.lg,
+    ),
   });
 
   final String eyebrow;
@@ -621,7 +688,11 @@ class HeroPanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(gradient: AppGradients.hero, borderRadius: radius, boxShadow: AppShadows.float),
+      decoration: BoxDecoration(
+        gradient: AppGradients.hero,
+        borderRadius: radius,
+        boxShadow: AppShadows.float,
+      ),
       child: Stack(
         children: [
           Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
@@ -690,45 +761,51 @@ class GhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PressableScale(
-        onTap: onTap,
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 11),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.16),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 16, color: AppColors.white),
-                const SizedBox(width: 7),
-              ],
-              Flexible(
-                child: AppText(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: AppFonts.ui,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
-                  ),
-                ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: AppColors.white),
+            const SizedBox(width: 7),
+          ],
+          Flexible(
+            child: AppText(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.white,
               ),
-            ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 /// Placeholder rows while a list loads. A spinner says "wait"; a skeleton says
 /// "this is what is coming", which reads far better on a slow campus network.
 class SkeletonBox extends StatefulWidget {
-  const SkeletonBox({super.key, this.height = 16, this.width, this.radius = 10, this.animate = true});
+  const SkeletonBox({
+    super.key,
+    this.height = 16,
+    this.width,
+    this.radius = 10,
+    this.animate = true,
+  });
 
   final double height;
   final double? width;
@@ -792,7 +869,11 @@ class SkeletonCard extends StatelessWidget {
     return Panel(
       child: Row(
         children: [
-          SkeletonBox(height: AppSpacing.iconTile, width: AppSpacing.iconTile, radius: AppSpacing.radiusTile),
+          SkeletonBox(
+            height: AppSpacing.iconTile,
+            width: AppSpacing.iconTile,
+            radius: AppSpacing.radiusTile,
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

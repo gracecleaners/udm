@@ -8,7 +8,6 @@ const config: ResourceConfig = {
   plural: "Articles",
   description: "Longer teaching and testimony pieces. Only Live rows reach the app’s reading list.",
   state: datedPublishState,
-  localized: ["title", "excerpt", "body", "category"],
   searchPlaceholder: "Search titles, categories or authors",
   columns: [
     {
