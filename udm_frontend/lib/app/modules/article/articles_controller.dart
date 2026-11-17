@@ -11,8 +11,18 @@ class ArticlesController extends GetxController {
 
   final ContentRepository _content;
   final RxList<Article> articles = <Article>[].obs;
+  final RxString category = 'All'.obs;
   final Rx<ViewState> state = ViewState.loading.obs;
   final RxString failureMessage = ''.obs;
+
+  List<String> get categories => [
+        'All',
+        ...articles.map((item) => item.category.trim()).where((value) => value.isNotEmpty).toSet().toList()..sort(),
+      ];
+
+  List<Article> get visibleArticles => category.value == 'All'
+      ? articles.toList()
+      : articles.where((item) => item.category.trim() == category.value).toList();
 
   @override
   void onInit() {
@@ -34,6 +44,6 @@ class ArticlesController extends GetxController {
 
   void open(Article article) => Get.toNamed(
         AppRoutes.article,
-        arguments: {'articleId': article.id},
+        arguments: {RouteArgs.articleId: article.id},
       );
 }

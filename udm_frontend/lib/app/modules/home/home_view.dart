@@ -10,7 +10,6 @@ import '../../core/widgets/content_card.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
-import '../../data/models/home_payload.dart';
 import '../../data/models/resume_item.dart';
 import '../../data/models/resource_topic.dart';
 import '../session/session_controller.dart';
@@ -90,7 +89,7 @@ class HomeView extends GetView<HomeController> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                   child: FadeIn(
                     delay: const Duration(milliseconds: 120),
-                    child: QuickActionGrid(actions: _shortcuts(controller.data)),
+                  child: QuickActionGrid(actions: _shortcuts()),
                   ),
                 ),
                 if (controller.data?.devotion != null) ...[
@@ -173,7 +172,7 @@ class HomeView extends GetView<HomeController> {
       );
 
   /// The four requested home doors. The five-tab navigation remains separate.
-  List<QuickAction> _shortcuts(HomePayload? payload) {
+  List<QuickAction> _shortcuts() {
     void go(int tab) => Get.find<ShellController>().select(tab);
     return [
       QuickAction(label: 'Courses', icon: AppIcons.school, onTap: _openCourses),

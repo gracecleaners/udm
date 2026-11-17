@@ -517,9 +517,7 @@ class DiscoveryRail extends StatelessWidget {
   }
 }
 
-/// The grid of tabs a student reaches for first: Bible, Devotion, Learn,
-/// Community. Server-driven content decides what is here; this only decides how
-/// a shortcut looks.
+/// The four home destinations shown as matching, touchable tiles.
 class QuickActionGrid extends StatelessWidget {
   const QuickActionGrid({super.key, required this.actions, this.columns = 4});
 

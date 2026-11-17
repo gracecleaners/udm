@@ -40,7 +40,7 @@ class ResourceTopic {
   double get fractionComplete =>
       stepCount <= 0 ? 0 : (stepsCompleted / stepCount).clamp(0.0, 1.0);
 
-  /// Two letters for the row badge; the guides are named, not photographed.
+  /// Two letters for the fallback cover when a guide has no artwork.
   String get monogram => title
       .split(RegExp(r'\s+'))
       .where((word) => word.isNotEmpty)

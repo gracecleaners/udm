@@ -52,6 +52,16 @@ class _ArticleBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
       children: [
+        FeatureCard(
+          eyebrow: article.category.isEmpty ? 'Article' : article.category,
+          title: article.title,
+          subtitle: article.author.isEmpty ? null : article.author,
+          artUrl: article.imageUrl,
+          monogram: UdmAvatar.initialsFor(article.title),
+          height: 210,
+          pills: [MetaPill(icon: AppIcons.clock, label: '${article.readingMinutes} min', onDark: true)],
+        ),
+        const SizedBox(height: AppSpacing.lg),
         if (article.category.isNotEmpty) ...[
           AppText(article.category, style: AppTypography.eyebrow(theme.colorScheme.primary)),
           const SizedBox(height: AppSpacing.sm),

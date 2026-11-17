@@ -7,6 +7,7 @@ const Map<String, dynamic> _topicJson = {
   'id': 'r1',
   'title': 'Receive Christ',
   'summary': 'Five short steps through what God has already done.',
+  'image_url': 'https://cdn.udm.ac.ug/guides/receive-christ.jpg',
   'order': 1,
   'step_count': 2,
   'content_version': 9,
@@ -50,6 +51,7 @@ void main() {
       final topic = ResourceTopic.fromJson(_topicJson);
 
       expect(topic.title, 'Receive Christ');
+      expect(topic.imageUrl, 'https://cdn.udm.ac.ug/guides/receive-christ.jpg');
       expect(topic.stepCount, 2);
       expect(topic.contentVersion, 9);
       expect(topic.fromCache, isFalse);
@@ -70,6 +72,7 @@ void main() {
       expect(restored.steps.last.videoUrl, 'https://videos.udm.ac.ug/love.mp4');
       expect(restored.cachedAt, DateTime.utc(2026, 11, 1, 20));
       expect(restored.contentVersion, 7);
+      expect(restored.imageUrl, 'https://cdn.udm.ac.ug/guides/receive-christ.jpg');
       expect(restored.asCached().fromCache, isTrue);
       expect(restored.asCached().steps, hasLength(2));
     });

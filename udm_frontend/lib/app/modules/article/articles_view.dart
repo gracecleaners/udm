@@ -35,9 +35,29 @@ class ArticlesView extends GetView<ArticlesController> {
                 const SizedBox(height: AppSpacing.xs),
                 AppText('Stories and teaching for everyday faith.', style: theme.textTheme.bodyMedium),
                 const SizedBox(height: AppSpacing.md),
-                for (var i = 0; i < controller.articles.length; i++) ...[
-                  _ArticleTile(article: controller.articles[i], onTap: () => controller.open(controller.articles[i])),
-                  if (i < controller.articles.length - 1) const SizedBox(height: AppSpacing.sm),
+                PillSelector(
+                  options: controller.categories,
+                  selectedIndex: controller.categories.indexOf(controller.category.value).clamp(0, controller.categories.length - 1).toInt(),
+                  onSelect: (index) => controller.category.value = controller.categories[index],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (controller.visibleArticles.isNotEmpty)
+                  FeatureCard(
+                    eyebrow: controller.visibleArticles.first.category.isEmpty ? 'Featured article' : controller.visibleArticles.first.category,
+                    title: controller.visibleArticles.first.title,
+                    subtitle: controller.visibleArticles.first.author.isEmpty ? null : controller.visibleArticles.first.author,
+                    artUrl: controller.visibleArticles.first.imageUrl,
+                    monogram: UdmAvatar.initialsFor(controller.visibleArticles.first.title),
+                    pills: [MetaPill(label: '${controller.visibleArticles.first.readingMinutes} min', icon: AppIcons.clock, onDark: true)],
+                    onTap: () => controller.open(controller.visibleArticles.first),
+                  ),
+                if (controller.visibleArticles.length > 1) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  const RailHeader(eyebrow: 'Keep exploring', title: 'Latest articles'),
+                ],
+                for (final article in controller.visibleArticles.skip(1)) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _ArticleTile(article: article, onTap: () => controller.open(article)),
                 ],
               ],
             ),

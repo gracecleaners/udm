@@ -49,6 +49,15 @@ class ResourceApiTests(UdmAPITestCase):
         rows = self.client.get("/api/v1/resources/").json()["results"]
         self.assertEqual([row["title"] for row in rows], ["Prayer", "Receive Christ"])
 
+    def test_guide_artwork_url_is_returned_for_course_cards(self):
+        topic = make_topic("Prayer", image_link="https://cdn.example.org/prayer.jpg")
+        make_step(topic, 1, "Start praying")
+        row = next(
+            item for item in self.client.get("/api/v1/resources/").json()["results"]
+            if item["id"] == str(topic.id)
+        )
+        self.assertEqual(row["image_url"], "https://cdn.example.org/prayer.jpg")
+
     def test_the_count_a_row_promises_is_the_count_the_page_shows(self):
         row = next(r for r in self.client.get("/api/v1/resources/").json()["results"] if r["title"] == "Receive Christ")
         self.assertEqual(row["step_count"], 3)
