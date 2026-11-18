@@ -1,9 +1,13 @@
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'dart:typed_data';
 
 import '../../core/routes/app_routes.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
@@ -23,22 +27,18 @@ class ProfileView extends GetView<SessionController> {
     appBar: AppBar(
       title: const AppText('Profile'),
       actions: [
-        Obx(
-          () => controller.isSignedIn
-              ? IconButton(
-                  key: const Key('udm.signOutAction'),
-                  tooltip: 'Sign out',
-                  icon: const Icon(AppIcons.logout),
-                  onPressed: () => _confirmSignOut(context, controller),
-                )
-              : const SizedBox.shrink(),
+        IconButton(
+          tooltip: 'Settings',
+          icon: const Icon(AppIcons.settings),
+          onPressed: () => Get.toNamed(AppRoutes.settings),
         ),
       ],
     ),
     body: SafeArea(
       child: Obx(
         () => switch (controller.status.value) {
-          SessionStatus.unknown || SessionStatus.restoring => const CenteredSlot(
+          SessionStatus.unknown ||
+          SessionStatus.restoring => const CenteredSlot(
             child: UdmProgress(label: 'Checking your session…'),
           ),
           SessionStatus.signedOut => const _SignedOut(),
@@ -60,7 +60,12 @@ class _SignedOut extends GetView<SessionController> {
         // What the last sign-out left behind has to survive the screen
         // change, or the student never learns the session is still live on
         // the server.
-        Obx(() => NoticeBanner(message: controller.error.value, tone: NoticeTone.problem)),
+        Obx(
+          () => NoticeBanner(
+            message: controller.error.value,
+            tone: NoticeTone.problem,
+          ),
+        ),
         Obx(() => NoticeBanner(message: controller.notice.value)),
         MessagePanel(
           icon: AppIcons.person,
@@ -94,13 +99,13 @@ class _ProfileBody extends StatelessWidget {
   Future<void> _edit(BuildContext context) async {
     final profile = session.profile.value;
     if (profile == null) return;
-    final draft = await showModalBottomSheet<UserProfile>(
+    final result = await showModalBottomSheet<_ProfileEditResult>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ProfileEditorSheet(initial: profile),
     );
-    if (draft != null) await session.save(draft);
+    if (result != null) await session.save(result.profile, photo: result.photo);
   }
 
   @override
@@ -109,14 +114,15 @@ class _ProfileBody extends StatelessWidget {
     // save changes that without changing `status`. Observing only the fields
     // read by the outer switch would leave the old values on screen.
     return Obx(() {
-      final theme = Theme.of(context);
       final profile = session.profile.value;
       final notice = session.notice.value;
       final error = session.error.value;
 
       if (profile == null) {
         return const CenteredSlot(
-          child: UdmProgress(label: 'Your profile is on this device, but not loaded yet.'),
+          child: UdmProgress(
+            label: 'Your profile is on this device, but not loaded yet.',
+          ),
         );
       }
 
@@ -135,75 +141,20 @@ class _ProfileBody extends StatelessWidget {
           const _WalkTiles(),
           const SizedBox(height: AppSpacing.lg),
           const _AccountRows(),
-          const SizedBox(height: AppSpacing.lg),
-          SectionHeader(
-            eyebrow: 'On your account',
-            title: 'Your details',
-            subtitle: 'Saved to your account on the UDM service.',
-          ),
           const SizedBox(height: AppSpacing.md),
-          Panel(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-            child: Column(
-              children: [
-                _DetailRow(icon: AppIcons.school, label: 'University', value: profile.university),
-                _DetailRow(icon: AppIcons.location, label: 'Campus', value: profile.campus),
-                _DetailRow(icon: AppIcons.book, label: 'Course', value: profile.course),
-                _DetailRow(
-                  icon: AppIcons.list,
-                  label: 'Year of study',
-                  value: profile.yearOfStudy == null ? '' : 'Year ${profile.yearOfStudy}',
-                ),
-                _DetailRow(icon: AppIcons.church, label: 'Church', value: profile.church),
-                _DetailRow(
-                  icon: AppIcons.home,
-                  label: 'Where you live',
-                  value: [
-                    profile.city,
-                    profile.country,
-                  ].where((part) => part.isNotEmpty).join(', '),
-                ),
-                _DetailRow(
-                  icon: AppIcons.bookOpen,
-                  label: 'Bible version',
-                  value: ProfileEditorSheet.translationLabel(profile.preferredTranslationCode),
-                  last: true,
-                ),
-              ],
-            ),
-          ),
-          if (profile.interests.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            Eyebrow('Interests', color: theme.colorScheme.primary, icon: AppIcons.sparkles),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: profile.interests
-                  .map(
-                    (interest) =>
-                        MetaPill(icon: AppIcons.check, label: interest, tone: AppColors.gold),
-                  )
-                  .toList(),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
-            key: const Key('udm.editProfile'),
-            onPressed: () => _edit(context),
-            icon: const Icon(AppIcons.edit, size: 18),
-            label: const AppText('Edit details'),
+          _AccountAction(
+            icon: AppIcons.settings,
+            title: 'Account Settings',
+            subtitle: 'Manage your account and preferences.',
+            onTap: () => Get.toNamed(AppRoutes.settings),
           ),
           const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              key: const Key('udm.signOut'),
-              onPressed: () => _confirmSignOut(context, session),
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
-              icon: const Icon(AppIcons.logout, size: 18),
-              label: const AppText('Sign out'),
-            ),
+          _AccountAction(
+            icon: AppIcons.logout,
+            title: 'Log Out',
+            subtitle: 'Sign out from your account.',
+            danger: true,
+            onTap: () => _confirmSignOut(context, session),
           ),
         ],
       );
@@ -229,7 +180,10 @@ class _WalkTiles extends GetView<ProfileController> {
       // The account's numbers are on their way, so the space is kept and
       // filled with the shimmer the rest of the app uses for a first load.
       return Panel(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
         child: const Row(
           children: [
             Expanded(child: Center(child: SkeletonBox(height: 46, width: 64))),
@@ -240,7 +194,10 @@ class _WalkTiles extends GetView<ProfileController> {
       );
     }
     return Panel(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -252,13 +209,17 @@ class _WalkTiles extends GetView<ProfileController> {
           ),
           _Tile(
             value: '${numbers.guidesCompleted}',
-            label: numbers.guidesCompleted == 1 ? 'guide finished' : 'guides finished',
+            label: numbers.guidesCompleted == 1
+                ? 'guide finished'
+                : 'guides finished',
             icon: AppIcons.school,
             color: theme.colorScheme.primary,
           ),
           _Tile(
             value: '${numbers.readingsCompleted}',
-            label: numbers.readingsCompleted == 1 ? 'devotional read' : 'devotionals read',
+            label: numbers.readingsCompleted == 1
+                ? 'devotional read'
+                : 'devotionals read',
             icon: AppIcons.bookOpen,
             color: AppColors.success,
             last: true,
@@ -293,7 +254,10 @@ class _Tile extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: color),
           const SizedBox(height: 6),
-          AppText(value, style: AppTypography.statValue(theme.textTheme.bodyLarge!.color!)),
+          AppText(
+            value,
+            style: AppTypography.statValue(theme.textTheme.bodyLarge!.color!),
+          ),
           const SizedBox(height: 2),
           AppText(
             label,
@@ -321,17 +285,26 @@ class _AccountRows extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('Your things', color: theme.colorScheme.primary, icon: AppIcons.bookmark),
+        Eyebrow(
+          'Your things',
+          color: theme.colorScheme.primary,
+          icon: AppIcons.bookmark,
+        ),
         const SizedBox(height: AppSpacing.sm),
         Panel(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
           child: Column(
             children: [
               NavRow(
                 icon: AppIcons.bookmarks,
                 label: 'My bookmarks',
                 subtitle: 'Saved verses and private notes, in the Bible tab.',
-                onTap: () => Get.find<ShellController>().select(ShellController.bibleTab),
+                onTap: () => Get.find<ShellController>().select(
+                  ShellController.bibleTab,
+                ),
               ),
               NavRow(
                 icon: AppIcons.history,
@@ -345,17 +318,72 @@ class _AccountRows extends StatelessWidget {
                 subtitle: 'The ministry\'s guided reading, one step at a time.',
                 onTap: () => Get.toNamed(AppRoutes.courses),
               ),
-              NavRow(
-                icon: AppIcons.settings,
-                label: 'Settings',
-                subtitle: 'Light and text size on this device.',
-                onTap: () => Get.toNamed(AppRoutes.settings),
-                last: true,
-              ),
+              const SizedBox(height: 2),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AccountAction extends StatelessWidget {
+  const _AccountAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.danger = false,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? AppColors.danger : AppColors.deepBlue;
+    return Material(
+      key: danger ? const Key('udm.signOut') : null,
+      color: danger ? const Color(0xFFFFEEF1) : AppColors.lightBlue,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                    AppText(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(AppIcons.chevron, color: AppColors.primaryBlue),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -374,113 +402,144 @@ class _IdentityCard extends StatelessWidget {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: AppGradients.hero,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: AppShadows.float,
+        border: Border.all(color: AppColors.mist.withValues(alpha: .7)),
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.16)),
-          const Positioned.fill(
-            child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.sheen)),
+          SizedBox(
+            height: 132,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  AppArt.profileCrossBanner,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                ),
+                Container(color: AppColors.primaryBlue.withValues(alpha: .12)),
+              ],
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.18),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: UdmAvatar(
-                        initials: profile.initials,
-                        size: 56,
-                        photoUrl: profile.photoUrl ?? '',
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+            child: Transform.translate(
+              offset: const Offset(0, -42),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          AppText(
-                            profile.displayName,
-                            style: const TextStyle(
-                              fontFamily: AppFonts.ui,
-                              fontSize: 21,
-                              height: 1.25,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                              color: AppColors.white,
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            child: UdmAvatar(
+                              initials: profile.initials,
+                              size: 112,
+                              photoUrl: profile.photoUrl ?? '',
+                            ),
                           ),
-                          const SizedBox(height: 2),
-                          AppText(
-                            profile.email,
-                            style: const TextStyle(
-                              fontFamily: AppFonts.ui,
-                              fontSize: 13,
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
+                          Positioned(
+                            right: -1,
+                            bottom: 0,
+                            child: Material(
+                              color: AppColors.primaryBlue,
+                              shape: const CircleBorder(),
+                              elevation: 4,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: onEdit,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: Icon(
+                                    AppIcons.camera,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppText(
+                              profile.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.deepBlue,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            AppText(
+                              profile.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const MetaPill(
+                              icon: AppIcons.crown,
+                              label: 'Learner',
+                              tone: AppColors.gold,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      key: const Key('udm.editProfile'),
+                      onPressed: onEdit,
+                      icon: const Icon(AppIcons.edit, size: 18),
+                      label: const AppText('Edit Profile'),
                     ),
-                    // The same sheet the button underneath opens, at the name
-                    // a student is already reading.
-                    AppIconButton(
-                      icon: AppIcons.edit,
-                      tooltip: 'Edit details',
-                      tone: AppIconButtonTone.onDark,
-                      size: 38,
-                      iconSize: 18,
-                      onTap: onEdit,
+                  ),
+                  if (!profile.emailVerified) ...[
+                    const SizedBox(height: 8),
+                    const AppText(
+                      'Email verification is not available in this build yet.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.secondaryText,
+                      ),
                     ),
                   ],
-                ),
-                if (!profile.emailVerified) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusField),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(AppIcons.info, size: 14, color: Colors.white70),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: AppText(
-                            'Email verification is not available in this build yet.',
-                            style: TextStyle(
-                              fontFamily: AppFonts.ui,
-                              fontSize: 11.5,
-                              height: 1.45,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  const AppText(
+                    'Growing in Christ, one day at a time.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.deepBlue,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -489,7 +548,16 @@ class _IdentityCard extends StatelessWidget {
   }
 }
 
-Future<void> _confirmSignOut(BuildContext context, SessionController session) async {
+class _ProfileEditResult {
+  const _ProfileEditResult(this.profile, this.photo);
+  final UserProfile profile;
+  final XFile? photo;
+}
+
+Future<void> _confirmSignOut(
+  BuildContext context,
+  SessionController session,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -513,85 +581,58 @@ Future<void> _confirmSignOut(BuildContext context, SessionController session) as
   if (confirmed ?? false) await session.signOut();
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.last = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final surfaces = theme.extension<AppSurfaces>()!;
-    final filled = value.trim().isNotEmpty;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2),
-          child: Row(
-            children: [
-              IconBadge(icon: icon, size: 32, filled: false),
-              const SizedBox(width: AppSpacing.md),
-              // Both sides get a share of the row instead of a fixed trailing
-              // width, so a long university name wraps onto a second line rather
-              // than pushing the label off a 320dp screen.
-              Expanded(
-                flex: 6,
-                child: AppText(
-                  label,
-                  style: theme.textTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                flex: 6,
-                child: AppText(
-                  filled ? value : 'Not added',
-                  textAlign: TextAlign.end,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: filled
-                        ? theme.textTheme.bodyLarge?.color
-                        : theme.textTheme.bodySmall?.color,
-                    fontWeight: filled ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (!last) Divider(height: 1, thickness: 1, color: surfaces.hairline),
-      ],
-    );
-  }
-}
-
 /// The editable part of the profile. Produces a draft and hands it back; the
 /// network call belongs to the session controller, so the sheet stays a form.
 class ProfileEditorSheet extends StatefulWidget {
   const ProfileEditorSheet({super.key, required this.initial});
 
-  static const List<({String key, String label, int maxLength, TextInputType keyboard})>
+  static const List<
+    ({String key, String label, int maxLength, TextInputType keyboard})
+  >
   textFields = [
-    (key: 'full_name', label: 'Full name', maxLength: 150, keyboard: TextInputType.name),
-    (key: 'phone_number', label: 'Phone number', maxLength: 32, keyboard: TextInputType.phone),
-    (key: 'university', label: 'University', maxLength: 200, keyboard: TextInputType.text),
-    (key: 'campus', label: 'Campus', maxLength: 200, keyboard: TextInputType.text),
-    (key: 'course', label: 'Course', maxLength: 200, keyboard: TextInputType.text),
-    (key: 'church', label: 'Church or fellowship', maxLength: 200, keyboard: TextInputType.text),
+    (
+      key: 'full_name',
+      label: 'Full name',
+      maxLength: 150,
+      keyboard: TextInputType.name,
+    ),
+    (
+      key: 'phone_number',
+      label: 'Phone number',
+      maxLength: 32,
+      keyboard: TextInputType.phone,
+    ),
+    (
+      key: 'university',
+      label: 'University',
+      maxLength: 200,
+      keyboard: TextInputType.text,
+    ),
+    (
+      key: 'campus',
+      label: 'Campus',
+      maxLength: 200,
+      keyboard: TextInputType.text,
+    ),
+    (
+      key: 'course',
+      label: 'Course',
+      maxLength: 200,
+      keyboard: TextInputType.text,
+    ),
+    (
+      key: 'church',
+      label: 'Church or fellowship',
+      maxLength: 200,
+      keyboard: TextInputType.text,
+    ),
     (key: 'city', label: 'City', maxLength: 80, keyboard: TextInputType.text),
-    (key: 'country', label: 'Country', maxLength: 80, keyboard: TextInputType.text),
+    (
+      key: 'country',
+      label: 'Country',
+      maxLength: 80,
+      keyboard: TextInputType.text,
+    ),
   ];
 
   /// Mirrors `UDM_MEMORY_VERSE_TRANSLATIONS` on the server. All three are
@@ -611,7 +652,8 @@ class ProfileEditorSheet extends StatefulWidget {
 
   final UserProfile initial;
 
-  static String translationLabel(String code) => translations[code] ?? code.toUpperCase();
+  static String translationLabel(String code) =>
+      translations[code] ?? code.toUpperCase();
 
   @override
   State<ProfileEditorSheet> createState() => _ProfileEditorSheetState();
@@ -626,6 +668,31 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
   late String _translation;
   late List<String> _interests;
   bool _invalid = false;
+  XFile? _photo;
+  Uint8List? _photoBytes;
+
+  Future<void> _choosePhoto() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (bytes.length > 5 * 1024 * 1024) {
+      if (mounted)
+        Get.snackbar(
+          'Picture too large',
+          'Choose a picture smaller than 5 MB.',
+        );
+      return;
+    }
+    if (mounted)
+      setState(() {
+        _photo = picked;
+        _photoBytes = bytes;
+      });
+  }
 
   @override
   void initState() {
@@ -686,11 +753,16 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
         key: const Key('udm.field.year_of_study'),
         controller: _year,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: 'Year of study', counterText: ''),
+        decoration: InputDecoration(
+          labelText: 'Year of study',
+          counterText: '',
+        ),
         validator: _validateYear,
       );
     }
-    final field = ProfileEditorSheet.textFields.firstWhere((entry) => entry.key == key);
+    final field = ProfileEditorSheet.textFields.firstWhere(
+      (entry) => entry.key == key,
+    );
     return TextFormField(
       key: Key('udm.field.$key'),
       controller: _fields[key],
@@ -716,7 +788,10 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     setState(_interest.clear);
     if (label.isEmpty || _interests.contains(label)) return;
     if (_interests.length >= UserProfile.maxInterests) {
-      Get.snackbar('Interests', 'Choose at most ${UserProfile.maxInterests} interests.');
+      Get.snackbar(
+        'Interests',
+        'Choose at most ${UserProfile.maxInterests} interests.',
+      );
       return;
     }
     setState(() => _interests.add(label));
@@ -726,7 +801,8 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     final year = int.tryParse(_year.text.trim());
     return UserProfile.fromJson({
       ...widget.initial.toJson(),
-      for (final field in ProfileEditorSheet.textFields) field.key: _fields[field.key]!.text.trim(),
+      for (final field in ProfileEditorSheet.textFields)
+        field.key: _fields[field.key]!.text.trim(),
       'year_of_study': year,
       'gender': _gender,
       'preferred_translation_code': _translation,
@@ -738,7 +814,9 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
     final year = int.tryParse(text);
-    if (year == null || year < UserProfile.minYearOfStudy || year > UserProfile.maxYearOfStudy) {
+    if (year == null ||
+        year < UserProfile.minYearOfStudy ||
+        year > UserProfile.maxYearOfStudy) {
       return 'Between ${UserProfile.minYearOfStudy} and ${UserProfile.maxYearOfStudy}.';
     }
     return null;
@@ -746,7 +824,7 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
 
   void _save() {
     if (_formKey.currentState?.validate() ?? false) {
-      Navigator.pop(context, _draft());
+      Navigator.pop(context, _ProfileEditResult(_draft(), _photo));
       return;
     }
     // The offending field can be scrolled out of sight, so the reason has to
@@ -759,7 +837,9 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -774,13 +854,65 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
               ),
               child: AppText(
                 'Edit your details',
-                style: AppTypography.editorialTitle(theme.textTheme.bodyLarge!.color!, size: 26),
+                style: AppTypography.editorialTitle(
+                  theme.textTheme.bodyLarge!.color!,
+                  size: 26,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  ClipOval(
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: _photoBytes != null
+                          ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                          : UdmAvatar(
+                              initials: widget.initial.initials,
+                              photoUrl: widget.initial.photoUrl ?? '',
+                              size: 64,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const AppText(
+                          'Profile picture',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const AppText(
+                          'Choose a new picture for your account',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _choosePhoto,
+                    icon: const Icon(AppIcons.camera, size: 17),
+                    label: const AppText('Change'),
+                  ),
+                ],
               ),
             ),
             // The fields scroll; the decision to save or drop stays reachable.
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -810,14 +942,22 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         decoration: InputDecoration(labelText: 'Bible version'),
                         items: ProfileEditorSheet.translations.entries
                             .map(
-                              (entry) =>
-                                  DropdownMenuItem(value: entry.key, child: AppText(entry.value)),
+                              (entry) => DropdownMenuItem(
+                                value: entry.key,
+                                child: AppText(entry.value),
+                              ),
                             )
                             .toList(),
-                        onChanged: (value) => setState(() => _translation = value ?? _translation),
+                        onChanged: (value) => setState(
+                          () => _translation = value ?? _translation,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      Eyebrow('Gender', color: theme.colorScheme.primary, icon: AppIcons.person),
+                      Eyebrow(
+                        'Gender',
+                        color: theme.colorScheme.primary,
+                        icon: AppIcons.person,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       // Three equal segments would clip 'Prefer not to say' on a
                       // narrow phone, so the row keeps its own width and scrolls
@@ -827,13 +967,16 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                         child: SegmentedButton<String>(
                           segments: ProfileEditorSheet.genders.entries
                               .map(
-                                (entry) =>
-                                    ButtonSegment(value: entry.key, label: AppText(entry.value)),
+                                (entry) => ButtonSegment(
+                                  value: entry.key,
+                                  label: AppText(entry.value),
+                                ),
                               )
                               .toList(),
                           selected: {_gender},
                           showSelectedIcon: false,
-                          onSelectionChanged: (value) => setState(() => _gender = value.first),
+                          onSelectionChanged: (value) =>
+                              setState(() => _gender = value.first),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -856,7 +999,9 @@ class _ProfileEditorSheetState extends State<ProfileEditorSheet> {
                               .map(
                                 (interest) => Chip(
                                   label: AppText(interest),
-                                  onDeleted: () => setState(() => _interests.remove(interest)),
+                                  onDeleted: () => setState(
+                                    () => _interests.remove(interest),
+                                  ),
                                 ),
                               )
                               .toList(),

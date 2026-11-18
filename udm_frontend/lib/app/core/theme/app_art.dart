@@ -1,11 +1,8 @@
 /// The ministry's own pictures, named once.
 ///
-/// Only the opening screen and the three onboarding slides are carried in the
-/// build: they paint before any request comes back, so the first thing a fresh
-/// device shows cannot depend on the network. Every other surface — a devotion,
-/// an article, a verse, a recording — takes its artwork from the ministry
-/// console, where staff either upload a file or paste a link to one, and shows
-/// the brand gradient when they have not chosen either yet.
+/// Opening, onboarding, and profile identity art are bundled so they paint
+/// before any request comes back. Content surfaces such as devotions, articles,
+/// verses, and recordings take their artwork from the ministry console.
 class AppArt {
   const AppArt._();
 
@@ -13,5 +10,8 @@ class AppArt {
 
   static const String onboardingWord = 'assets/images/onboard_word.png';
   static const String onboardingHabits = 'assets/images/onboard_habits.png';
-  static const String onboardingCommunity = 'assets/images/onboard_community.png';
+  static const String onboardingCommunity =
+      'assets/images/onboard_community.png';
+  static const String profileCrossBanner =
+      'assets/images/profile_cross_banner.jpg';
 }

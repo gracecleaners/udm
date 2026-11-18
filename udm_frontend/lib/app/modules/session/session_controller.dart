@@ -87,7 +87,8 @@ class SessionController extends GetxController {
     ),
   );
 
-  Future<bool> save(UserProfile draft) => _attempt(() => _auth.save(draft));
+  Future<bool> save(UserProfile draft, {XFile? photo}) =>
+      _attempt(() => _auth.save(draft, photo: photo));
 
   Future<void> signOut() async {
     busy.value = true;

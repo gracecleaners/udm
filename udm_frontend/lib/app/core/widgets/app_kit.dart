@@ -33,6 +33,7 @@ abstract class AppIcons {
   static const circle = Icons.radio_button_unchecked_rounded;
   static const add = Icons.add_rounded;
   static const edit = Icons.edit_rounded;
+  static const camera = Icons.camera_alt_rounded;
   static const note = Icons.edit_note_rounded;
   static const share = Icons.share_rounded;
   static const download = Icons.download_rounded;

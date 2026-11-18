@@ -54,8 +54,12 @@ class AuthRepository {
     return _refreshProfile();
   }
 
-  Future<UserProfile> save(UserProfile draft) async {
-    final saved = await _api.updateProfile(draft.patchPayload());
+  Future<UserProfile> save(UserProfile draft, {XFile? photo}) async {
+    final saved = await _api.updateProfile(
+      draft.patchPayload(),
+      photoPath: photo?.path,
+      photoName: photo?.name,
+    );
     await _cache.writeJson(profileCacheKey, saved.toJson());
     return saved;
   }

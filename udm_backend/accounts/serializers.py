@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import PermissionDenied, ValidationError as DjangoValidationError
@@ -26,9 +28,8 @@ class UserSummarySerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    # Profile photos are written at registration time. This serializer exposes
-    # their served URL but keeps later profile edits from writing arbitrary URLs.
-    photo = serializers.SerializerMethodField()
+    # The API accepts uploaded images and returns their served URL to the app.
+    photo = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = UserProfile
@@ -48,15 +49,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "preferred_translation_code",
         )
 
-    def get_photo(self, profile):
-        """The picture as an address the device can load, or None.
+    def to_representation(self, profile):
+        data = super().to_representation(profile)
+        data["photo"] = media_file_url(profile.photo, self.context.get("request"))
+        return data
 
-        The same rule every other uploaded image in this project follows, in
-        `content.services`: `ImageField.url` raises when the row exists but its
-        bytes were never written, and the app draws the student's initials for
-        that state rather than asking the server to fail.
-        """
-        return media_file_url(profile.photo, self.context.get("request"))
+    def validate_photo(self, value):
+        if value and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Profile pictures must be 5 MB or smaller.")
+        return value
 
     def validate_year_of_study(self, value):
         if value is not None and not 1 <= value <= 13:
@@ -64,6 +65,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
 
     def validate_interests(self, value):
+        # Multipart profile edits send array fields as JSON text; ordinary
+        # application/json requests already arrive as a Python list.
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError("Interests must be a list.")
         if not isinstance(value, list):
             raise serializers.ValidationError("Interests must be a list.")
         if len(value) > MAX_INTERESTS:

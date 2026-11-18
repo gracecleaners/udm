@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../core/network/api_client.dart';
@@ -414,14 +416,25 @@ class UdmApi {
 
   /// Partial update, so a form that only changed two fields does not blank the
   /// rest by omission.
-  Future<UserProfile> updateProfile(Map<String, dynamic> changes) =>
-      _client.guard(() async {
-        final response = await _client.dio.patch<dynamic>(
-          '/users/me/',
-          data: changes,
-        );
-        return UserProfile.fromJson(_json(response));
+  Future<UserProfile> updateProfile(
+    Map<String, dynamic> changes, {
+    String? photoPath,
+    String? photoName,
+  }) => _client.guard(() async {
+    final dynamic data;
+    if (photoPath == null) {
+      data = changes;
+    } else {
+      data = FormData.fromMap({
+        ...changes,
+        if (changes['interests'] != null)
+          'interests': jsonEncode(changes['interests']),
+        'photo': await MultipartFile.fromFile(photoPath, filename: photoName),
       });
+    }
+    final response = await _client.dio.patch<dynamic>('/users/me/', data: data);
+    return UserProfile.fromJson(_json(response));
+  });
 
   Future<void> markComplete({
     required String kind,
