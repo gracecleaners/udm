@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:udm_frontend/app/core/storage/local_cache.dart';
 import 'package:udm_frontend/app/core/network/failure.dart';
 import 'package:udm_frontend/app/core/storage/token_store.dart';
@@ -37,7 +38,8 @@ import 'package:udm_frontend/app/modules/settings/appearance_controller.dart';
 /// Test payload shaped exactly like `/api/v1/home/`. Pass [reading] to move the
 /// day of the plan the dashboard carries, or [withoutReading] for a ministry
 /// that has not marked a plan as the daily one yet.
-HomePayload sampleHome({TodaysReading? reading, bool withoutReading = false}) => HomePayload(
+HomePayload sampleHome({TodaysReading? reading, bool withoutReading = false}) =>
+    HomePayload(
       greeting: 'Good morning, Grace',
       memoryVerse: const MemoryVerse(
         id: 'v1',
@@ -52,7 +54,14 @@ HomePayload sampleHome({TodaysReading? reading, bool withoutReading = false}) =>
         body: 'Eli was half asleep.\n\nListening is taught.',
         reflectionQuestions: ['What makes God\'s voice hard to hear?'],
       ),
-      articles: const [Article(id: 'a1', title: 'How to Study a Chapter', body: 'Read once.', category: 'Bible study')],
+      articles: const [
+        Article(
+          id: 'a1',
+          title: 'How to Study a Chapter',
+          body: 'Read once.',
+          category: 'Bible study',
+        ),
+      ],
       reading: withoutReading ? null : (reading ?? sampleReading()),
       resources: sampleResourceTopics(),
       serverTime: DateTime.utc(2026, 11, 2, 7, 30),
@@ -61,22 +70,26 @@ HomePayload sampleHome({TodaysReading? reading, bool withoutReading = false}) =>
 /// The daily plan exactly as `/home/` answers it: the day the student is on,
 /// written in the four sections the ministry authors, with the plan's length
 /// beside it so the progress line has something to be drawn from.
-TodaysReading sampleReading({bool completed = false, int completedDays = 2}) => TodaysReading(
-      planTitle: 'Romans in a month',
-      total: 30,
-      completed: completedDays + (completed ? 1 : 0),
-      day: ReadingDay(
-        id: 'day-3',
-        day: 3,
-        title: 'The righteous shall live by faith',
-        reference: 'Romans 1:16-17',
-        verseReference: 'Romans 1:17',
-        verseText: 'The just shall live by faith.',
-        whatItSays: 'Paul is not ashamed, because the gospel is the power of God.',
-        whatToLearn: 'Faith is what the gospel produces in you, not what you produce first.',
-        completed: completed,
-      ),
-    );
+TodaysReading sampleReading({
+  bool completed = false,
+  int completedDays = 2,
+}) => TodaysReading(
+  planTitle: 'Romans in a month',
+  total: 30,
+  completed: completedDays + (completed ? 1 : 0),
+  day: ReadingDay(
+    id: 'day-3',
+    day: 3,
+    title: 'The righteous shall live by faith',
+    reference: 'Romans 1:16-17',
+    verseReference: 'Romans 1:17',
+    verseText: 'The just shall live by faith.',
+    whatItSays: 'Paul is not ashamed, because the gospel is the power of God.',
+    whatToLearn:
+        'Faith is what the gospel produces in you, not what you produce first.',
+    completed: completed,
+  ),
+);
 
 /// The home "Find resources on" list as the ministry leaves it: named guides in
 /// the order they put them in, each holding the number of steps it has live.
@@ -175,7 +188,8 @@ List<Devotional> sampleDevotionalFeed() => const [
     title: 'Trust God in Every Season',
     scriptureReference: 'Ecclesiastes 3:1',
     excerpt: 'To every thing there is a season.',
-    body: 'There is a time for everything.\n\nTrust is what makes a season bear.',
+    body:
+        'There is a time for everything.\n\nTrust is what makes a season bear.',
     imageUrl: 'https://files.udm.ac.ug/devotions/seasons.jpg',
     readingMinutes: 4,
   ),
@@ -195,7 +209,6 @@ List<Devotional> sampleDevotionalFeed() => const [
     readingMinutes: 6,
   ),
 ];
-
 
 /// What `/api/v1/media/` answers for the Learn tab: two shelves in the order
 /// the ministry set them, each with its recordings on it.
@@ -311,7 +324,8 @@ mixin FakeNotifications {
 
   Failure? notificationsFailure;
 
-  Future<({List<UserNotification> items, int unreadCount})> notifications() async {
+  Future<({List<UserNotification> items, int unreadCount})>
+  notifications() async {
     notificationCalls++;
     if (notificationsFailure != null) throw notificationsFailure!;
     return (items: notificationRows, unreadCount: unreadCountValue);
@@ -320,17 +334,19 @@ mixin FakeNotifications {
   Future<UserNotification> markNotificationRead(String id) async {
     if (notificationsFailure != null) throw notificationsFailure!;
     final updated = notificationRows
-        .map((item) => item.id == id
-            ? UserNotification(
-                id: item.id,
-                title: item.title,
-                body: item.body,
-                kind: item.kind,
-                destination: item.destination,
-                createdAt: item.createdAt,
-                readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
-              )
-            : item)
+        .map(
+          (item) => item.id == id
+              ? UserNotification(
+                  id: item.id,
+                  title: item.title,
+                  body: item.body,
+                  kind: item.kind,
+                  destination: item.destination,
+                  createdAt: item.createdAt,
+                  readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
+                )
+              : item,
+        )
         .toList();
     notificationRows = updated;
     unreadCountValue = updated.where((item) => !item.isRead).length;
@@ -340,20 +356,25 @@ mixin FakeNotifications {
   Future<void> markAllNotificationsRead() async {
     if (notificationsFailure != null) throw notificationsFailure!;
     notificationRows = notificationRows
-        .map((item) => UserNotification(
-              id: item.id,
-              title: item.title,
-              body: item.body,
-              kind: item.kind,
-              destination: item.destination,
-              createdAt: item.createdAt,
-              readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
-            ))
+        .map(
+          (item) => UserNotification(
+            id: item.id,
+            title: item.title,
+            body: item.body,
+            kind: item.kind,
+            destination: item.destination,
+            createdAt: item.createdAt,
+            readAt: item.readAt ?? DateTime.utc(2026, 11, 2, 16),
+          ),
+        )
         .toList();
     unreadCountValue = 0;
   }
 
-  Future<void> registerNotificationDevice({required String token, required String platform}) async {
+  Future<void> registerNotificationDevice({
+    required String token,
+    required String platform,
+  }) async {
     if (notificationsFailure != null) throw notificationsFailure!;
     devicesRegistered.add('$platform:$token');
   }
@@ -405,7 +426,8 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
   Future<HomePayload> home() async {
     homeCalls++;
     if (failure != null) throw failure!;
-    if (homePayload == null) throw StateError('FakeUdmApi.home() has no payload configured.');
+    if (homePayload == null)
+      throw StateError('FakeUdmApi.home() has no payload configured.');
     return homePayload!;
   }
 
@@ -471,24 +493,30 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
   Future<ResourceStep> resourceStep(String id) async {
     resourceStepCalls++;
     if (failure != null) throw failure!;
-    if (resourceStepRow == null) throw StateError('FakeUdmApi has no resource step configured.');
+    if (resourceStepRow == null)
+      throw StateError('FakeUdmApi has no resource step configured.');
     return resourceStepRow!;
   }
 
   @override
-  Future<Session> signIn({required String email, required String password}) async => _session();
+  Future<Session> signIn({
+    required String email,
+    required String password,
+  }) async => _session();
 
   @override
   Future<Session> register({
     required String email,
     required String password,
     required String fullName,
-  }) async =>
-      _session();
+    String? photoPath,
+    String? photoName,
+  }) async => _session();
 
   Session _session() {
     if (authFailure != null) throw authFailure!;
-    if (session == null) throw StateError('FakeUdmApi has no session configured.');
+    if (session == null)
+      throw StateError('FakeUdmApi has no session configured.');
     return session!;
   }
 
@@ -502,21 +530,30 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
   Future<UserProfile> profile() async {
     profileCalls++;
     if (authFailure != null) throw authFailure!;
-    if (serverProfile == null) throw StateError('FakeUdmApi has no profile configured.');
+    if (serverProfile == null)
+      throw StateError('FakeUdmApi has no profile configured.');
     return serverProfile!;
   }
 
   @override
   Future<UserProfile> updateProfile(Map<String, dynamic> changes) async {
     if (authFailure != null) throw authFailure!;
-    if (serverProfile == null) throw StateError('FakeUdmApi has no profile configured.');
+    if (serverProfile == null)
+      throw StateError('FakeUdmApi has no profile configured.');
     lastProfilePatch = changes;
-    serverProfile = UserProfile.fromJson({...serverProfile!.toJson(), ...changes});
+    serverProfile = UserProfile.fromJson({
+      ...serverProfile!.toJson(),
+      ...changes,
+    });
     return serverProfile!;
   }
 
   @override
-  Future<void> markComplete({required String kind, required String contentId, String? note}) async {
+  Future<void> markComplete({
+    required String kind,
+    required String contentId,
+    String? note,
+  }) async {
     if (authFailure != null) throw authFailure!;
     completions.add('$kind:$contentId');
   }
@@ -529,7 +566,8 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
 
   /// What the app tried to store privately, in order.
   final List<({String id, String text})> mediaNotes = [];
-  final List<({String id, int positionSeconds, bool completed})> mediaWatches = [];
+  final List<({String id, int positionSeconds, bool completed})> mediaWatches =
+      [];
 
   void _failMedia() {
     if (mediaFailure != null) throw mediaFailure!;
@@ -565,7 +603,9 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
     mediaNotes.add((id: itemId, text: text));
     return {
       'text': text,
-      'updated_at': text.isEmpty ? null : DateTime.utc(2026, 11, 12, 15).toIso8601String(),
+      'updated_at': text.isEmpty
+          ? null
+          : DateTime.utc(2026, 11, 12, 15).toIso8601String(),
     };
   }
 
@@ -576,14 +616,17 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
     required bool completed,
   }) async {
     _failMedia();
-    mediaWatches.add(
-      (id: itemId, positionSeconds: positionSeconds, completed: completed),
-    );
+    mediaWatches.add((
+      id: itemId,
+      positionSeconds: positionSeconds,
+      completed: completed,
+    ));
     return {'position_seconds': positionSeconds, 'completed': completed};
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
 }
 
 /// Everything the shell's five tabs ask for at once, including the Bible
@@ -612,16 +655,20 @@ class FakeShellApi with FakeNotifications implements UdmApi {
   Future<List<ResumeItem>> mediaResume() async => const [];
 
   @override
-  Future<DevotionSeries> devotionSeriesDetail(String id) async => sampleSeriesDetail();
+  Future<DevotionSeries> devotionSeriesDetail(String id) async =>
+      sampleSeriesDetail();
 
   @override
   Future<List<ResourceTopic>> resourceTopics() async => sampleResourceTopics();
 
   @override
-  Future<List<MediaCollection>> mediaCollections() async => sampleMediaShelves();
+  Future<List<MediaCollection>> mediaCollections() async =>
+      sampleMediaShelves();
 
   @override
-  Future<List<Map<String, dynamic>>> bibleTranslations({String language = 'en'}) async => const [
+  Future<List<Map<String, dynamic>>> bibleTranslations({
+    String language = 'en',
+  }) async => const [
     {
       'id': 't1',
       'code': 'kjv',
@@ -633,14 +680,27 @@ class FakeShellApi with FakeNotifications implements UdmApi {
 
   @override
   Future<List<Map<String, dynamic>>> bibleBooks(String code) async => const [
-    {'id': 'b1', 'name': 'John', 'provider_id': 'JHN', 'order': 43, 'testament': 'new', 'chapter_count': 21},
+    {
+      'id': 'b1',
+      'name': 'John',
+      'provider_id': 'JHN',
+      'order': 43,
+      'testament': 'new',
+      'chapter_count': 21,
+    },
   ];
 
   @override
-  Future<List<int>> bibleBookChapters(String code, String book) async => const [1];
+  Future<List<int>> bibleBookChapters(String code, String book) async => const [
+    1,
+  ];
 
   @override
-  Future<Map<String, dynamic>> bibleChapter(String code, String book, int chapter) async => const {
+  Future<Map<String, dynamic>> bibleChapter(
+    String code,
+    String book,
+    int chapter,
+  ) async => const {
     'id': 'c1',
     'book': 'John',
     'number': 1,
@@ -652,15 +712,23 @@ class FakeShellApi with FakeNotifications implements UdmApi {
 
   @override
   Future<List<Map<String, dynamic>>> biblePassageSources() async => const [
-    {'code': 'kjv', 'name': 'King James Version', 'text_available': true, 'offline_allowed': true, 'configured': true},
+    {
+      'code': 'kjv',
+      'name': 'King James Version',
+      'text_available': true,
+      'offline_allowed': true,
+      'configured': true,
+    },
   ];
 
   @override
   Future<List<Map<String, dynamic>>> biblePlans() async => const [];
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError('${invocation.memberName}');
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }
+
 class FakeHomeRepository implements HomeRepository {
   FakeHomeRepository({this.payload, this.failure, this.memorizeFailure});
 
@@ -688,7 +756,8 @@ class FakeHomeRepository implements HomeRepository {
   Future<HomePayload> load() async {
     loadCalls++;
     if (failure != null) throw failure!;
-    if (payload == null) throw StateError('FakeHomeRepository has no payload configured.');
+    if (payload == null)
+      throw StateError('FakeHomeRepository has no payload configured.');
     return payload!;
   }
 
@@ -740,31 +809,36 @@ SessionController fakeSession({bool signedIn = false}) {
     tokenStore: InMemoryTokenStore(),
   );
   final session = SessionController(
-    FakeAuthRepository(profile: signedIn ? sampleProfile() : null, hasSessionValue: signedIn),
+    FakeAuthRepository(
+      profile: signedIn ? sampleProfile() : null,
+      hasSessionValue: signedIn,
+    ),
     client,
   );
-  session.status.value = signedIn ? SessionStatus.signedIn : SessionStatus.signedOut;
+  session.status.value = signedIn
+      ? SessionStatus.signedIn
+      : SessionStatus.signedOut;
   return session;
 }
 
 /// A signed-in student exactly as `GET /api/v1/users/me/` answers for one whose
 /// onboarding answers are still blank.
 UserProfile sampleProfile() => const UserProfile(
-      email: 'grace@udm.ac.ug',
-      displayName: 'Grace Nabukeera',
-      fullName: 'Grace Nabukeera',
-      preferredTranslationCode: 'kjv',
-    );
+  email: 'grace@udm.ac.ug',
+  displayName: 'Grace Nabukeera',
+  fullName: 'Grace Nabukeera',
+  preferredTranslationCode: 'kjv',
+);
 
 Session sampleSession({String refresh = 'stored-refresh'}) => Session(
-      tokens: StoredTokens(access: 'fresh-access', refresh: refresh),
-      user: const AuthUser(
-        id: 'u1',
-        email: 'grace@udm.ac.ug',
-        displayName: 'Grace Nabukeera',
-        emailVerified: false,
-      ),
-    );
+  tokens: StoredTokens(access: 'fresh-access', refresh: refresh),
+  user: const AuthUser(
+    id: 'u1',
+    email: 'grace@udm.ac.ug',
+    displayName: 'Grace Nabukeera',
+    emailVerified: false,
+  ),
+);
 
 /// Stands in for the keystore so session tests never touch a platform channel.
 class InMemoryTokenStore implements TokenStore {
@@ -811,7 +885,10 @@ class FakeAuthRepository implements AuthRepository {
   Future<bool> hasSession() async => hasSessionValue;
 
   @override
-  Future<UserProfile> signIn({required String email, required String password}) async {
+  Future<UserProfile> signIn({
+    required String email,
+    required String password,
+  }) async {
     signInCalls++;
     return _result();
   }
@@ -821,6 +898,7 @@ class FakeAuthRepository implements AuthRepository {
     required String email,
     required String password,
     required String fullName,
+    XFile? photo,
   }) async {
     registerCalls++;
     return _result();
@@ -855,16 +933,23 @@ class FakeAuthRepository implements AuthRepository {
 
   Future<UserProfile> _result() async {
     if (failure != null) throw failure!;
-    if (profile == null) throw StateError('FakeAuthRepository has no profile configured.');
+    if (profile == null)
+      throw StateError('FakeAuthRepository has no profile configured.');
     return profile!;
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
 }
 
 class FakeContentRepository implements ContentRepository {
-  FakeContentRepository({this.serverDevotional, this.serverStep, this.serverArticle, this.serverArticles = const []});
+  FakeContentRepository({
+    this.serverDevotional,
+    this.serverStep,
+    this.serverArticle,
+    this.serverArticles = const [],
+  });
 
   Devotional? serverDevotional;
   ResourceStep? serverStep;
@@ -877,21 +962,26 @@ class FakeContentRepository implements ContentRepository {
   @override
   Future<Devotional> devotional(String id) async {
     if (failure != null) throw failure!;
-    if (serverDevotional == null) throw StateError('FakeContentRepository has no devotional configured.');
+    if (serverDevotional == null)
+      throw StateError('FakeContentRepository has no devotional configured.');
     return serverDevotional!;
   }
 
   @override
   Future<ResourceStep> resourceStep(String id) async {
     if (failure != null) throw failure!;
-    if (serverStep == null) throw StateError('FakeContentRepository has no resource step configured.');
+    if (serverStep == null)
+      throw StateError(
+        'FakeContentRepository has no resource step configured.',
+      );
     return serverStep!;
   }
 
   @override
   Future<Article> article(String id) async {
     if (failure != null) throw failure!;
-    if (serverArticle == null) throw StateError('FakeContentRepository has no article configured.');
+    if (serverArticle == null)
+      throw StateError('FakeContentRepository has no article configured.');
     return serverArticle!;
   }
 
@@ -902,13 +992,17 @@ class FakeContentRepository implements ContentRepository {
   }
 
   @override
-  Future<void> recordCompletion({required ContentKind kind, required String id}) async {
+  Future<void> recordCompletion({
+    required ContentKind kind,
+    required String id,
+  }) async {
     if (progressFailure != null) throw progressFailure!;
     completions.add('${kind.value}:$id');
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(invocation.memberName.toString());
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
 }
 
 /// The stamp every content screen looks up when it initialises. Polling is
@@ -973,7 +1067,8 @@ class FakeDevotionsRepository implements DevotionsRepository {
       if (seriesRow != null && seriesRow!.fromCache) return seriesRow!;
       throw failure!;
     }
-    if (seriesRow == null) throw StateError('FakeDevotionsRepository has no series configured.');
+    if (seriesRow == null)
+      throw StateError('FakeDevotionsRepository has no series configured.');
     return seriesRow!;
   }
 
@@ -987,7 +1082,6 @@ class FakeDevotionsRepository implements DevotionsRepository {
   DevotionSeries? cachedSeries(String id) =>
       seriesRow != null && seriesRow!.fromCache ? seriesRow : null;
 }
-
 
 /// The Learn tab's repository, with the private half of a recording kept in
 /// plain lists a test can read back.
@@ -1020,7 +1114,8 @@ class FakeMediaRepository implements MediaRepository {
 
   /// Every note and every place the app tried to save, in order.
   final List<({String id, String text})> savedNotes = [];
-  final List<({String id, int positionSeconds, bool completed})> savedWatches = [];
+  final List<({String id, int positionSeconds, bool completed})> savedWatches =
+      [];
 
   @override
   Future<List<MediaCollection>> shelves() async {
@@ -1038,7 +1133,8 @@ class FakeMediaRepository implements MediaRepository {
       if (shelfRow != null && shelfRow!.fromCache) return shelfRow!;
       throw failure!;
     }
-    if (shelfRow == null) throw StateError('FakeMediaRepository has no shelf configured.');
+    if (shelfRow == null)
+      throw StateError('FakeMediaRepository has no shelf configured.');
     return shelfRow!;
   }
 
@@ -1048,15 +1144,22 @@ class FakeMediaRepository implements MediaRepository {
       if (itemRow != null && itemRow!.fromCache) return itemRow!;
       throw failure!;
     }
-    if (itemRow == null) throw StateError('FakeMediaRepository has no recording configured.');
+    if (itemRow == null)
+      throw StateError('FakeMediaRepository has no recording configured.');
     return itemRow!;
   }
 
   @override
-  Future<({String text, DateTime? updatedAt})> saveNote(String id, String text) async {
+  Future<({String text, DateTime? updatedAt})> saveNote(
+    String id,
+    String text,
+  ) async {
     if (noteFailure != null) throw noteFailure!;
     savedNotes.add((id: id, text: text));
-    return (text: text, updatedAt: text.isEmpty ? null : DateTime.utc(2026, 11, 12, 15));
+    return (
+      text: text,
+      updatedAt: text.isEmpty ? null : DateTime.utc(2026, 11, 12, 15),
+    );
   }
 
   @override
@@ -1066,9 +1169,11 @@ class FakeMediaRepository implements MediaRepository {
     required bool completed,
   }) async {
     if (watchFailure != null) throw watchFailure!;
-    savedWatches.add(
-      (id: id, positionSeconds: positionSeconds, completed: completed),
-    );
+    savedWatches.add((
+      id: id,
+      positionSeconds: positionSeconds,
+      completed: completed,
+    ));
     return (positionSeconds: positionSeconds, completed: completed);
   }
 
@@ -1130,7 +1235,8 @@ class FakeResourcesRepository implements ResourcesRepository {
       if (cachedTopicRow != null) return cachedTopicRow!;
       throw failure!;
     }
-    if (topicRow == null) throw StateError('FakeResourcesRepository has no guide configured.');
+    if (topicRow == null)
+      throw StateError('FakeResourcesRepository has no guide configured.');
     return topicRow!;
   }
 
@@ -1138,7 +1244,8 @@ class FakeResourcesRepository implements ResourcesRepository {
   List<ResourceTopic>? cachedTopics() => cachedTopicRows;
 
   @override
-  ResourceTopic? cachedTopic(String id) => cachedTopicRow?.id == id ? cachedTopicRow : null;
+  ResourceTopic? cachedTopic(String id) =>
+      cachedTopicRow?.id == id ? cachedTopicRow : null;
 }
 
 /// The device looks every reading screen now asks for: light or dark, and how
@@ -1152,11 +1259,17 @@ AppearanceController putAppearance(LocalCache cache) =>
 /// `configureDependencies()` puts it permanently in the real app; a widget test
 /// hosts its screens without that pass, so it puts the same object here, wired
 /// to whatever API and session the test already registered.
-NotificationsController putNotifications({UdmApi? api, SessionController? session}) {
-  final resolvedApi = api ??
-      (Get.isRegistered<UdmApi>() ? Get.find<UdmApi>() : FakeUdmApi());
-  final resolvedSession = session ??
-      (Get.isRegistered<SessionController>() ? Get.find<SessionController>() : fakeSession());
+NotificationsController putNotifications({
+  UdmApi? api,
+  SessionController? session,
+}) {
+  final resolvedApi =
+      api ?? (Get.isRegistered<UdmApi>() ? Get.find<UdmApi>() : FakeUdmApi());
+  final resolvedSession =
+      session ??
+      (Get.isRegistered<SessionController>()
+          ? Get.find<SessionController>()
+          : fakeSession());
   return Get.put<NotificationsController>(
     NotificationsController(resolvedApi, resolvedSession),
     permanent: true,

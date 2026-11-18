@@ -148,12 +148,20 @@ class ScripturePanel extends StatelessWidget {
               // The verse is written over somebody else's picture, so the scrim
               // is what makes the card readable rather than a decoration.
               const Positioned.fill(
-                child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim)),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(gradient: AppGradients.scrim),
+                ),
               ),
               if (compact)
-                Positioned.fill(child: ColoredBox(color: Colors.black.withValues(alpha: 0.22))),
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.22),
+                  ),
+                ),
             ] else
-              Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.14)),
+              Positioned.fill(
+                child: Mark.backdrop(tint: AppColors.white, alpha: 0.14),
+              ),
             if (!compact)
               PositionedDirectional(
                 top: -18,
@@ -182,7 +190,9 @@ class ScripturePanel extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
+                        const Expanded(
+                          child: Eyebrow('Memory verse', color: Colors.white70),
+                        ),
                         if (translationCode.isNotEmpty)
                           AppText(
                             translationCode.toUpperCase(),
@@ -196,24 +206,37 @@ class ScripturePanel extends StatelessWidget {
                       text,
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.scriptureVerse(AppColors.white, size: 22).copyWith(
-                        height: 1.3,
-                        shadows: [
-                          Shadow(color: AppColors.ink.withValues(alpha: 0.45), blurRadius: 12),
-                        ],
-                      ),
+                      style:
+                          AppTypography.scriptureVerse(
+                            AppColors.white,
+                            size: 22,
+                          ).copyWith(
+                            height: 1.3,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.ink.withValues(alpha: 0.45),
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         // The reference is the one address a student repeats, so
                         // it is marked as scripture rather than left as bare text.
-                        const Icon(AppIcons.bookOpen, color: Colors.white70, size: 16),
+                        const Icon(
+                          AppIcons.bookOpen,
+                          color: Colors.white70,
+                          size: 16,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: AppText(
                             reference,
-                            style: AppTypography.scriptureReference(Colors.white70),
+                            style: AppTypography.scriptureReference(
+                              Colors.white70,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -236,7 +259,9 @@ class ScripturePanel extends StatelessWidget {
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
                               ),
                               label: AppText(
                                 'Keep',
@@ -246,6 +271,26 @@ class ScripturePanel extends StatelessWidget {
                             ),
                       ],
                     ),
+                    if (ctaLabel != null && onTap != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton.icon(
+                          onPressed: onTap,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                          ),
+                          icon: const Icon(AppIcons.bookOpen, size: 15),
+                          label: AppText(
+                            ctaLabel!,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               )
@@ -262,25 +307,34 @@ class ScripturePanel extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
+                        const Expanded(
+                          child: Eyebrow('Memory verse', color: Colors.white70),
+                        ),
                         if (offline)
                           const OfflineChip(onDark: true)
                         else if (translationCode.isNotEmpty)
-                          MetaPill(label: translationCode.toUpperCase(), onDark: true),
+                          MetaPill(
+                            label: translationCode.toUpperCase(),
+                            onDark: true,
+                          ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.md),
                     AppText(
                       text,
-                      style: AppTypography.scriptureVerse(AppColors.white, size: 21).copyWith(
-                        shadows: [
-                          Shadow(
-                            color: AppColors.ink.withValues(alpha: 0.35),
-                            blurRadius: 18,
-                            offset: const Offset(0, 3),
+                      style:
+                          AppTypography.scriptureVerse(
+                            AppColors.white,
+                            size: 21,
+                          ).copyWith(
+                            shadows: [
+                              Shadow(
+                                color: AppColors.ink.withValues(alpha: 0.35),
+                                blurRadius: 18,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     const GoldRule(width: 64),
@@ -290,7 +344,8 @@ class ScripturePanel extends StatelessWidget {
                       style: AppTypography.scriptureReference(Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (onReview != null || (ctaLabel != null && onTap != null)) ...[
+                    if (onReview != null ||
+                        (ctaLabel != null && onTap != null)) ...[
                       const SizedBox(height: AppSpacing.md),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -309,7 +364,9 @@ class ScripturePanel extends StatelessWidget {
                               else
                                 GhostButton(
                                   key: const Key('udm.markMemorized'),
-                                  label: savingReview ? 'Saving…' : 'Mark memorized',
+                                  label: savingReview
+                                      ? 'Saving…'
+                                      : 'Mark memorized',
                                   icon: AppIcons.verify,
                                   onTap: savingReview ? null : onReview,
                                 ),

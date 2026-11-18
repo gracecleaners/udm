@@ -34,8 +34,9 @@ class UdmApi {
   Future<int> contentVersion() => _client.guard(() async {
     final response = await _client.dio.get<dynamic>('/content-version/');
     final version = _json(response)['version'];
-    if (version is! num)
+    if (version is! num) {
       throw const FormatException('Expected a content version.');
+    }
     return version.toInt();
   });
 
@@ -449,8 +450,9 @@ class UdmApi {
         final response = await _client.dio.get<dynamic>('/notifications/');
         final data = _json(response);
         final rows = data['results'];
-        if (rows is! List)
+        if (rows is! List) {
           throw const FormatException('Expected notification results.');
+        }
         return (
           items: rows
               .whereType<Map<String, dynamic>>()

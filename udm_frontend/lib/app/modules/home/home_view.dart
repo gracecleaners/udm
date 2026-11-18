@@ -46,14 +46,17 @@ class HomeView extends GetView<HomeController> {
                   if (controller.data?.memoryVerse != null) ...[
                     const SizedBox(height: AppSpacing.md),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
                       child: FadeIn(
                         child: Obx(
                           () => ScripturePanel(
                             compact: true,
                             reference: controller.data!.memoryVerse!.reference,
                             text: controller.data!.memoryVerse!.text,
-                            translationCode: controller.data!.memoryVerse!.translationCode,
+                            translationCode:
+                                controller.data!.memoryVerse!.translationCode,
                             artUrl: controller.data!.memoryVerse!.imageUrl,
                             offline: controller.isOfflineCopy,
                             ctaLabel: controller.data!.devotion == null
@@ -61,7 +64,9 @@ class HomeView extends GetView<HomeController> {
                                 : "Open today's devotion",
                             onTap: controller.data!.devotion == null
                                 ? null
-                                : () => controller.openDevotion(controller.data!.devotion!.id),
+                                : () => controller.openDevotion(
+                                    controller.data!.devotion!.id,
+                                  ),
                             onReview: () => controller.markMemorized(),
                             memorized: controller.verseMemorized,
                             savingReview: controller.savingVerse.value,
@@ -75,7 +80,9 @@ class HomeView extends GetView<HomeController> {
             ),
             if (controller.data?.reading != null) ...[
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
                 child: FadeIn(
                   delay: const Duration(milliseconds: 60),
                   child: const _TodaysReading(),
@@ -84,7 +91,9 @@ class HomeView extends GetView<HomeController> {
               const SizedBox(height: AppSpacing.xl),
             ],
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
               child: FadeIn(
                 delay: const Duration(milliseconds: 120),
                 child: const _QuickAccessGrid(),
@@ -92,7 +101,9 @@ class HomeView extends GetView<HomeController> {
             ),
             const SizedBox(height: AppSpacing.lg),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
               child: FadeIn(
                 delay: const Duration(milliseconds: 150),
                 child: const _TodaysActivities(),
@@ -124,11 +135,14 @@ class HomeView extends GetView<HomeController> {
               const RailHeader(
                 eyebrow: 'Guided reading',
                 title: 'Courses',
-                subtitle: 'Short guides for the questions students actually ask',
+                subtitle:
+                    'Short guides for the questions students actually ask',
                 onSeeAll: _openCourses,
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
                 child: Column(
                   children: [
                     for (final topic in controller.data!.resources)
@@ -145,7 +159,9 @@ class HomeView extends GetView<HomeController> {
             ],
             const SizedBox(height: AppSpacing.lg),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
               child: const _SignInNudge(),
             ),
           ],
@@ -180,14 +196,22 @@ class _Greeting extends GetView<HomeController> {
     return Obx(() {
       final greeting = controller.data?.greeting;
       final profile = session.profile.value;
-      final firstName = profile?.displayName.trim().split(RegExp(r'\s+')).first ?? '';
+      final firstName =
+          profile?.displayName.trim().split(RegExp(r'\s+')).first ?? '';
       return Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, 0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screen,
+          AppSpacing.md,
+          AppSpacing.screen,
+          0,
+        ),
         child: Row(
           children: [
             if (profile != null) ...[
               PressableScale(
-                onTap: () => Get.find<ShellController>().select(ShellController.profileTab),
+                onTap: () => Get.find<ShellController>().select(
+                  ShellController.profileTab,
+                ),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                 child: UdmAvatar(
                   initials: profile.initials,
@@ -259,28 +283,29 @@ class _QuickAccessGrid extends StatelessWidget {
   static const List<_QuickAccessItem> _items = [
     _QuickAccessItem(
       title: 'Courses',
-      subtitle: 'Guided learning',
+      subtitle: 'Guided courses',
       icon: AppIcons.school,
       tint: AppColors.primaryBlue,
       onTap: HomeView._openCourses,
     ),
     _QuickAccessItem(
       title: 'Articles',
-      subtitle: 'Ideas for your walk',
+      subtitle: 'Ideas to grow',
       icon: AppIcons.book,
       tint: AppColors.royalBlue,
       onTap: _openArticles,
     ),
     _QuickAccessItem(
       title: 'New Believer',
-      subtitle: 'Start strong in faith',
+      subtitle: 'Faith essentials',
       icon: AppIcons.sparkles,
       tint: AppColors.gold,
+      iconTint: AppColors.deepBlue,
       onTap: _openNewBeliever,
     ),
     _QuickAccessItem(
       title: 'Media',
-      subtitle: 'Watch and listen',
+      subtitle: 'Watch & listen',
       icon: AppIcons.play,
       tint: AppColors.deepBlue,
       onTap: _openMedia,
@@ -289,7 +314,8 @@ class _QuickAccessGrid extends StatelessWidget {
 
   static void _openArticles() => Get.toNamed(AppRoutes.articles);
   static void _openNewBeliever() => Get.toNamed(AppRoutes.newBeliever);
-  static void _openMedia() => Get.find<ShellController>().select(ShellController.learnTab);
+  static void _openMedia() =>
+      Get.find<ShellController>().select(ShellController.learnTab);
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +326,9 @@ class _QuickAccessGrid extends StatelessWidget {
       children: [
         AppText(
           'Quick access',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         LayoutBuilder(
@@ -321,7 +349,11 @@ class _QuickAccessGrid extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: [
                           surfaces.elevated,
-                          item.tint.withValues(alpha: theme.brightness == Brightness.dark ? 0.18 : 0.075),
+                          item.tint.withValues(
+                            alpha: theme.brightness == Brightness.dark
+                                ? 0.18
+                                : 0.075,
+                          ),
                         ],
                       ),
                       child: SizedBox(
@@ -335,19 +367,35 @@ class _QuickAccessGrid extends StatelessWidget {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: item.tint.withValues(alpha: theme.brightness == Brightness.dark ? 0.28 : 0.13),
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+                                    color: item.tint.withValues(
+                                      alpha: theme.brightness == Brightness.dark
+                                          ? 0.28
+                                          : 0.13,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusTile,
+                                    ),
                                   ),
-                                  child: Icon(item.icon, color: item.tint, size: 21),
+                                  child: Icon(
+                                    item.icon,
+                                    color: item.iconTint,
+                                    size: 21,
+                                  ),
                                 ),
                                 const Spacer(),
-                                Icon(AppIcons.chevron, size: 20, color: item.tint),
+                                Icon(
+                                  AppIcons.chevron,
+                                  size: 20,
+                                  color: item.iconTint,
+                                ),
                               ],
                             ),
                             const Spacer(),
                             AppText(
                               item.title,
-                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -379,12 +427,14 @@ class _QuickAccessItem {
     required this.icon,
     required this.tint,
     required this.onTap,
+    this.iconTint = AppColors.primaryBlue,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final Color tint;
+  final Color iconTint;
   final VoidCallback onTap;
 }
 
@@ -413,12 +463,17 @@ class _NotificationBell extends GetView<NotificationsController> {
                   top: 1,
                   right: 1,
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                    constraints: const BoxConstraints(
+                      minWidth: 17,
+                      minHeight: 17,
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusPill,
+                      ),
                       border: Border.all(color: AppColors.white, width: 1.2),
                     ),
                     child: AppText(
@@ -478,8 +533,10 @@ class _TodaysReading extends GetView<HomeController> {
             children: [
               Expanded(
                 child: AppText(
-                  "Today's readings",
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  "Today's reading",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               TextButton(
@@ -487,50 +544,126 @@ class _TodaysReading extends GetView<HomeController> {
                 // reads, so "see all" moves them to that tab rather than to a
                 // second list the app would have to keep in step.
                 key: const Key('udm.home.readingPlans'),
-                onPressed: () => Get.find<ShellController>().select(ShellController.bibleTab),
+                onPressed: () => Get.find<ShellController>().select(
+                  ShellController.bibleTab,
+                ),
                 child: const _SeeAll(),
               ),
             ],
           ),
           Panel(
             onTap: controller.openReading,
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            child: Row(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconBadge(
-                  icon: reading.day.completed ? AppIcons.checkCircle : AppIcons.bookOpen,
-                  size: 62,
-                  tone: reading.day.completed ? IconBadgeTone.success : IconBadgeTone.brand,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(
-                        reading.day.reference,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    IconBadge(
+                      icon: reading.day.completed
+                          ? AppIcons.checkCircle
+                          : AppIcons.bookOpen,
+                      size: 48,
+                      tone: reading.day.completed
+                          ? IconBadgeTone.success
+                          : IconBadgeTone.brand,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            reading.planTitle,
+                            style: AppTypography.eyebrow(
+                              theme.colorScheme.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          AppText(
+                            reading.day.reference,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (reading.day.title.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            AppText(
+                              reading.day.title,
+                              style: theme.textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      AppText(
-                        'Day ${reading.number} of ${reading.total} · ${reading.planTitle}',
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Icon(AppIcons.chevron, color: theme.colorScheme.primary),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: UdmProgressBar(
+                        fraction: reading.fraction,
+                        height: 6,
+                        gradient: AppGradients.hero,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppText(
+                      '${reading.completed}/${reading.total} days',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Icon(
+                      reading.finished ? AppIcons.checkCircle : AppIcons.circle,
+                      color: reading.finished
+                          ? AppColors.success
+                          : theme.colorScheme.primary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: AppText(
+                        reading.finished
+                            ? 'Plan complete'
+                            : reading.day.completed
+                            ? 'Today’s reading complete'
+                            : 'Day ${reading.number} of ${reading.total}',
                         style: theme.textTheme.bodySmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 7),
-                      UdmProgressBar(
-                        fraction: reading.fraction,
-                        height: 5,
-                        gradient: AppGradients.hero,
+                    ),
+                    AppText(
+                      reading.day.completed ? 'Read again' : 'Continue reading',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      AppIcons.next,
+                      color: theme.colorScheme.primary,
+                      size: 16,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                const _OpenCircle(),
               ],
             ),
           ),
@@ -543,19 +676,6 @@ class _TodaysReading extends GetView<HomeController> {
 /// The round blue door on the reference's continue-reading card. It is drawn
 /// rather than wired: the whole card already opens the day, so a second tap
 /// target inside it would only compete with the first.
-class _OpenCircle extends StatelessWidget {
-  const _OpenCircle();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 44,
-    height: 44,
-    alignment: Alignment.center,
-    decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppGradients.hero),
-    child: const Icon(AppIcons.next, color: Colors.white, size: 20),
-  );
-}
-
 /// Today, as a list a student can finish. Each row is real content the server
 /// published for this day, and the tick is the server's own record that this
 /// student has done it — not a streak the app guessed.
@@ -591,14 +711,13 @@ class _TodaysActivities extends GetView<HomeController> {
           done: controller.verseMemorized,
           onTap: controller.markMemorized,
         ),
-      if (payload?.articles.isNotEmpty ?? false)
+      if (payload?.reading != null)
         _ActivityRow(
           label: 'Reading for today',
-          title: payload!.articles.first.title,
-          icon: AppIcons.book,
-          artUrl: payload.articles.first.imageUrl,
-          done: controller.isDone(payload.articles.first.id),
-          onTap: () => controller.openArticle(payload.articles.first.id),
+          title: payload!.reading!.day.reference,
+          icon: AppIcons.bible,
+          done: payload.reading!.day.completed,
+          onTap: controller.openReading,
         ),
     ];
     if (rows.isEmpty) return const SizedBox.shrink();
@@ -618,7 +737,9 @@ class _TodaysActivities extends GetView<HomeController> {
               Expanded(
                 child: AppText(
                   "Today's activities",
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               // The list on home is only today's; the account holds the rest.
@@ -641,9 +762,9 @@ class _TodaysActivities extends GetView<HomeController> {
                   horizontal: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  // A finished row is the one worth seeing first, so it carries
-                  // the same green the tick does rather than a bare icon.
-                  color: row.done ? AppColors.success.withValues(alpha: 0.10) : null,
+                  color: row.done
+                      ? AppColors.success.withValues(alpha: 0.045)
+                      : null,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
                 ),
                 child: Row(
@@ -652,7 +773,9 @@ class _TodaysActivities extends GetView<HomeController> {
                       IconBadge(
                         icon: row.icon,
                         size: 44,
-                        tone: row.done ? IconBadgeTone.success : IconBadgeTone.brand,
+                        tone: row.done
+                            ? IconBadgeTone.success
+                            : IconBadgeTone.brand,
                       )
                     else
                       // The item's own published picture, cut to the round the
@@ -676,7 +799,9 @@ class _TodaysActivities extends GetView<HomeController> {
                         children: [
                           AppText(
                             row.label,
-                            style: AppTypography.eyebrow(theme.colorScheme.primary),
+                            style: AppTypography.eyebrow(
+                              theme.colorScheme.primary,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           AppText(
@@ -699,14 +824,20 @@ class _TodaysActivities extends GetView<HomeController> {
                           color: AppColors.success,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(AppIcons.check, size: 17, color: Colors.white),
+                        child: const Icon(
+                          AppIcons.check,
+                          size: 17,
+                          color: Colors.white,
+                        ),
                       )
                     else
                       Icon(
                         AppIcons.circle,
                         size: 22,
-                        color: (theme.textTheme.bodySmall?.color ?? AppColors.secondaryText)
-                            .withValues(alpha: 0.5),
+                        color:
+                            (theme.textTheme.bodySmall?.color ??
+                                    AppColors.secondaryText)
+                                .withValues(alpha: 0.5),
                       ),
                   ],
                 ),
@@ -755,7 +886,11 @@ class _SeeAll extends StatelessWidget {
             ?.copyWith(color: Theme.of(context).colorScheme.primary),
       ),
       const SizedBox(width: 2),
-      Icon(AppIcons.next, size: 16, color: Theme.of(context).colorScheme.primary),
+      Icon(
+        AppIcons.next,
+        size: 16,
+        color: Theme.of(context).colorScheme.primary,
+      ),
     ],
   );
 }
@@ -776,14 +911,15 @@ class _ResourceRow extends StatelessWidget {
       onTap: onOpen,
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CoverArt(
             url: topic.imageUrl,
             monogram: topic.monogram,
-            width: AppSpacing.iconTile,
-            height: AppSpacing.iconTile,
+            width: 68,
+            height: 76,
             radius: AppSpacing.radiusTile,
-            monogramSize: 16,
+            monogramSize: 18,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -792,46 +928,69 @@ class _ResourceRow extends StatelessWidget {
               children: [
                 AppText(
                   topic.title,
-                  style: theme.textTheme.titleMedium,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
+                if (topic.summary.isNotEmpty)
+                  AppText(
+                    topic.summary,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    MetaPill(
-                      label: topic.stepsCompleted > 0
-                          ? '${topic.stepsCompleted} of ${topic.stepCount} done'
-                          : '${topic.stepCount} steps',
-                      icon: AppIcons.steps,
+                    Icon(
+                      AppIcons.steps,
+                      size: 15,
+                      color: theme.colorScheme.primary,
                     ),
-                    if (topic.summary.isNotEmpty) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: AppText(
-                          topic.summary,
-                          style: theme.textTheme.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: AppText(
+                        '${topic.stepsCompleted} of ${topic.stepCount} steps',
+                        style: theme.textTheme.labelMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
+                    ),
                   ],
                 ),
-                // The bar is about the reader, not the guide, so it only
-                // appears once there is something the student has read.
-                if (topic.stepsCompleted > 0) ...[
-                  const SizedBox(height: 7),
-                  UdmProgressBar(
-                    fraction: topic.fractionComplete,
-                    height: 5,
-                    gradient: AppGradients.hero,
-                  ),
-                ],
+                const SizedBox(height: 6),
+                UdmProgressBar(
+                  fraction: topic.fractionComplete,
+                  height: 5,
+                  gradient: AppGradients.hero,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppText(
+                        topic.stepsCompleted == 0
+                            ? 'Start course'
+                            : 'Continue learning',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.next,
+                      color: theme.colorScheme.primary,
+                      size: 17,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          Icon(AppIcons.chevron, color: theme.colorScheme.primary, size: 22),
         ],
       ),
     );
@@ -852,7 +1011,10 @@ class _SignInNudge extends GetView<SessionController> {
       () => controller.isSignedIn
           ? const SizedBox.shrink()
           : Panel(
-              gradient: AppGradients.tint(surfaces.scripture, theme.colorScheme.surface),
+              gradient: AppGradients.tint(
+                surfaces.scripture,
+                theme.colorScheme.surface,
+              ),
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -860,7 +1022,11 @@ class _SignInNudge extends GetView<SessionController> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const IconBadge(icon: AppIcons.heart, size: 44, tone: IconBadgeTone.gold),
+                      const IconBadge(
+                        icon: AppIcons.heart,
+                        size: 44,
+                        tone: IconBadgeTone.gold,
+                      ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
