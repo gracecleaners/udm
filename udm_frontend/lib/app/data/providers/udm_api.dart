@@ -34,7 +34,8 @@ class UdmApi {
   Future<int> contentVersion() => _client.guard(() async {
     final response = await _client.dio.get<dynamic>('/content-version/');
     final version = _json(response)['version'];
-    if (version is! num) throw const FormatException('Expected a content version.');
+    if (version is! num)
+      throw const FormatException('Expected a content version.');
     return version.toInt();
   });
 
@@ -47,11 +48,12 @@ class UdmApi {
   Future<List<Devotional>> devotionals() async =>
       (await _list('/devotions/')).map(Devotional.fromJson).toList();
 
-  Future<DevotionSeries> devotionSeriesDetail(String id) =>
-      _client.guard(() async {
-        final response = await _client.dio.get<dynamic>('/devotions/series/$id/');
-        return DevotionSeries.fromJson(_json(response));
-      });
+  Future<DevotionSeries> devotionSeriesDetail(String id) => _client.guard(
+    () async {
+      final response = await _client.dio.get<dynamic>('/devotions/series/$id/');
+      return DevotionSeries.fromJson(_json(response));
+    },
+  );
 
   Future<Devotional> devotion(String id) => _client.guard(() async {
     final response = await _client.dio.get<dynamic>('/devotions/$id/');
@@ -125,7 +127,8 @@ class UdmApi {
   Future<List<ResumeItem>> mediaResume() async =>
       (await _list('/media/resume/')).map(ResumeItem.fromJson).toList();
 
-  Future<List<Map<String, dynamic>>> bibleTranslations() => _list('/bible/translations/');
+  Future<List<Map<String, dynamic>>> bibleTranslations() =>
+      _list('/bible/translations/');
   Future<List<Map<String, dynamic>>> bibleBooks(String code) =>
       _list('/bible/$code/books/');
   Future<List<int>> bibleBookChapters(String code, String book) =>
@@ -252,10 +255,13 @@ class UdmApi {
   Future<void> registerForEvent(String eventId) => _client.guard(() async {
     await _client.dio.post<dynamic>('/events/$eventId/register/');
   });
+
   /// The community wall. `category` is one of the wall's own tabs; null asks
   /// for everything the reader is allowed to see.
   Future<List<PrayerPost>> prayerWall({String? category}) async {
-    final path = category == null ? '/prayers/' : '/prayers/?category=$category';
+    final path = category == null
+        ? '/prayers/'
+        : '/prayers/?category=$category';
     return (await _list(path)).map(PrayerPost.fromJson).toList();
   }
 
@@ -283,14 +289,16 @@ class UdmApi {
 
   /// "I am praying for this", and the same call taken back. The server answers
   /// with the two numbers the card shows, so the wall updates without a refetch.
-  Future<AffirmationState> setPrayerAffirmation(String prayerId, {required bool on}) =>
-      _client.guard(() async {
-        final url = '/prayers/$prayerId/affirm/';
-        final response = on
-            ? await _client.dio.post<dynamic>(url)
-            : await _client.dio.delete<dynamic>(url);
-        return AffirmationState.fromJson(_json(response));
-      });
+  Future<AffirmationState> setPrayerAffirmation(
+    String prayerId, {
+    required bool on,
+  }) => _client.guard(() async {
+    final url = '/prayers/$prayerId/affirm/';
+    final response = on
+        ? await _client.dio.post<dynamic>(url)
+        : await _client.dio.delete<dynamic>(url);
+    return AffirmationState.fromJson(_json(response));
+  });
 
   /// The words under a request, newest first.
   Future<List<PrayerComment>> prayerComments(String prayerId) async =>
@@ -309,7 +317,9 @@ class UdmApi {
 
   Future<void> removePrayerComment(String prayerId, String commentId) =>
       _client.guard(() async {
-        await _client.dio.delete<dynamic>('/prayers/$prayerId/comments/$commentId/');
+        await _client.dio.delete<dynamic>(
+          '/prayers/$prayerId/comments/$commentId/',
+        );
       });
 
   Future<List<Map<String, dynamic>>> groupPrayerQueue(String groupId) =>
@@ -369,10 +379,22 @@ class UdmApi {
     required String email,
     required String password,
     required String fullName,
-  }) => _session('/auth/register/', {
-    'email': email,
-    'password': password,
-    'full_name': fullName,
+    String? photoPath,
+    String? photoName,
+  }) => _client.guard(() async {
+    final form = FormData.fromMap({
+      'email': email,
+      'password': password,
+      'full_name': fullName,
+      if (photoPath != null && photoPath.isNotEmpty)
+        'photo': await MultipartFile.fromFile(photoPath, filename: photoName),
+    });
+    final response = await _client.dio.post<dynamic>(
+      '/auth/register/',
+      data: form,
+      options: Options(extra: {AuthInterceptor.skipAuthKey: true}),
+    );
+    return Session.fromJson(_json(response));
   });
 
   /// Revokes the refresh token server-side. Called with the stored token, which
@@ -422,36 +444,50 @@ class UdmApi {
   Future<List<ReadHistoryRow>> readHistory() async =>
       (await _list('/progress/')).map(ReadHistoryRow.fromJson).toList();
 
-  Future<({List<UserNotification> items, int unreadCount})> notifications() => _client.guard(() async {
+  Future<({List<UserNotification> items, int unreadCount})> notifications() =>
+      _client.guard(() async {
         final response = await _client.dio.get<dynamic>('/notifications/');
         final data = _json(response);
         final rows = data['results'];
-        if (rows is! List) throw const FormatException('Expected notification results.');
+        if (rows is! List)
+          throw const FormatException('Expected notification results.');
         return (
-          items: rows.whereType<Map<String, dynamic>>().map(UserNotification.fromJson).toList(),
+          items: rows
+              .whereType<Map<String, dynamic>>()
+              .map(UserNotification.fromJson)
+              .toList(),
           unreadCount: (data['unread_count'] as num?)?.toInt() ?? 0,
         );
       });
 
-  Future<UserNotification> markNotificationRead(String id) => _client.guard(() async {
-        final response = await _client.dio.post<dynamic>('/notifications/$id/read/');
+  Future<UserNotification> markNotificationRead(String id) =>
+      _client.guard(() async {
+        final response = await _client.dio.post<dynamic>(
+          '/notifications/$id/read/',
+        );
         return UserNotification.fromJson(_json(response));
       });
 
   Future<void> markAllNotificationsRead() => _client.guard(() async {
-        await _client.dio.post<dynamic>('/notifications/read-all/');
-      });
+    await _client.dio.post<dynamic>('/notifications/read-all/');
+  });
 
-  Future<void> registerNotificationDevice({required String token, required String platform}) =>
+  Future<void> registerNotificationDevice({
+    required String token,
+    required String platform,
+  }) => _client.guard(() async {
+    await _client.dio.post<dynamic>(
+      '/notifications/devices/',
+      data: {'token': token, 'platform': platform},
+    );
+  });
+
+  Future<void> unregisterNotificationDevice(String token) =>
       _client.guard(() async {
-        await _client.dio.post<dynamic>(
+        await _client.dio.delete<dynamic>(
           '/notifications/devices/',
-          data: {'token': token, 'platform': platform},
+          data: {'token': token},
         );
-      });
-
-  Future<void> unregisterNotificationDevice(String token) => _client.guard(() async {
-        await _client.dio.delete<dynamic>('/notifications/devices/', data: {'token': token});
       });
 
   Future<Session> _session(String path, Map<String, dynamic> body) =>

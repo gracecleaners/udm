@@ -26,9 +26,8 @@ class UserSummarySerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    # A picture is read here, never written: uploads arrive with the
-    # media-library work, and accepting them without size and content
-    # validation would be a fake implementation.
+    # Profile photos are written at registration time. This serializer exposes
+    # their served URL but keeps later profile edits from writing arbitrary URLs.
     photo = serializers.SerializerMethodField()
 
     class Meta:
@@ -99,10 +98,16 @@ class CurrentUserSerializer(UserProfileSerializer):
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
     full_name = serializers.CharField(max_length=150)
+    photo = serializers.ImageField(required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = User
-        fields = ("email", "password", "full_name")
+        fields = ("email", "password", "full_name", "photo")
+
+    def validate_photo(self, value):
+        if value and value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Profile pictures must be 5 MB or smaller.")
+        return value
 
     def validate_email(self, value):
         email = value.strip().lower()
@@ -121,12 +126,15 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        photo = validated_data.pop("photo", None)
         user = User.objects.create_user(
             email=validated_data["email"], password=validated_data["password"]
         )
         profile = UserProfile.for_user(user)
         profile.full_name = validated_data["full_name"].strip()
-        profile.save(update_fields=["full_name", "updated_at"])
+        if photo is not None:
+            profile.photo = photo
+        profile.save(update_fields=["full_name", "photo", "updated_at"])
         return user
 
 

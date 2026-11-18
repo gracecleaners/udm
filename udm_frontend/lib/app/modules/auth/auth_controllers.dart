@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/routes/app_routes.dart';
 import '../session/session_controller.dart';
@@ -44,6 +45,20 @@ class RegisterController extends GetxController {
   final TextEditingController confirmation = TextEditingController();
   final RxBool revealed = false.obs;
   final RxBool confirmationRevealed = false.obs;
+  final Rxn<XFile> profilePhoto = Rxn<XFile>();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  Future<void> chooseProfilePhoto() async {
+    final photo = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 82,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    );
+    if (photo != null) profilePhoto.value = photo;
+  }
+
+  void removeProfilePhoto() => profilePhoto.value = null;
 
   @override
   void onClose() {
@@ -61,6 +76,7 @@ class RegisterController extends GetxController {
       email: email.text,
       password: password.text,
       fullName: fullName.text,
+      photo: profilePhoto.value,
     );
     if (created) {
       // The session is live the moment the server answers, so the sign-in form

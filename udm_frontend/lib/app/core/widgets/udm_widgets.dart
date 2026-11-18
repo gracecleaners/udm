@@ -572,7 +572,10 @@ class SectionHeader extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, size: 18, color: theme.colorScheme.primary),
+                    // `AppIcons.next` is this same glyph, but it lives in
+                    // `app_kit.dart`, which imports this file — naming it here
+                    // would close the import cycle.
+                    Icon(Icons.arrow_forward_rounded, size: 16, color: theme.colorScheme.primary),
                   ],
                 ),
               )

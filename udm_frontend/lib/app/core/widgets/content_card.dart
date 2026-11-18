@@ -46,7 +46,12 @@ class ContentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText(title, style: theme.textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+                AppText(
+                  title,
+                  style: theme.textTheme.titleMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 5),
                 Row(
                   children: [
@@ -142,29 +147,35 @@ class ScripturePanel extends StatelessWidget {
               ),
               // The verse is written over somebody else's picture, so the scrim
               // is what makes the card readable rather than a decoration.
-              const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim))),
+              const Positioned.fill(
+                child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim)),
+              ),
               if (compact)
                 Positioned.fill(child: ColoredBox(color: Colors.black.withValues(alpha: 0.22))),
             ] else
               Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.14)),
-            if (!compact) PositionedDirectional(
-              top: -18,
-              start: 6,
-              child: ExcludeSemantics(
-                child: Text(
-                  '“',
-                  style: TextStyle(
-                    fontFamily: AppFonts.scripture,
-                    fontSize: 132,
-                    height: 1,
-                    color: AppColors.white.withValues(alpha: 0.14),
+            if (!compact)
+              PositionedDirectional(
+                top: -18,
+                start: 6,
+                child: ExcludeSemantics(
+                  child: Text(
+                    '“',
+                    style: TextStyle(
+                      fontFamily: AppFonts.scripture,
+                      fontSize: 132,
+                      height: 1,
+                      color: AppColors.white.withValues(alpha: 0.14),
+                    ),
                   ),
                 ),
               ),
-            ),
             if (compact)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.md,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -173,23 +184,40 @@ class ScripturePanel extends StatelessWidget {
                       children: [
                         const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
                         if (translationCode.isNotEmpty)
-                          AppText(translationCode.toUpperCase(), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+                          AppText(
+                            translationCode.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: Colors.white70),
+                          ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     AppText(
                       text,
-                      maxLines: 3,
+                      maxLines: 4,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.scriptureVerse(AppColors.white, size: 18).copyWith(
-                        height: 1.28,
-                        shadows: [Shadow(color: AppColors.ink.withValues(alpha: 0.45), blurRadius: 12)],
+                      style: AppTypography.scriptureVerse(AppColors.white, size: 22).copyWith(
+                        height: 1.3,
+                        shadows: [
+                          Shadow(color: AppColors.ink.withValues(alpha: 0.45), blurRadius: 12),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
-                        Expanded(child: AppText(reference, style: AppTypography.scriptureReference(Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        // The reference is the one address a student repeats, so
+                        // it is marked as scripture rather than left as bare text.
+                        const Icon(AppIcons.bookOpen, color: Colors.white70, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: AppText(
+                            reference,
+                            style: AppTypography.scriptureReference(Colors.white70),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (onReview != null)
                           // A kept verse answers with the mark itself rather
                           // than a disabled button, so it cannot be counted
@@ -212,7 +240,8 @@ class ScripturePanel extends StatelessWidget {
                               ),
                               label: AppText(
                                 'Keep',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: Colors.white),
                               ),
                             ),
                       ],
@@ -220,71 +249,83 @@ class ScripturePanel extends StatelessWidget {
                   ],
                 ),
               )
-            else Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
-                      if (offline)
-                        const OfflineChip(onDark: true)
-                      else if (translationCode.isNotEmpty)
-                        MetaPill(label: translationCode.toUpperCase(), onDark: true),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppText(
-                    text,
-                    style: AppTypography.scriptureVerse(AppColors.white, size: 21).copyWith(
-                      shadows: [Shadow(color: AppColors.ink.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 3))],
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Eyebrow('Memory verse', color: Colors.white70)),
+                        if (offline)
+                          const OfflineChip(onDark: true)
+                        else if (translationCode.isNotEmpty)
+                          MetaPill(label: translationCode.toUpperCase(), onDark: true),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  const GoldRule(width: 64),
-                  const SizedBox(height: AppSpacing.sm),
-                  AppText(
-                    reference,
-                    style: AppTypography.scriptureReference(Colors.white70),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (onReview != null || (ctaLabel != null && onTap != null)) ...[
                     const SizedBox(height: AppSpacing.md),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (onReview != null)
-                            if (memorized)
-                              const MetaPill(
-                                label: 'Memorized',
-                                icon: AppIcons.checkCircle,
-                                onDark: true,
-                              )
-                            else
-                              GhostButton(
-                                key: const Key('udm.markMemorized'),
-                                label: savingReview ? 'Saving…' : 'Mark memorized',
-                                icon: AppIcons.verify,
-                                onTap: savingReview ? null : onReview,
-                              ),
-                          if (ctaLabel != null && onTap != null)
-                            GhostButton(
-                              label: ctaLabel!,
-                              icon: AppIcons.bookmarkBorder,
-                              onTap: onTap,
-                            ),
+                    AppText(
+                      text,
+                      style: AppTypography.scriptureVerse(AppColors.white, size: 21).copyWith(
+                        shadows: [
+                          Shadow(
+                            color: AppColors.ink.withValues(alpha: 0.35),
+                            blurRadius: 18,
+                            offset: const Offset(0, 3),
+                          ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                    const GoldRule(width: 64),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppText(
+                      reference,
+                      style: AppTypography.scriptureReference(Colors.white70),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (onReview != null || (ctaLabel != null && onTap != null)) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (onReview != null)
+                              if (memorized)
+                                const MetaPill(
+                                  label: 'Memorized',
+                                  icon: AppIcons.checkCircle,
+                                  onDark: true,
+                                )
+                              else
+                                GhostButton(
+                                  key: const Key('udm.markMemorized'),
+                                  label: savingReview ? 'Saving…' : 'Mark memorized',
+                                  icon: AppIcons.verify,
+                                  onTap: savingReview ? null : onReview,
+                                ),
+                            if (ctaLabel != null && onTap != null)
+                              GhostButton(
+                                label: ctaLabel!,
+                                icon: AppIcons.bookmarkBorder,
+                                onTap: onTap,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),

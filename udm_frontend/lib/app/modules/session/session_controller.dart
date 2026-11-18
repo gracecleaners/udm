@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/failure.dart';
@@ -60,7 +61,8 @@ class SessionController extends GetxController {
       // the last downloaded one rather than pretending it is live.
       if (profile.value != null) {
         status.value = SessionStatus.signedIn;
-        notice.value = 'Profile shown as last downloaded. You appear to be offline.';
+        notice.value =
+            'Profile shown as last downloaded. You appear to be offline.';
       } else {
         status.value = SessionStatus.signedOut;
         error.value = failure.message;
@@ -71,9 +73,19 @@ class SessionController extends GetxController {
   Future<bool> signIn(String email, String password) =>
       _attempt(() => _auth.signIn(email: email.trim(), password: password));
 
-  Future<bool> register({required String email, required String password, required String fullName}) => _attempt(
-        () => _auth.register(email: email.trim(), password: password, fullName: fullName.trim()),
-      );
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String fullName,
+    XFile? photo,
+  }) => _attempt(
+    () => _auth.register(
+      email: email.trim(),
+      password: password,
+      fullName: fullName.trim(),
+      photo: photo,
+    ),
+  );
 
   Future<bool> save(UserProfile draft) => _attempt(() => _auth.save(draft));
 
@@ -84,9 +96,7 @@ class SessionController extends GetxController {
     status.value = SessionStatus.signedOut;
     profile.value = null;
     error.value = '';
-    notice.value = revoked
-        ? ''
-        : 'Signed out on this device. The server could not be reached, so this session was not revoked there.';
+    notice.value = revoked ? '' : 'Signed out on this device. The server could not be reached, so this session was not revoked there.';
   }
 
   void clearMessages() {

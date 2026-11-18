@@ -1,8 +1,12 @@
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
+
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
@@ -35,7 +39,12 @@ class RegisterView extends GetView<RegisterController> {
           SafeArea(
             top: false,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 76, AppSpacing.screen, AppSpacing.xl),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                76,
+                AppSpacing.screen,
+                AppSpacing.xl,
+              ),
               child: Centered(
                 child: Panel(
                   padding: const EdgeInsets.all(AppSpacing.lg),
@@ -64,7 +73,12 @@ class RegisterView extends GetView<RegisterController> {
                           style: theme.textTheme.bodyMedium,
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        NameField(controller: controller.fullName, autofocus: true),
+                        _ProfilePhotoPicker(controller: controller),
+                        const SizedBox(height: AppSpacing.lg),
+                        NameField(
+                          controller: controller.fullName,
+                          autofocus: true,
+                        ),
                         const SizedBox(height: AppSpacing.md),
                         EmailField(controller: controller.email),
                         const SizedBox(height: AppSpacing.md),
@@ -83,23 +97,32 @@ class RegisterView extends GetView<RegisterController> {
                           controller: controller.confirmation,
                           revealed: controller.confirmationRevealed,
                           label: 'Confirm password',
-                          validator: (value) => AuthValidators.matches(controller.password.text)(value),
+                          validator: (value) => AuthValidators.matches(
+                            controller.password.text,
+                          )(value),
                           onSubmitted: (_) => controller.submit(),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         Obx(
-                          () => NoticeBanner(message: controller.session.error.value, tone: NoticeTone.problem),
+                          () => NoticeBanner(
+                            message: controller.session.error.value,
+                            tone: NoticeTone.problem,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         Obx(
                           () => FilledButton.icon(
                             key: const Key('udm.register'),
-                            onPressed: controller.session.busy.value ? null : controller.submit,
+                            onPressed: controller.session.busy.value
+                                ? null
+                                : controller.submit,
                             icon: controller.session.busy.value
                                 ? const BusyMark()
                                 : const Icon(AppIcons.personAdd, size: 18),
                             label: AppText(
-                              controller.session.busy.value ? 'Creating account…' : 'Create account',
+                              controller.session.busy.value
+                                  ? 'Creating account…'
+                                  : 'Create account',
                             ),
                           ),
                         ),
@@ -125,3 +148,77 @@ class RegisterView extends GetView<RegisterController> {
   }
 }
 
+class _ProfilePhotoPicker extends StatelessWidget {
+  const _ProfilePhotoPicker({required this.controller});
+
+  final RegisterController controller;
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final photo = controller.profilePhoto.value;
+    return Column(
+      children: [
+        Semantics(
+          button: true,
+          label: photo == null
+              ? 'Add profile picture'
+              : 'Change profile picture',
+          child: InkWell(
+            onTap: controller.chooseProfilePhoto,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 104,
+              height: 104,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppGradients.hero,
+                boxShadow: AppShadows.glow(
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              child: ClipOval(
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: photo == null
+                      ? Icon(
+                          AppIcons.person,
+                          size: 44,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : FutureBuilder<Uint8List>(
+                          future: photo.readAsBytes(),
+                          builder: (context, snapshot) => snapshot.hasData
+                              ? Image.memory(snapshot.data!, fit: BoxFit.cover)
+                              : const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton.icon(
+          onPressed: controller.chooseProfilePhoto,
+          icon: const Icon(AppIcons.add, size: 18),
+          label: AppText(
+            photo == null ? 'Add profile picture' : 'Change picture',
+          ),
+        ),
+        if (photo != null)
+          TextButton(
+            onPressed: controller.removeProfilePhoto,
+            child: const AppText('Remove picture'),
+          ),
+        const AppText(
+          'Optional · JPG or PNG · up to 5 MB',
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  });
+}

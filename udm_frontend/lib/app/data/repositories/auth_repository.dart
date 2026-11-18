@@ -1,4 +1,7 @@
 import '../../core/network/failure.dart';
+
+import 'package:image_picker/image_picker.dart';
+
 import '../../core/storage/local_cache.dart';
 import '../../core/storage/token_store.dart';
 import '../models/session.dart';
@@ -20,7 +23,10 @@ class AuthRepository {
 
   Future<bool> hasSession() async => await _store.read() != null;
 
-  Future<UserProfile> signIn({required String email, required String password}) async {
+  Future<UserProfile> signIn({
+    required String email,
+    required String password,
+  }) async {
     final session = await _api.signIn(email: email, password: password);
     return _open(session);
   }
@@ -29,8 +35,15 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
+    XFile? photo,
   }) async {
-    final session = await _api.register(email: email, password: password, fullName: fullName);
+    final session = await _api.register(
+      email: email,
+      password: password,
+      fullName: fullName,
+      photoPath: photo?.path,
+      photoName: photo?.name,
+    );
     return _open(session);
   }
 

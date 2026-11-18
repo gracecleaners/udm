@@ -86,21 +86,21 @@ class HomeView extends GetView<HomeController> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
               child: FadeIn(
-                delay: const Duration(milliseconds: 90),
-                child: const _TodaysActivities(),
+                delay: const Duration(milliseconds: 120),
+                child: const _QuickAccessGrid(),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
               child: FadeIn(
-                delay: const Duration(milliseconds: 120),
-                child: QuickActionGrid(actions: _shortcuts()),
+                delay: const Duration(milliseconds: 150),
+                child: const _TodaysActivities(),
               ),
             ),
             if (controller.data?.articles.isNotEmpty ?? false) ...[
               const SizedBox(height: AppSpacing.xl),
-              const RailHeader(eyebrow: 'Deepen', title: 'Latest reading'),
+              const RailHeader(eyebrow: 'Deepen', title: 'Latest articles'),
               DiscoveryRail(
                 children: controller.data!.articles
                     .map(
@@ -153,22 +153,6 @@ class HomeView extends GetView<HomeController> {
       ),
     ),
   );
-
-  /// The three home doors the ministry asked for. The five-tab navigation
-  /// stays separate, so nothing here repeats what the bar already carries.
-  List<QuickAction> _shortcuts() => [
-    QuickAction(label: 'Courses', icon: AppIcons.school, onTap: _openCourses),
-    QuickAction(
-      label: 'Articles',
-      icon: AppIcons.book,
-      onTap: () => Get.toNamed(AppRoutes.articles),
-    ),
-    QuickAction(
-      label: 'New Believer',
-      icon: AppIcons.sparkles,
-      onTap: () => Get.toNamed(AppRoutes.newBeliever),
-    ),
-  ];
 
   /// Courses is a screen of its own, not a section of the feed, so both doors
   /// into it go to the same route.
@@ -233,6 +217,15 @@ class _Greeting extends GetView<HomeController> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
+                  AppText(
+                    'Grow deeper. Walk closer.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.78),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (controller.isOfflineCopy) ...[
                     const SizedBox(height: AppSpacing.xs),
                     const OfflineChip(onDark: true),
@@ -256,6 +249,143 @@ class _Greeting extends GetView<HomeController> {
       );
     });
   }
+}
+
+/// Four compact, two-column doors keep the home page's most common journeys
+/// visible without duplicating the shared bottom navigation.
+class _QuickAccessGrid extends StatelessWidget {
+  const _QuickAccessGrid();
+
+  static const List<_QuickAccessItem> _items = [
+    _QuickAccessItem(
+      title: 'Courses',
+      subtitle: 'Guided learning',
+      icon: AppIcons.school,
+      tint: AppColors.primaryBlue,
+      onTap: HomeView._openCourses,
+    ),
+    _QuickAccessItem(
+      title: 'Articles',
+      subtitle: 'Ideas for your walk',
+      icon: AppIcons.book,
+      tint: AppColors.royalBlue,
+      onTap: _openArticles,
+    ),
+    _QuickAccessItem(
+      title: 'New Believer',
+      subtitle: 'Start strong in faith',
+      icon: AppIcons.sparkles,
+      tint: AppColors.gold,
+      onTap: _openNewBeliever,
+    ),
+    _QuickAccessItem(
+      title: 'Media',
+      subtitle: 'Watch and listen',
+      icon: AppIcons.play,
+      tint: AppColors.deepBlue,
+      onTap: _openMedia,
+    ),
+  ];
+
+  static void _openArticles() => Get.toNamed(AppRoutes.articles);
+  static void _openNewBeliever() => Get.toNamed(AppRoutes.newBeliever);
+  static void _openMedia() => Get.find<ShellController>().select(ShellController.learnTab);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaces = theme.extension<AppSurfaces>()!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppText(
+          'Quick access',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tileWidth = (constraints.maxWidth - AppSpacing.sm) / 2;
+            return Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final item in _items)
+                  SizedBox(
+                    width: tileWidth,
+                    child: Panel(
+                      onTap: item.onTap,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          surfaces.elevated,
+                          item.tint.withValues(alpha: theme.brightness == Brightness.dark ? 0.18 : 0.075),
+                        ],
+                      ),
+                      child: SizedBox(
+                        height: 94,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: item.tint.withValues(alpha: theme.brightness == Brightness.dark ? 0.28 : 0.13),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+                                  ),
+                                  child: Icon(item.icon, color: item.tint, size: 21),
+                                ),
+                                const Spacer(),
+                                Icon(AppIcons.chevron, size: 20, color: item.tint),
+                              ],
+                            ),
+                            const Spacer(),
+                            AppText(
+                              item.title,
+                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            AppText(
+                              item.subtitle,
+                              style: theme.textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAccessItem {
+  const _QuickAccessItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.tint,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color tint;
+  final VoidCallback onTap;
 }
 
 class _NotificationBell extends GetView<NotificationsController> {
@@ -358,7 +488,7 @@ class _TodaysReading extends GetView<HomeController> {
                 // second list the app would have to keep in step.
                 key: const Key('udm.home.readingPlans'),
                 onPressed: () => Get.find<ShellController>().select(ShellController.bibleTab),
-                child: const AppText('See all'),
+                child: const _SeeAll(),
               ),
             ],
           ),
@@ -399,7 +529,8 @@ class _TodaysReading extends GetView<HomeController> {
                     ],
                   ),
                 ),
-                Icon(AppIcons.chevron, color: theme.colorScheme.primary, size: 22),
+                const SizedBox(width: AppSpacing.sm),
+                const _OpenCircle(),
               ],
             ),
           ),
@@ -407,6 +538,22 @@ class _TodaysReading extends GetView<HomeController> {
       );
     });
   }
+}
+
+/// The round blue door on the reference's continue-reading card. It is drawn
+/// rather than wired: the whole card already opens the day, so a second tap
+/// target inside it would only compete with the first.
+class _OpenCircle extends StatelessWidget {
+  const _OpenCircle();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 44,
+    height: 44,
+    alignment: Alignment.center,
+    decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppGradients.hero),
+    child: const Icon(AppIcons.next, color: Colors.white, size: 20),
+  );
 }
 
 /// Today, as a list a student can finish. Each row is real content the server
@@ -431,6 +578,7 @@ class _TodaysActivities extends GetView<HomeController> {
           label: 'Daily devotional',
           title: payload!.devotion!.title,
           icon: AppIcons.sun,
+          artUrl: payload.devotion!.imageUrl,
           done: controller.isDone(payload.devotion!.id),
           onTap: () => controller.openDevotion(payload.devotion!.id),
         ),
@@ -439,6 +587,7 @@ class _TodaysActivities extends GetView<HomeController> {
           label: 'Verse to keep',
           title: payload!.memoryVerse!.reference,
           icon: AppIcons.memory,
+          artUrl: payload.memoryVerse!.imageUrl,
           done: controller.verseMemorized,
           onTap: controller.markMemorized,
         ),
@@ -447,6 +596,7 @@ class _TodaysActivities extends GetView<HomeController> {
           label: 'Reading for today',
           title: payload!.articles.first.title,
           icon: AppIcons.book,
+          artUrl: payload.articles.first.imageUrl,
           done: controller.isDone(payload.articles.first.id),
           onTap: () => controller.openArticle(payload.articles.first.id),
         ),
@@ -475,7 +625,7 @@ class _TodaysActivities extends GetView<HomeController> {
               TextButton(
                 key: const Key('udm.home.activityHistory'),
                 onPressed: () => Get.toNamed(AppRoutes.readingHistory),
-                child: const AppText('See all'),
+                child: const _SeeAll(),
               ),
             ],
           ),
@@ -484,18 +634,41 @@ class _TodaysActivities extends GetView<HomeController> {
             PressableScale(
               onTap: row.onTap,
               borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-              child: Padding(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.xs),
                 padding: const EdgeInsets.symmetric(
                   vertical: AppSpacing.sm,
                   horizontal: AppSpacing.xs,
                 ),
+                decoration: BoxDecoration(
+                  // A finished row is the one worth seeing first, so it carries
+                  // the same green the tick does rather than a bare icon.
+                  color: row.done ? AppColors.success.withValues(alpha: 0.10) : null,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
+                ),
                 child: Row(
                   children: [
-                    IconBadge(
-                      icon: row.icon,
-                      size: 38,
-                      tone: row.done ? IconBadgeTone.success : IconBadgeTone.brand,
-                    ),
+                    if (row.artUrl.isEmpty)
+                      IconBadge(
+                        icon: row.icon,
+                        size: 44,
+                        tone: row.done ? IconBadgeTone.success : IconBadgeTone.brand,
+                      )
+                    else
+                      // The item's own published picture, cut to the round the
+                      // reference uses, falling back to the brand tile when the
+                      // bytes are not there to load.
+                      ClipOval(
+                        child: CoverArt(
+                          url: row.artUrl,
+                          monogram: UdmAvatar.initialsFor(row.title),
+                          icon: row.icon,
+                          width: 44,
+                          height: 44,
+                          radius: 22,
+                          monogramSize: 18,
+                        ),
+                      ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Column(
@@ -517,14 +690,24 @@ class _TodaysActivities extends GetView<HomeController> {
                         ],
                       ),
                     ),
-                    Icon(
-                      row.done ? AppIcons.checkCircle : AppIcons.circle,
-                      size: 22,
-                      color: row.done
-                          ? AppColors.success
-                          : (theme.textTheme.bodySmall?.color ?? AppColors.secondaryText)
-                                .withValues(alpha: 0.5),
-                    ),
+                    if (row.done)
+                      Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(AppIcons.check, size: 17, color: Colors.white),
+                      )
+                    else
+                      Icon(
+                        AppIcons.circle,
+                        size: 22,
+                        color: (theme.textTheme.bodySmall?.color ?? AppColors.secondaryText)
+                            .withValues(alpha: 0.5),
+                      ),
                   ],
                 ),
               ),
@@ -544,6 +727,7 @@ class _ActivityRow {
     required this.icon,
     required this.done,
     required this.onTap,
+    this.artUrl = '',
   });
 
   final String label;
@@ -551,6 +735,29 @@ class _ActivityRow {
   final IconData icon;
   final bool done;
   final VoidCallback onTap;
+
+  /// The picture staff published for this item, empty when they published none.
+  final String artUrl;
+}
+
+/// The header's whole-group door, drawn the way the reference draws it: the
+/// word in brand blue with a short arrow after it.
+class _SeeAll extends StatelessWidget {
+  const _SeeAll();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      AppText(
+        'See all',
+        style: Theme.of(context).textTheme.labelMedium
+            ?.copyWith(color: Theme.of(context).colorScheme.primary),
+      ),
+      const SizedBox(width: 2),
+      Icon(AppIcons.next, size: 16, color: Theme.of(context).colorScheme.primary),
+    ],
+  );
 }
 
 /// One row of the "Courses" list. The row is the guide's own name, not a
