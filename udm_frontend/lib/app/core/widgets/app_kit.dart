@@ -42,6 +42,7 @@ abstract class AppIcons {
   static const verify = Icons.fact_check_rounded;
   static const bookmarks = Icons.bookmarks_rounded;
   static const memory = Icons.psychology_rounded;
+  static const crown = Icons.workspace_premium_rounded;
   static const delete = Icons.delete_outline_rounded;
   static const play = Icons.play_arrow_rounded;
   static const playCircle = Icons.play_circle_outline_rounded;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_art.dart';
 import '../theme/app_theme.dart';
 import 'app_kit.dart';
 import 'app_text.dart';
@@ -123,6 +124,7 @@ class ScripturePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasArt = artUrl.isNotEmpty;
+    if (compact) return _compactCard(context, hasArt);
     return PressableScale(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
@@ -388,4 +390,383 @@ class ScripturePanel extends StatelessWidget {
       ),
     );
   }
+
+  Widget _compactCard(BuildContext context, bool hasArt) {
+    final cardHeight = (MediaQuery.sizeOf(context).width * .56).clamp(
+      210.0,
+      238.0,
+    );
+    final width = MediaQuery.sizeOf(context).width;
+    final quoteInset = (width * .22).clamp(64.0, 86.0);
+    return PressableScale(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(28),
+      child: PhysicalShape(
+        clipper: const _HeroCardClipper(),
+        color: AppColors.deepBlue,
+        elevation: 11,
+        shadowColor: const Color(0x6680B9FF),
+        child: SizedBox(
+          height: cardHeight,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasArt)
+                CoverArt(
+                  url: artUrl,
+                  monogram: '',
+                  radius: 0,
+                  gradient: AppGradients.scripture,
+                )
+              else
+                Image.asset(
+                  AppArt.splash,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(.18, -.12),
+                ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xD4102B50),
+                      Color(0x9E102B50),
+                      Color(0x17102B50),
+                    ],
+                    stops: [0, .56, 1],
+                  ),
+                ),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Color(0x7607172E), Colors.transparent],
+                    stops: [0, .5],
+                  ),
+                ),
+              ),
+              if (!hasArt)
+                const Positioned(
+                  right: 20,
+                  top: 20,
+                  width: 94,
+                  height: 164,
+                  child: CustomPaint(painter: _HeroCrossPainter()),
+                ),
+              const Positioned(
+                left: 0,
+                top: 0,
+                width: 96,
+                height: 88,
+                child: CustomPaint(painter: _VerseLeavesPainter()),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(17, 16, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 31,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F7FF),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            AppIcons.bookOpen,
+                            size: 19,
+                            color: AppColors.deepBlue,
+                          ),
+                          const SizedBox(width: 7),
+                          Text(
+                            'MEMORY VERSE',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: AppColors.deepBlue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: .15,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 11),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: quoteInset),
+                        child: _HighlightedVerse(
+                          text: text,
+                          fontSize: (width * .048).clamp(18.0, 21.0),
+                        ),
+                      ),
+                    ),
+                    const GoldRule(width: 38, height: 2.5),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppText(
+                            reference,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: AppFonts.ui,
+                              fontSize: 15.5,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (ctaLabel != null && onTap != null) ...[
+                          const SizedBox(width: 7),
+                          SizedBox(
+                            width: 112,
+                            height: 34,
+                            child: OutlinedButton.icon(
+                              onPressed: onTap,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(
+                                  color: Colors.white,
+                                  width: 1.2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                shape: const StadiumBorder(),
+                                backgroundColor: const Color(0x22071125),
+                              ),
+                              icon: const Icon(AppIcons.next, size: 15),
+                              label: Text(
+                                ctaLabel!,
+                                maxLines: 1,
+                                style: const TextStyle(
+                                  fontFamily: AppFonts.ui,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    const Center(child: _HeroPageIndicators()),
+                  ],
+                ),
+              ),
+              if (onReview != null)
+                Positioned(
+                  right: 7,
+                  top: 6,
+                  child: IconButton(
+                    key: const Key('udm.markMemorized'),
+                    tooltip: memorized ? 'Memorized' : 'Keep this verse',
+                    onPressed: savingReview || memorized ? null : onReview,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      memorized ? AppIcons.checkCircle : AppIcons.bookmarkAdd,
+                      color: Colors.white,
+                      size: 19,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HighlightedVerse extends StatelessWidget {
+  const _HighlightedVerse({required this.text, required this.fontSize});
+
+  final String text;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final clean = text.trim().replaceAll(RegExp(r'^[“"]|[”"]$'), '');
+    final base = TextStyle(
+      fontFamily: AppFonts.ui,
+      color: Colors.white,
+      fontWeight: FontWeight.w700,
+      fontSize: fontSize,
+      height: 1.22,
+      letterSpacing: -.25,
+      shadows: const [Shadow(color: Color(0xB3071125), blurRadius: 10)],
+    );
+    final spans = <TextSpan>[const TextSpan(text: '“')];
+    final pattern = RegExp(r'vision|law', caseSensitive: false);
+    var cursor = 0;
+    for (final match in pattern.allMatches(clean)) {
+      if (match.start > cursor)
+        spans.add(TextSpan(text: clean.substring(cursor, match.start)));
+      spans.add(
+        TextSpan(
+          text: match.group(0),
+          style: const TextStyle(color: Color(0xFFFFC000)),
+        ),
+      );
+      cursor = match.end;
+    }
+    if (cursor < clean.length)
+      spans.add(TextSpan(text: clean.substring(cursor)));
+    spans.add(const TextSpan(text: '”'));
+    return Text.rich(
+      TextSpan(style: base, children: spans),
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+class _HeroPageIndicators extends StatelessWidget {
+  const _HeroPageIndicators();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (var i = 0; i < 3; i++) ...[
+        if (i > 0) const SizedBox(width: 9),
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: i == 0 ? 1 : .45),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+class _HeroCardClipper extends CustomClipper<Path> {
+  const _HeroCardClipper();
+
+  @override
+  Path getClip(Size size) => Path()
+    ..moveTo(0, 25)
+    ..quadraticBezierTo(0, 0, 25, 0)
+    ..lineTo(size.width - 25, 0)
+    ..quadraticBezierTo(size.width, 0, size.width, 25)
+    ..lineTo(size.width, size.height - 36)
+    ..cubicTo(
+      size.width * .8,
+      size.height - 2,
+      size.width * .28,
+      size.height - 1,
+      0,
+      size.height - 25,
+    )
+    ..close();
+
+  @override
+  bool shouldReclip(covariant _HeroCardClipper oldClipper) => false;
+}
+
+class _HeroCrossPainter extends CustomPainter {
+  const _HeroCrossPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shadow = Paint()
+      ..color = const Color(0x77071325)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+    final upright = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        size.width * .44,
+        size.height * .04,
+        size.width * .14,
+        size.height * .9,
+      ),
+      const Radius.circular(2),
+    );
+    final beam = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        size.width * .08,
+        size.height * .29,
+        size.width * .84,
+        size.height * .13,
+      ),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(upright.shift(const Offset(3, 4)), shadow);
+    canvas.drawRRect(beam.shift(const Offset(3, 4)), shadow);
+    final wood = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF63391F), Color(0xFFC08B51), Color(0xFF63391F)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(upright, wood);
+    canvas.drawRRect(beam, wood);
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeroCrossPainter oldDelegate) => false;
+}
+
+class _VerseLeavesPainter extends CustomPainter {
+  const _VerseLeavesPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stem = Paint()
+      ..color = const Color(0xFF54883C)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(
+      Path()
+        ..moveTo(-5, 4)
+        ..quadraticBezierTo(35, 29, 87, 78),
+      stem,
+    );
+    const colors = [
+      Color(0xFF4E923F),
+      Color(0xFF77A847),
+      Color(0xFF2F7541),
+      Color(0xFF93B954),
+    ];
+    for (var i = 0; i < 6; i++) {
+      final t = (i + 1) / 7;
+      final point = Offset(7 + t * 76, 7 + t * 67);
+      final side = i.isEven ? 1.0 : -1.0;
+      final leaf = Path()
+        ..moveTo(point.dx, point.dy)
+        ..quadraticBezierTo(
+          point.dx + side * 19,
+          point.dy - 18,
+          point.dx + side * 26,
+          point.dy - 9,
+        )
+        ..quadraticBezierTo(
+          point.dx + side * 17,
+          point.dy + 3,
+          point.dx,
+          point.dy,
+        )
+        ..close();
+      canvas.drawPath(
+        leaf,
+        Paint()..color = colors[i % colors.length].withValues(alpha: .9),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VerseLeavesPainter oldDelegate) => false;
 }

@@ -35,7 +35,9 @@ class ShellView extends GetView<ShellController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Obx(() => IndexedStack(index: controller.tab.value, children: tabs)),
+      body: Obx(
+        () => IndexedStack(index: controller.tab.value, children: tabs),
+      ),
       bottomNavigationBar: Obx(
         () => _TabBar(
           key: const Key('udm.tabBar'),
@@ -78,54 +80,145 @@ class _TabBar extends StatelessWidget {
     final surfaces = theme.extension<AppSurfaces>()!;
 
     return Material(
-      color: surfaces.elevated,
+      color: Colors.transparent,
       elevation: 0,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.md),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: surfaces.elevated,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
-              border: Border.all(color: surfaces.hairline),
-              boxShadow: AppShadows.raised(surfaces.shadowTint, dark: theme.brightness == Brightness.dark),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(painter: _NavBackdropPainter()),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) => Stack(
-                children: [
-                  AnimatedPositionedDirectional(
-                    duration: AppMotion.quick,
-                    curve: AppMotion.standard,
-                    top: AppSpacing.sm,
-                    bottom: AppSpacing.sm,
-                    start: constraints.maxWidth / items.length * index,
-                    width: constraints.maxWidth / items.length,
-                    child: const _ActivePill(),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: surfaces.elevated,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
+                  border: Border.all(color: surfaces.hairline),
+                  boxShadow: AppShadows.raised(
+                    surfaces.shadowTint,
+                    dark: theme.brightness == Brightness.dark,
                   ),
-                  Row(
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Stack(
                     children: [
-                      for (var i = 0; i < items.length; i++)
-                        Expanded(
-                          child: _TabItem(
-                            tab: items[i],
-                            selected: i == index,
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              onSelect(i);
-                            },
-                          ),
-                        ),
+                      AnimatedPositionedDirectional(
+                        duration: AppMotion.quick,
+                        curve: AppMotion.standard,
+                        top: AppSpacing.sm,
+                        bottom: AppSpacing.sm,
+                        start: constraints.maxWidth / items.length * index,
+                        width: constraints.maxWidth / items.length,
+                        child: const _ActivePill(),
+                      ),
+                      Row(
+                        children: [
+                          for (var i = 0; i < items.length; i++)
+                            Expanded(
+                              child: _TabItem(
+                                tab: items[i],
+                                selected: i == index,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  onSelect(i);
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+class _NavBackdropPainter extends CustomPainter {
+  const _NavBackdropPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height * .28)
+      ..cubicTo(
+        size.width * .18,
+        0,
+        size.width * .27,
+        size.height * .68,
+        size.width * .5,
+        size.height * .35,
+      )
+      ..cubicTo(
+        size.width * .7,
+        size.height * .02,
+        size.width * .84,
+        size.height * .72,
+        size.width,
+        size.height * .22,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()..color = const Color(0xFF75C5FF).withValues(alpha: .30),
+    );
+    final second = Path()
+      ..moveTo(0, size.height * .56)
+      ..cubicTo(
+        size.width * .2,
+        size.height * .28,
+        size.width * .38,
+        size.height * .82,
+        size.width * .58,
+        size.height * .48,
+      )
+      ..cubicTo(
+        size.width * .76,
+        size.height * .19,
+        size.width * .91,
+        size.height * .72,
+        size.width,
+        size.height * .4,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      second,
+      Paint()..color = const Color(0xFFBDE3FF).withValues(alpha: .58),
+    );
+    final leaf = Paint()
+      ..color = const Color(0xFF55A34D).withValues(alpha: .85);
+    for (var i = 0; i < 4; i++) {
+      final center = Offset(
+        size.width - 16 - i * 14,
+        size.height - 10 - i * 16,
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: center, width: 22, height: 9),
+        leaf,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _NavBackdropPainter oldDelegate) => false;
 }
 
 /// The pill the selected tab sits in. It is one widget moved by
@@ -136,17 +229,21 @@ class _ActivePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(
-          gradient: AppGradients.hero,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusField),
-          boxShadow: AppShadows.glow(AppColors.primaryBlue),
-        ),
-      );
+    margin: const EdgeInsets.symmetric(horizontal: 3),
+    decoration: BoxDecoration(
+      gradient: AppGradients.hero,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusField),
+      boxShadow: AppShadows.glow(AppColors.primaryBlue),
+    ),
+  );
 }
 
 class _TabItem extends StatelessWidget {
-  const _TabItem({required this.tab, required this.selected, required this.onTap});
+  const _TabItem({
+    required this.tab,
+    required this.selected,
+    required this.onTap,
+  });
 
   final _Tab tab;
   final bool selected;
@@ -172,7 +269,9 @@ class _TabItem extends StatelessWidget {
                   tab.icon,
                   key: ValueKey(selected),
                   size: 22,
-                  color: selected ? AppColors.white : theme.textTheme.bodySmall?.color,
+                  color: selected
+                      ? AppColors.white
+                      : theme.textTheme.bodySmall?.color,
                 ),
               ),
               const SizedBox(height: 3),
@@ -186,7 +285,9 @@ class _TabItem extends StatelessWidget {
                     fontSize: 10.5,
                     letterSpacing: 0.1,
                     fontWeight: FontWeight.w700,
-                    color: selected ? AppColors.white : theme.textTheme.bodySmall?.color,
+                    color: selected
+                        ? AppColors.white
+                        : theme.textTheme.bodySmall?.color,
                   ),
                 ),
               ),
@@ -197,4 +298,3 @@ class _TabItem extends StatelessWidget {
     );
   }
 }
-
