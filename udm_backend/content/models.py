@@ -407,6 +407,7 @@ class UserContentProgress(TimestampedModel):
 
 class BibleTranslation(TimestampedModel):
     code = models.CharField(max_length=40, unique=True)
+    provider_id = models.CharField(max_length=80, blank=True, default="")
     name = models.CharField(max_length=120)
     license_name = models.CharField(max_length=160)
     attribution = models.TextField()

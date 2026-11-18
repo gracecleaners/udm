@@ -28,6 +28,7 @@ abstract class AppIcons {
   static const next = Icons.arrow_forward_rounded;
   static const chevron = Icons.chevron_right_rounded;
   static const chevronUp = Icons.keyboard_arrow_up_rounded;
+  static const chevronDown = Icons.keyboard_arrow_down_rounded;
   static const check = Icons.check_rounded;
   static const checkCircle = Icons.check_circle_rounded;
   static const circle = Icons.radio_button_unchecked_rounded;
@@ -36,6 +37,7 @@ abstract class AppIcons {
   static const camera = Icons.camera_alt_rounded;
   static const note = Icons.edit_note_rounded;
   static const share = Icons.share_rounded;
+  static const copy = Icons.copy_rounded;
   static const download = Icons.download_rounded;
   static const bookmark = Icons.bookmark_rounded;
   static const bookmarkBorder = Icons.bookmark_border_rounded;

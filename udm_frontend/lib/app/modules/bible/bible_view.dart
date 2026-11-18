@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/routes/app_routes.dart';
@@ -11,11 +13,11 @@ import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/verse_focus.dart';
 import '../settings/appearance_controller.dart';
-import '../settings/reading_size_sheet.dart';
+import '../shell/shell_controller.dart';
 import 'bible_controller.dart';
 
-/// Scripture in three motions: look a reference up, choose a book and chapter
-/// and read it, and keep what mattered.
+/// Scripture in three motions: choose a translation, book and chapter; read;
+/// then keep what mattered.
 ///
 /// The reading bar is the whole design problem here. A dropdown for the book
 /// and another for the chapter hide the size of the library behind two taps; a
@@ -26,119 +28,167 @@ class BibleView extends GetView<BibleController> {
 
   @override
   Widget build(BuildContext context) => Obx(() {
-        final theme = Theme.of(context);
+    final theme = Theme.of(context);
 
-        // The lookup path needs no synced catalog, so an empty catalog only
-        // blocks the tab when the server also told us nothing about versions.
-        if (controller.translations.isEmpty && controller.sources.isEmpty) {
-          if (controller.busy.value) {
-            return const CenteredSlot(child: UdmProgress(label: 'Loading licensed translations…'));
-          }
-          return _Problem(
-            message: controller.message.value.isEmpty
-                ? 'No licensed translations are available yet.'
-                : controller.message.value,
-            retry: controller.load,
-          );
-        }
-        final translation = controller.translations.firstWhereOrNull(
-          (t) => t['code'] == controller.selectedTranslation.value,
+    if (controller.translations.isEmpty) {
+      if (controller.busy.value) {
+        return const CenteredSlot(
+          child: UdmProgress(label: 'Loading English Bible versions…'),
         );
-        final verses = (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const [];
+      }
+      return _Problem(
+        message: controller.message.value.isEmpty
+            ? 'No licensed translations are available yet.'
+            : controller.message.value,
+        retry: controller.load,
+      );
+    }
+    final translation = controller.translations.firstWhereOrNull(
+      (t) => t['code'] == controller.selectedTranslation.value,
+    );
+    final verses =
+        (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const [];
 
-        return RefreshIndicator(
-          onRefresh: controller.load,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-            children: [
+    return RefreshIndicator(
+      onRefresh: controller.load,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.axis == Axis.vertical &&
+              notification.metrics.maxScrollExtent > 0) {
+            controller.readingProgress.value =
+                (notification.metrics.pixels /
+                        notification.metrics.maxScrollExtent)
+                    .clamp(0, 1)
+                    .toDouble();
+          }
+          return false;
+        },
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+          children: [
+            _Header(),
+            if (controller.offline.value) ...[
+              const SizedBox(height: AppSpacing.sm),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                child: _Header(translation: translation, offline: controller.offline.value),
-              ),
-              if (controller.offline.value) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  // The full sentence needs the width a pill cannot give it: this
-                  // chapter is on the device, not on the network.
-                  child: const NoticeBanner(message: 'Offline copy · saved on this device'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
                 ),
-              ],
+                // The full sentence needs the width a pill cannot give it: this
+                // chapter is on the device, not on the network.
+                child: const NoticeBanner(
+                  message: 'Offline copy · saved on this device',
+                ),
+              ),
+            ],
+            if (translation != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              _ReadingBar(controller: controller),
+            ],
+            if (controller.message.value.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: AppText(
+                  controller.message.value,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
+            if (translation == null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: AppText(
+                  'No translation has been synced into this deployment yet, so '
+                  'reading a whole chapter is not available yet.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ] else ...[
               const SizedBox(height: AppSpacing.lg),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                child: _ReferenceLookup(controller: controller, theme: theme),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: verses.isEmpty && controller.busy.value
+                    ? const _ReadingSkeleton()
+                    : _ScriptureBlock(
+                        heading: chapterHeading(controller),
+                        translationCode: '${translation['code'] ?? ''}',
+                        translationName: '${translation['name'] ?? ''}',
+                        verses: verses,
+                        attribution: '${translation['attribution'] ?? ''}',
+                      ),
               ),
-              if (translation != null) ...[
-                const SizedBox(height: AppSpacing.lg),
-                _ReadingBar(controller: controller, theme: theme),
-              ],
-              if (controller.message.value.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: AppText(controller.message.value, style: theme.textTheme.bodySmall),
-                ),
-              ],
-              if (translation == null) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: AppText(
-                    'No translation has been synced into this deployment yet, so '
-                    'reading a whole chapter is not possible. Reference lookup '
-                    'still works and opens licensed versions on an authorized site.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ] else ...[
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: verses.isEmpty && controller.busy.value
-                      ? const _ReadingSkeleton()
-                      : _ScriptureBlock(
-                          heading: chapterHeading(controller),
-                          translationCode: '${translation['code'] ?? ''}',
-                          verses: verses,
-                          attribution: '${translation['attribution'] ?? ''}',
-                        ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.xl),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                child: controller.session.isSignedIn
-                    ? _SavedVerses(controller: controller, theme: theme)
-                    : _KeepPrompt(theme: theme),
-              ),
-              if (controller.plans.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xl),
-                const RailHeader(eyebrow: 'Go with a group', title: 'Reading plans'),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: Column(
-                    children: [
-                      for (final plan in controller.plans)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _PlanCard(plan: plan, controller: controller, theme: theme),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-              if (translation != null) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-                  child: _Licensing(translation: translation, theme: theme),
-                ),
-              ],
             ],
-          ),
-        );
-      });
+            if (translation != null && verses.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: _ReaderActionBar(controller: controller, verses: verses),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: const _ReadingProgress(),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screen,
+              ),
+              child: controller.session.isSignedIn
+                  ? _SavedVerses(controller: controller, theme: theme)
+                  : _KeepPrompt(theme: theme),
+            ),
+            if (controller.plans.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              const RailHeader(
+                eyebrow: 'Go with a group',
+                title: 'Reading plans',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: Column(
+                  children: [
+                    for (final plan in controller.plans)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: _PlanCard(
+                          plan: plan,
+                          controller: controller,
+                          theme: theme,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            if (translation != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screen,
+                ),
+                child: _Licensing(translation: translation, theme: theme),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  });
 
   /// The chapter's own name, taken from the response the server sent rather
   /// than from what the pickers currently show.
@@ -152,302 +202,490 @@ class BibleView extends GetView<BibleController> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.translation, required this.offline});
-
-  final Map<String, dynamic>? translation;
-  final bool offline;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final row = translation;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Eyebrow('Licensed Scripture', color: theme.colorScheme.primary, icon: AppIcons.bible),
-              const SizedBox(height: 9),
-              AppText('Bible', style: AppTypography.editorialTitle(theme.textTheme.bodyLarge!.color!, size: 34)),
-              const SizedBox(height: 5),
-              AppText(
-                row == null
-                    ? 'Search any reference, or pick a translation to read through.'
-                    : '${row['name']} · ${row['license_name']}',
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+    final appearance = Get.find<AppearanceController>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+      child: Row(
+        children: [
+          _CircleHeaderButton(
+            icon: AppIcons.back,
+            label: 'Back to Home',
+            onTap: () =>
+                Get.find<ShellController>().select(ShellController.homeTab),
           ),
-        ),
-        if (offline) ...[
-          const SizedBox(width: AppSpacing.sm),
-          const MetaPill(label: 'Offline', icon: AppIcons.offline),
+          const SizedBox(width: 18),
+          const Expanded(
+            child: AppText(
+              'Bible',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.deepBlue,
+              ),
+            ),
+          ),
+          Obx(
+            () => _CircleHeaderButton(
+              icon: appearance.mode.value == ThemeMode.dark
+                  ? AppIcons.sun
+                  : AppIcons.moon,
+              label: 'Toggle appearance',
+              onTap: () => appearance.selectMode(
+                appearance.mode.value == ThemeMode.dark
+                    ? ThemeMode.light
+                    : ThemeMode.dark,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          _CircleHeaderButton(
+            icon: AppIcons.settings,
+            label: 'Bible settings',
+            onTap: () => Get.toNamed(AppRoutes.settings),
+          ),
         ],
-      ],
+      ),
     );
   }
 }
 
-/// Translation choice, then the canon itself: a testament, a book, a chapter.
-///
-/// Each control gets a share of the row rather than a fixed width, so a long
-/// book name cannot push a 320dp screen past its edge.
+class _CircleHeaderButton extends StatelessWidget {
+  const _CircleHeaderButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.lightBlue,
+    shape: const CircleBorder(),
+    child: InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Icon(icon, color: AppColors.deepBlue, size: 25),
+      ),
+    ),
+  );
+}
+
+/// Version, book, and chapter selectors use the same three simple levels as
+/// the reference: one long version capsule, a scrollable book row, and chapter
+/// previous/current/next controls.
 class _ReadingBar extends StatelessWidget {
-  const _ReadingBar({required this.controller, required this.theme});
-
+  const _ReadingBar({required this.controller});
   final BibleController controller;
-  final ThemeData theme;
-
-  static const _testaments = ['old', 'new'];
-  static const _testamentLabels = ['Old Testament', 'New Testament'];
 
   @override
   Widget build(BuildContext context) {
-    final books = controller.books;
-    // The testament is read off the book the student is already on, and the
-    // book rail is filtered by it: the pills are a lens on the canon, not a
-    // second selection the student has to keep in agreement with the first.
-    final present = [
-      for (final testament in _testaments)
-        if (books.any((b) => b['testament'] == testament)) testament,
-    ];
-    final selected = _testamentOf(controller.selectedBook.value, books) ??
-        (present.isEmpty ? null : present.first);
-    final shown = selected == null
-        ? books
-        : books.where((b) => b['testament'] == selected).toList();
+    final selectedTranslation = controller.translations.firstWhereOrNull(
+      (row) => row['code'] == controller.selectedTranslation.value,
+    );
+    final ordered = controller.books;
+    final selectedIndex = ordered.indexWhere(
+      (book) => controller.bookKey(book) == controller.selectedBook.value,
+    );
+    final visible = <Map<String, dynamic>>[];
+    if (selectedIndex >= 0) {
+      visible.addAll(ordered.skip(selectedIndex).take(4));
+      if (visible.length < 4) visible.addAll(ordered.take(4 - visible.length));
+    } else {
+      visible.addAll(ordered.take(4));
+    }
+    final chapterIndex = controller.chapterNumbers.indexOf(
+      controller.selectedChapter.value,
+    );
 
-    return Panel(
-      gradient: AppGradients.tint(theme.colorScheme.surface, theme.extension<AppSurfaces>()!.scripture),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (controller.translations.length > 20) ...[
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Find a translation',
-                prefixIcon: const Icon(AppIcons.search),
-              ),
-              onChanged: (value) => controller.translationQuery.value = value,
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: AppColors.lightBlue,
+              borderRadius: BorderRadius.circular(30),
             ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (controller.translations.length > 1) ...[
-            DropdownButtonFormField<String>(
-              key: ValueKey(controller.selectedTranslation.value),
-              initialValue: controller.selectedTranslation.value,
-              isExpanded: true,
-              style: theme.textTheme.bodyMedium,
-              decoration: InputDecoration(labelText: 'Translation'),
-              // The closed field carries the name alone; the language belongs to
-              // the choice, not to the value, and it truncates at 320dp.
-              selectedItemBuilder: (_) => controller.visibleTranslations
-                  .map(
-                    (t) => DropdownMenuItem<String>(
-                      value: t['code'] as String,
-                      child: AppText(t['name'] as String, style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(),
-              items: controller.visibleTranslations
-                  .map(
-                    (t) => DropdownMenuItem(
-                      value: t['code'] as String,
-                      child: AppText(
-                        '${t['name']} · ${t['language'] ?? 'Unknown language'}',
-                        style: theme.textTheme.bodyMedium,
-                        overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                const Icon(
+                  AppIcons.book,
+                  size: 24,
+                  color: AppColors.primaryBlue,
+                ),
+                const SizedBox(width: 12),
+                const AppText(
+                  'Select Version:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepBlue,
+                  ),
+                ),
+                const Spacer(),
+                Material(
+                  color: AppColors.primaryBlue,
+                  borderRadius: BorderRadius.circular(30),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(30),
+                    onTap: () => _chooseTranslation(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${selectedTranslation?['code'] ?? controller.selectedTranslation.value}'
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          const Icon(
+                            AppIcons.chevronDown,
+                            size: 19,
+                            color: Colors.white,
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) {
-                  controller.selectedTranslation.value = v;
-                  controller.loadBooks();
-                }
-              },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          if (books.isEmpty)
-            AppText('This translation has no books released yet.', style: theme.textTheme.bodySmall)
-          else ...[
-            const Eyebrow('Testament'),
-            const SizedBox(height: AppSpacing.sm),
-            PillSelector(
-              options: [for (final testament in present) _testamentLabels[_testaments.indexOf(testament)]],
-              selectedIndex: selected == null ? -1 : present.indexOf(selected),
-              onSelect: (index) {
-                final wanted = present[index];
-                controller.selectBook(
-                  controller.bookKey(books.firstWhere((b) => b['testament'] == wanted)),
+          ),
+          const SizedBox(height: 13),
+          SizedBox(
+            height: 48,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: visible.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: 7),
+              itemBuilder: (context, index) {
+                if (index == visible.length) {
+                  return _SelectorPill(
+                    label: 'More',
+                    selected: false,
+                    trailing: AppIcons.chevronDown,
+                    onTap: () => _showAllBooks(context),
+                  );
+                }
+                final book = visible[index];
+                final name = book['name'] as String? ?? '';
+                final selected =
+                    controller.bookKey(book) == controller.selectedBook.value;
+                return _SelectorPill(
+                  label: name,
+                  selected: selected,
+                  leading: selected ? AppIcons.book : null,
+                  onTap: () => controller.selectBook(controller.bookKey(book)),
                 );
               },
             ),
-            const SizedBox(height: AppSpacing.md),
-            const Eyebrow('Book'),
-            const SizedBox(height: AppSpacing.sm),
-            DiscoveryRail(
-              height: 78,
+          ),
+          if (controller.chapterNumbers.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
               children: [
-                for (final book in shown)
-                  _BookChip(
-                    name: book['name'] as String? ?? '',
-                    chapters: (book['chapter_count'] as num?)?.toInt() ?? 0,
-                    selected: controller.bookKey(book) == controller.selectedBook.value,
-                    onTap: () => controller.selectBook(controller.bookKey(book)),
+                Expanded(
+                  child: _ChapterControl(
+                    icon: AppIcons.back,
+                    label: 'Chapter ${controller.selectedChapter.value}',
+                    trailing: true,
+                    onTap: chapterIndex > 0
+                        ? () => _setChapter(
+                            controller.chapterNumbers[chapterIndex - 1],
+                          )
+                        : null,
+                    onChoose: () => _chooseChapter(context),
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ChapterControl(
+                    icon: AppIcons.next,
+                    label:
+                        'Chapter ${chapterIndex >= 0 && chapterIndex + 1 < controller.chapterNumbers.length ? controller.chapterNumbers[chapterIndex + 1] : controller.selectedChapter.value}',
+                    onTap:
+                        chapterIndex >= 0 &&
+                            chapterIndex + 1 < controller.chapterNumbers.length
+                        ? () => _setChapter(
+                            controller.chapterNumbers[chapterIndex + 1],
+                          )
+                        : null,
+                  ),
+                ),
               ],
             ),
-            if (controller.chapterNumbers.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              const Eyebrow('Chapter'),
-              const SizedBox(height: AppSpacing.sm),
-              DiscoveryRail(
-                height: 44,
-                children: [
-                  for (final number in controller.chapterNumbers)
-                    _ChapterChip(
-                      number: number,
-                      selected: number == controller.selectedChapter.value,
-                      onTap: () {
-                        controller.selectedChapter.value = number;
-                        controller.loadChapter();
-                      },
-                    ),
-                ],
-              ),
-            ],
           ],
         ],
       ),
     );
   }
 
-  /// Which testament a chosen book key belongs to, or null when nothing is
-  /// chosen yet.
-  String? _testamentOf(String bookKey, List<Map<String, dynamic>> books) {
-    if (bookKey.isEmpty) return null;
-    final book = books.firstWhereOrNull((b) => controller.bookKey(b) == bookKey);
-    final testament = book?['testament'] as String?;
-    return _testaments.contains(testament) ? testament : null;
+  Future<void> _chooseTranslation(BuildContext context) async {
+    final search = TextEditingController();
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final query = search.text.trim().toLowerCase();
+          final rows = controller.translations.where((row) {
+            if (query.isEmpty) return true;
+            return '${row['name'] ?? ''} ${row['code'] ?? ''}'
+                .toLowerCase()
+                .contains(query);
+          }).toList();
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * .78,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+                    child: TextField(
+                      controller: search,
+                      autofocus: true,
+                      onChanged: (_) => setModalState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Search English versions',
+                        prefixIcon: Icon(AppIcons.search),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: rows.length,
+                      itemBuilder: (context, index) {
+                        final row = rows[index];
+                        final code = '${row['code'] ?? ''}';
+                        return ListTile(
+                          title: Text('${row['name'] ?? code}'),
+                          subtitle: Text(code.toUpperCase()),
+                          trailing: code == controller.selectedTranslation.value
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  color: AppColors.primaryBlue,
+                                )
+                              : null,
+                          onTap: () => Navigator.pop(sheetContext, code),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    search.dispose();
+    if (selected != null && selected != controller.selectedTranslation.value) {
+      controller.selectedTranslation.value = selected;
+      await controller.loadBooks();
+    }
+  }
+
+  void _setChapter(int number) {
+    controller.selectedChapter.value = number;
+    controller.loadChapter();
+  }
+
+  Future<void> _chooseChapter(BuildContext context) async {
+    final chosen = await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final number in controller.chapterNumbers)
+              ListTile(
+                title: Text('Chapter $number'),
+                trailing: number == controller.selectedChapter.value
+                    ? const Icon(Icons.check, color: AppColors.primaryBlue)
+                    : null,
+                onTap: () => Navigator.pop(context, number),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen != null) _setChapter(chosen);
+  }
+
+  Future<void> _showAllBooks(BuildContext context) async {
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .72,
+          child: GridView.builder(
+            padding: const EdgeInsets.all(18),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 2.4,
+              crossAxisSpacing: 9,
+              mainAxisSpacing: 9,
+            ),
+            itemCount: controller.books.length,
+            itemBuilder: (context, index) {
+              final book = controller.books[index];
+              return _SelectorPill(
+                label: book['name'] as String? ?? '',
+                selected:
+                    controller.bookKey(book) == controller.selectedBook.value,
+                onTap: () => Navigator.pop(context, controller.bookKey(book)),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    if (chosen != null) controller.selectBook(chosen);
   }
 }
 
-class _BookChip extends StatelessWidget {
-  const _BookChip({
-    required this.name,
-    required this.chapters,
+class _SelectorPill extends StatelessWidget {
+  const _SelectorPill({
+    required this.label,
     required this.selected,
     required this.onTap,
+    this.leading,
+    this.trailing,
   });
-
-  final String name;
-  final int chapters;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
+  final IconData? leading;
+  final IconData? trailing;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final surfaces = theme.extension<AppSurfaces>()!;
-    return SizedBox(
-      width: 116,
-      child: PressableScale(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-        child: AnimatedContainer(
-          duration: AppMotion.quick,
-          curve: AppMotion.standard,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 11),
-          decoration: selected
-              ? BoxDecoration(
-                  gradient: AppGradients.hero,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-                  boxShadow: AppShadows.glow(AppColors.primaryBlue),
-                )
-              : BoxDecoration(
-                  color: surfaces.scripture,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-                  border: Border.all(color: surfaces.hairline),
-                ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppText(
-                name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: selected ? AppColors.white : theme.textTheme.bodyLarge?.color,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              AppText(
-                chapters == 0 ? '—' : '$chapters chapters',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  color: selected ? Colors.white70 : theme.textTheme.bodySmall?.color,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+  Widget build(BuildContext context) => Material(
+    color: selected ? AppColors.primaryBlue : AppColors.lightBlue,
+    borderRadius: BorderRadius.circular(30),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (leading != null) ...[
+              Icon(leading, size: 17, color: Colors.white),
+              const SizedBox(width: 6),
             ],
-          ),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : AppColors.deepBlue,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 6),
+              Icon(trailing, size: 16, color: AppColors.deepBlue),
+            ],
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _ChapterChip extends StatelessWidget {
-  const _ChapterChip({required this.number, required this.selected, required this.onTap});
-
-  final int number;
-  final bool selected;
-  final VoidCallback onTap;
+class _ChapterControl extends StatelessWidget {
+  const _ChapterControl({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.trailing = false,
+    this.onChoose,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool trailing;
+  final VoidCallback? onChoose;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final surfaces = theme.extension<AppSurfaces>()!;
-    return SizedBox(
-      width: 46,
-      height: 44,
-      child: PressableScale(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusField),
-        child: AnimatedContainer(
-          duration: AppMotion.quick,
-          curve: AppMotion.standard,
-          alignment: Alignment.center,
-          decoration: selected
-              ? BoxDecoration(
-                  gradient: AppGradients.hero,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusField),
-                  boxShadow: AppShadows.glow(AppColors.primaryBlue),
-                )
-              : BoxDecoration(
-                  color: surfaces.scripture,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusField),
-                  border: Border.all(color: surfaces.hairline),
-                ),
-          child: AppText(
-            '$number',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: selected ? AppColors.white : theme.textTheme.bodyLarge?.color,
-            ),
+  Widget build(BuildContext context) => Container(
+    height: 42,
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(30),
+      border: Border.all(color: AppColors.mist),
+      boxShadow: AppShadows.card(AppColors.mist),
+    ),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: onTap,
+          icon: Icon(
+            icon,
+            color: onTap == null
+                ? AppColors.secondaryText
+                : AppColors.primaryBlue,
+            size: 22,
           ),
         ),
-      ),
-    );
-  }
+        if (onChoose != null)
+          Expanded(
+            child: InkWell(
+              onTap: onChoose,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.deepBlue,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    AppIcons.chevronDown,
+                    color: AppColors.primaryBlue,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: AppColors.deepBlue),
+            ),
+          ),
+        if (!trailing && onChoose == null) const SizedBox(width: 12),
+      ],
+    ),
+  );
 }
 
 /// The address of one verse inside a block.
@@ -456,9 +694,15 @@ class _ChapterChip extends StatelessWidget {
 /// only has its range as a heading, and a range is not a chapter: "John
 /// 3:16-18" is read in John 3, so its sixteenth verse is John 3:16 rather than
 /// the nonsense of John 3:16-18:16.
-String _verseReference({required String heading, required String number, String? fromServer}) {
+String _verseReference({
+  required String heading,
+  required String number,
+  String? fromServer,
+}) {
   if (fromServer != null && fromServer.isNotEmpty) return fromServer;
-  final chapter = RegExp(r'^(.*?\s\d{1,3})(?::|$)').firstMatch(heading)?.group(1) ?? heading;
+  final chapter =
+      RegExp(r'^(.*?\s\d{1,3})(?::|$)').firstMatch(heading)?.group(1) ??
+      heading;
   return '$chapter:$number';
 }
 
@@ -468,12 +712,14 @@ class _ScriptureBlock extends StatelessWidget {
   const _ScriptureBlock({
     required this.heading,
     required this.translationCode,
+    required this.translationName,
     required this.verses,
     this.attribution = '',
   });
 
   final String heading;
   final String translationCode;
+  final String translationName;
   final List<dynamic> verses;
 
   /// The license line the passage came with, carried to the verse screen so a
@@ -492,7 +738,7 @@ class _ScriptureBlock extends StatelessWidget {
             const SizedBox(height: 3),
             AppText(
               'This chapter has no text in the copy saved on this device. Pull to refresh, '
-              'or look the passage up by reference.',
+              'or try again when you are connected to the internet.',
               style: theme.textTheme.bodySmall,
             ),
           ],
@@ -503,38 +749,36 @@ class _ScriptureBlock extends StatelessWidget {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: AppGradients.scripture,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSheet),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.mist),
         boxShadow: AppShadows.float,
       ),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(20, 17, 20, 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: AppText(heading, style: AppTypography.scriptureReference(theme.colorScheme.primary)),
-              ),
-              // One "Aa" for the passage rather than a control per verse: the
-              // size is a way of reading, not a property of one verse.
-              AppIconButton(
-                icon: AppIcons.textSize,
-                tooltip: 'Reading size',
-                size: 36,
-                iconSize: 18,
-                onTap: () => ReadingSizeSheet.show(context),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              if (translationCode.isNotEmpty) MetaPill(label: translationCode.toUpperCase()),
-            ],
+          AppText(
+            heading,
+            textAlign: TextAlign.center,
+            style: AppTypography.editorialTitle(AppColors.deepBlue, size: 28),
           ),
-          const SizedBox(height: AppSpacing.md),
-          const GoldRule(),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: 2),
+          AppText(
+            '$translationName${translationCode.isEmpty ? '' : ' (${translationCode.toUpperCase()})'}',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.secondaryText,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: AppColors.mist.withValues(alpha: .9)),
+          const SizedBox(height: 14),
           for (final raw in verses)
             _VerseLine(
-              number: '${(raw as Map<String, dynamic>)['number'] ?? raw['verse']}',
+              number:
+                  '${(raw as Map<String, dynamic>)['number'] ?? raw['verse']}',
               text: '${raw['text'] ?? ''}',
               verseId: '${raw['id'] ?? ''}',
               reference: '${raw['reference'] ?? ''}',
@@ -548,7 +792,7 @@ class _ScriptureBlock extends StatelessWidget {
   }
 }
 
-/// One verse of the passage. The row is the door to the verse's own screen,
+/// One verse of the chapter. The row is the door to the verse's own screen,
 /// where it can be kept, sized, sent on or written on.
 class _VerseLine extends StatelessWidget {
   const _VerseLine({
@@ -565,8 +809,7 @@ class _VerseLine extends StatelessWidget {
   final String text;
   final String verseId;
 
-  /// The server's own address for this verse. A looked-up passage carries one
-  /// per verse; a chapter builds it from the heading the block already shows.
+  /// The server's reference for the verse, used to keep its saved citation.
   final String reference;
   final String heading;
   final String translationCode;
@@ -576,6 +819,7 @@ class _VerseLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appearance = Get.find<AppearanceController>();
+    final bible = Get.find<BibleController>();
     return Obx(
       () => PressableScale(
         onTap: () => Get.toNamed(
@@ -583,7 +827,11 @@ class _VerseLine extends StatelessWidget {
           arguments: {
             RouteArgs.verse: VerseFocus(
               verseId: verseId,
-              reference: _verseReference(heading: heading, number: number, fromServer: reference),
+              reference: _verseReference(
+                heading: heading,
+                number: number,
+                fromServer: reference,
+              ),
               text: text,
               translationCode: translationCode,
               attribution: attribution,
@@ -600,16 +848,31 @@ class _VerseLine extends StatelessWidget {
                 width: 26,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: AppText(number, style: AppTypography.verseNumber(AppColors.gold)),
+                  child: AppText(
+                    number,
+                    style: AppTypography.verseNumber(AppColors.primaryBlue),
+                  ),
                 ),
               ),
               Expanded(
-                child: AppText(
-                  text,
-                  style: AppTypography.scriptureBody(
-                    theme.textTheme.bodyLarge!.color!,
-                    baseSize: 17.5,
-                    scale: appearance.readingScale.value,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: bible.verseHighlights.containsKey(verseId)
+                        ? Color(bible.verseHighlights[verseId]!)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: AppText(
+                      text,
+                      style: theme.textTheme.bodyLarge!.copyWith(
+                        color: AppColors.deepBlue,
+                        fontSize: 17.5 * appearance.readingScale.value,
+                        height: 1.48,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -619,6 +882,208 @@ class _VerseLine extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ReaderActionBar extends StatelessWidget {
+  const _ReaderActionBar({required this.controller, required this.verses});
+  final BibleController controller;
+  final List<dynamic> verses;
+
+  Map<String, dynamic> get _first => verses.first as Map<String, dynamic>;
+  String get _id => '${_first['id'] ?? ''}';
+  String get _text => '${_first['text'] ?? ''}';
+  String get _reference =>
+      '${_first['reference'] ?? '${BibleView.chapterHeading(controller)}:${_first['number'] ?? _first['verse'] ?? 1}'}';
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <({IconData icon, String label, VoidCallback onTap})>[
+      (
+        icon: AppIcons.bookmark,
+        label: 'Bookmark',
+        onTap: () {
+          if (_id.isNotEmpty)
+            controller.bookmark(_id);
+          else
+            Get.snackbar(
+              'Bookmark unavailable',
+              'This translation can only be read from an authorized source.',
+            );
+        },
+      ),
+      (
+        icon: AppIcons.note,
+        label: 'Add Note',
+        onTap: () {
+          if (_id.isNotEmpty)
+            controller.note(_id);
+          else
+            Get.snackbar(
+              'Notes unavailable',
+              'This translation can only be read from an authorized source.',
+            );
+        },
+      ),
+      (
+        icon: AppIcons.edit,
+        label: 'Highlight',
+        onTap: () => _highlight(context),
+      ),
+      (icon: AppIcons.share, label: 'Share', onTap: _share),
+      (icon: AppIcons.copy, label: 'Copy', onTap: _copy),
+    ];
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: AppColors.mist),
+        boxShadow: AppShadows.card(AppColors.mist),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0) Container(width: 1, height: 38, color: AppColors.mist),
+            Expanded(
+              child: InkWell(
+                onTap: actions[i].onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    children: [
+                      Icon(
+                        actions[i].icon,
+                        size: 21,
+                        color: AppColors.primaryBlue,
+                      ),
+                      const SizedBox(height: 4),
+                      AppText(
+                        actions[i].label,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.deepBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _highlight(BuildContext context) async {
+    if (_id.isEmpty) {
+      Get.snackbar(
+        'Highlight unavailable',
+        'This translation can only be read from an authorized source.',
+      );
+      return;
+    }
+    const colors = [
+      Color(0xFFFFF1A8),
+      Color(0xFFD9FBE8),
+      Color(0xFFDCEBFF),
+      Color(0xFFFFDFE6),
+    ];
+    final chosen = await showModalBottomSheet<Color>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AppText(
+                'Highlight this verse',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  for (final color in colors)
+                    InkWell(
+                      onTap: () => Navigator.pop(context, color),
+                      child: CircleAvatar(backgroundColor: color, radius: 24),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (chosen != null) controller.verseHighlights[_id] = chosen.value;
+  }
+
+  Future<void> _share() async {
+    await SharePlus.instance.share(ShareParams(text: '“$_text”\n$_reference'));
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: '“$_text”\n$_reference'));
+    Get.snackbar('Copied', 'Verse copied to clipboard.');
+  }
+}
+
+class _ReadingProgress extends GetView<BibleController> {
+  const _ReadingProgress();
+
+  @override
+  Widget build(BuildContext context) => Obx(() {
+    final progress = controller.readingProgress.value;
+    final percentage = (progress * 100).round();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: AppColors.mist),
+        boxShadow: AppShadows.card(AppColors.mist),
+      ),
+      child: Row(
+        children: [
+          const Icon(AppIcons.book, color: AppColors.primaryBlue, size: 21),
+          const SizedBox(width: 9),
+          const AppText(
+            'Reading Progress',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 7,
+                backgroundColor: AppColors.mist,
+                color: AppColors.primaryBlue,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          AppText(
+            '$percentage%',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.primaryBlue,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  });
 }
 
 class _ReadingSkeleton extends StatelessWidget {
@@ -626,241 +1091,18 @@ class _ReadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        children: const [
-          SkeletonBox(height: 20, width: 120),
-          SizedBox(height: AppSpacing.lg),
-          SkeletonBox(height: 15),
-          SizedBox(height: AppSpacing.sm),
-          SkeletonBox(height: 15, width: 240),
-          SizedBox(height: AppSpacing.sm),
-          SkeletonBox(height: 15),
-          SizedBox(height: AppSpacing.sm),
-          SkeletonBox(height: 15, width: 180),
-        ],
-      );
-}
-
-/// Reference lookup. The backend normalizes the spelling and chooses the source,
-/// so typing "1Jn 3:16-18" returns a passage whether or not this deployment has
-/// a single verse stored.
-class _ReferenceLookup extends StatelessWidget {
-  const _ReferenceLookup({required this.controller, required this.theme});
-
-  final BibleController controller;
-  final ThemeData theme;
-
-  /// Its own reactive scope: the tab's outer `Obx` cannot see lookups that
-  /// happen in a child widget's build, so the panel watches the router state
-  /// itself.
-  @override
-  Widget build(BuildContext context) => Obx(() {
-        final sources = controller.sources;
-        final passage = controller.passage.value;
-        return Panel(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const IconBadge(icon: AppIcons.search, size: 40, filled: false),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Eyebrow('Look up any verse', color: theme.colorScheme.primary),
-                        const SizedBox(height: 5),
-                        AppText(
-                          'Any spelling works: a book, a chapter, or a range.',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      textInputAction: TextInputAction.search,
-                      onChanged: (value) => controller.passageQuery.value = value,
-                      onSubmitted: (value) => controller.searchPassage(value),
-                      decoration: InputDecoration(
-                        labelText: 'Reference',
-                        hintText: 'John 3:16 · 1Jn 3:16-18 · Ps 23',
-                        prefixIcon: const Icon(AppIcons.search),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  FilledButton(
-                    onPressed: () => controller.searchPassage(),
-                    child: const AppText('Go'),
-                  ),
-                ],
-              ),
-              if (sources.length > 1) ...[
-                const SizedBox(height: AppSpacing.md),
-                DropdownButtonFormField<String>(
-                  key: ValueKey(controller.passageTranslation.value),
-                  initialValue: controller.passageTranslation.value,
-                  isExpanded: true,
-                  style: theme.textTheme.bodyMedium,
-                  decoration: InputDecoration(labelText: 'Version'),
-                  selectedItemBuilder: (_) => sources
-                      .map(
-                        (row) => DropdownMenuItem<String>(
-                          value: row['code'] as String,
-                          child: AppText(
-                            row['name'] as String,
-                            style: theme.textTheme.bodyMedium,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  items: sources.map(_versionItem).toList(),
-                  onChanged: (value) {
-                    if (value != null) controller.selectPassageVersion(value);
-                  },
-                ),
-              ],
-              if (controller.passageBusy.value) ...[
-                const SizedBox(height: AppSpacing.md),
-                const UdmProgress(label: 'Finding the passage…'),
-              ],
-              if (controller.passageMessage.value.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.sm),
-                AppText(controller.passageMessage.value, style: theme.textTheme.bodySmall),
-              ],
-              if (passage != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                _PassageResult(
-                  controller: controller,
-                  passage: passage,
-                  theme: theme,
-                  offline: controller.passageOffline.value,
-                ),
-              ],
-            ],
-          ),
-        );
-      });
-
-  /// A version this app may not print is still offered, because the router
-  /// answers it with public-domain text and an authorized link. The suffix says
-  /// which way the answer goes, so nothing looks broken when it arrives.
-  DropdownMenuItem<String> _versionItem(Map<String, dynamic> row) {
-    final name = row['name'] as String? ?? '${row['code']}';
-    final note = row['text_available'] != true
-        ? 'authorized link only'
-        : row['configured'] != true
-        ? 'needs a key'
-        : null;
-    return DropdownMenuItem(
-      value: row['code'] as String,
-      child: AppText(
-        note == null ? name : '$name · $note',
-        style: theme.textTheme.bodyMedium,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
-class _PassageResult extends StatelessWidget {
-  const _PassageResult({
-    required this.controller,
-    required this.passage,
-    required this.theme,
-    required this.offline,
-  });
-
-  final BibleController controller;
-  final Map<String, dynamic> passage;
-  final ThemeData theme;
-  final bool offline;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = passage['fallback'] as Map<String, dynamic>?;
-    final served = passage['translation_name'] as String? ?? '';
-    final askedFor = fallback?['requested_name'] as String? ?? served;
-    final verses = (passage['verses'] as List<dynamic>? ?? const []).whereType<Map<String, dynamic>>();
-    final link = passage['deep_link_url'] as String? ?? '';
-    final alternate = passage['alternate_link_url'] as String? ?? '';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Divider(height: 1, color: theme.extension<AppSurfaces>()!.hairline),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: AppText(
-                '$served · ${passage['reference']}',
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-            AppIconButton(
-              icon: AppIcons.close,
-              onTap: controller.clearPassage,
-              tooltip: 'Clear',
-              size: 36,
-              iconSize: 18,
-            ),
-          ],
-        ),
-        if (offline) ...[
-          const SizedBox(height: AppSpacing.xs),
-          const NoticeBanner(message: 'Offline copy · saved on this device'),
-        ],
-        if (fallback != null) ...[
-          const SizedBox(height: AppSpacing.xs),
-          // The student asked for one version and the app may only lawfully
-          // print another; the server explains why, and the header above shows
-          // which text actually arrived.
-          NoticeBanner(
-            message: '${fallback['requested_name']}: ${fallback['reason']}',
-            tone: NoticeTone.problem,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        _ScriptureBlock(
-          heading: '${passage['reference'] ?? ''}',
-          translationCode: '${passage['translation'] ?? ''}',
-          verses: verses.toList(),
-          attribution: '${passage['attribution'] ?? ''}',
-        ),
-        if ((passage['attribution'] as String? ?? '').isNotEmpty)
-          AppText(passage['attribution'] as String, style: theme.textTheme.bodySmall),
-        if (link.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: () => launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication),
-              icon: const Icon(AppIcons.external, size: 16),
-              label: AppText('Open $askedFor on Bible Gateway'),
-            ),
-          ),
-        ],
-        if (alternate.isNotEmpty)
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
-              onPressed: () => launchUrl(Uri.parse(alternate), mode: LaunchMode.externalApplication),
-              icon: const Icon(AppIcons.external, size: 16),
-              label: AppText('Open $askedFor on YouVersion'),
-            ),
-          ),
-      ],
-    );
-  }
+    children: const [
+      SkeletonBox(height: 20, width: 120),
+      SizedBox(height: AppSpacing.lg),
+      SkeletonBox(height: 15),
+      SizedBox(height: AppSpacing.sm),
+      SkeletonBox(height: 15, width: 240),
+      SizedBox(height: AppSpacing.sm),
+      SkeletonBox(height: 15),
+      SizedBox(height: AppSpacing.sm),
+      SkeletonBox(height: 15, width: 180),
+    ],
+  );
 }
 
 /// The student's own saved rows, behind one honest header: private, and worth
@@ -873,52 +1115,61 @@ class _SavedVerses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Panel(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-        child: ExpansionTile(
-          shape: const Border(),
-          collapsedShape: const Border(),
-          tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          leading: const IconBadge(icon: AppIcons.bookmarks, size: 40, filled: false),
-          title: const AppText('My saved verses and notes'),
-          subtitle: controller.pendingOperations.isEmpty
-              ? null
-              : AppText(
-                  '${controller.pendingOperations.length} private change(s) waiting to sync.',
-                  style: theme.textTheme.bodySmall,
-                ),
-          onExpansionChanged: (open) {
-            if (open) controller.loadSaved();
-          },
-          children: [
-            if (controller.bookmarks.isEmpty && controller.notes.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(AppSpacing.md),
-                child: AppText('Your saved verses and private notes will appear here.'),
-              ),
-            ...controller.bookmarks.map(
-              (saved) => _SavedRow(
-                icon: AppIcons.bookmark,
-                iconColor: AppColors.primaryBlue,
-                title: saved['reference'] as String? ?? 'Saved verse',
-                body: saved['text'] as String? ?? '',
-                tooltip: 'Remove bookmark',
-                onDelete: () => controller.removeBookmark(saved['id'] as String),
-              ),
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.sm,
+      vertical: AppSpacing.xs,
+    ),
+    child: ExpansionTile(
+      shape: const Border(),
+      collapsedShape: const Border(),
+      tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      leading: const IconBadge(
+        icon: AppIcons.bookmarks,
+        size: 40,
+        filled: false,
+      ),
+      title: const AppText('My saved verses and notes'),
+      subtitle: controller.pendingOperations.isEmpty
+          ? null
+          : AppText(
+              '${controller.pendingOperations.length} private change(s) waiting to sync.',
+              style: theme.textTheme.bodySmall,
             ),
-            ...controller.notes.map(
-              (note) => _SavedRow(
-                icon: AppIcons.note,
-                iconColor: AppColors.gold,
-                title: note['reference'] as String? ?? 'Private note',
-                body: note['body'] as String? ?? '',
-                tooltip: 'Delete note',
-                onTap: () => controller.editNote(note),
-                onDelete: () => controller.removeNote(note['id'] as String),
-              ),
+      onExpansionChanged: (open) {
+        if (open) controller.loadSaved();
+      },
+      children: [
+        if (controller.bookmarks.isEmpty && controller.notes.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: AppText(
+              'Your saved verses and private notes will appear here.',
             ),
-          ],
+          ),
+        ...controller.bookmarks.map(
+          (saved) => _SavedRow(
+            icon: AppIcons.bookmark,
+            iconColor: AppColors.primaryBlue,
+            title: saved['reference'] as String? ?? 'Saved verse',
+            body: saved['text'] as String? ?? '',
+            tooltip: 'Remove bookmark',
+            onDelete: () => controller.removeBookmark(saved['id'] as String),
+          ),
         ),
-      );
+        ...controller.notes.map(
+          (note) => _SavedRow(
+            icon: AppIcons.note,
+            iconColor: AppColors.gold,
+            title: note['reference'] as String? ?? 'Private note',
+            body: note['body'] as String? ?? '',
+            tooltip: 'Delete note',
+            onTap: () => controller.editNote(note),
+            onDelete: () => controller.removeNote(note['id'] as String),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SavedRow extends StatelessWidget {
@@ -949,7 +1200,10 @@ class _SavedRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -962,12 +1216,23 @@ class _SavedRow extends StatelessWidget {
                     AppText(title, style: theme.textTheme.titleSmall),
                     if (body.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      AppText(body, style: theme.textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      AppText(
+                        body,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ],
                 ),
               ),
-              AppIconButton(icon: AppIcons.delete, onTap: onDelete, tooltip: tooltip, size: 36, iconSize: 18),
+              AppIconButton(
+                icon: AppIcons.delete,
+                onTap: onDelete,
+                tooltip: tooltip,
+                size: 36,
+                iconSize: 18,
+              ),
             ],
           ),
         ),
@@ -983,36 +1248,40 @@ class _KeepPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Panel(
-        child: Row(
-          children: [
-            const IconBadge(icon: AppIcons.lock, size: 40, filled: false),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppText('Keep your bookmarks and notes'),
-                  const SizedBox(height: 2),
-                  AppText(
-                    'Sign in to sync them privately across your devices.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
+    child: Row(
+      children: [
+        const IconBadge(icon: AppIcons.lock, size: 40, filled: false),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AppText('Keep your bookmarks and notes'),
+              const SizedBox(height: 2),
+              AppText(
+                'Sign in to sync them privately across your devices.',
+                style: theme.textTheme.bodySmall,
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            FilledButton(
-              onPressed: () => Get.toNamed(AppRoutes.signIn),
-              child: const AppText('Sign in'),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+        const SizedBox(width: AppSpacing.sm),
+        FilledButton(
+          onPressed: () => Get.toNamed(AppRoutes.signIn),
+          child: const AppText('Sign in'),
+        ),
+      ],
+    ),
+  );
 }
 
 /// A plan opened: its days, and how far through it the student already is.
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.controller, required this.theme});
+  const _PlanCard({
+    required this.plan,
+    required this.controller,
+    required this.theme,
+  });
 
   final Map<String, dynamic> plan;
   final BibleController controller;
@@ -1026,7 +1295,10 @@ class _PlanCard extends StatelessWidget {
     final done = assignments.where((a) => a['completed'] == true).length;
     final fraction = assignments.isEmpty ? 0.0 : done / assignments.length;
     return Panel(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       child: Column(
         children: [
           ExpansionTile(
@@ -1034,20 +1306,29 @@ class _PlanCard extends StatelessWidget {
             collapsedShape: const Border(),
             tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             leading: ProgressRing(fraction: fraction, size: 42),
-            title: AppText(plan['title'] as String, style: theme.textTheme.titleMedium),
+            title: AppText(
+              plan['title'] as String,
+              style: theme.textTheme.titleMedium,
+            ),
             subtitle: AppText(
               '$done of ${assignments.length} days read',
               style: theme.textTheme.bodySmall,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.sm,
+            ),
             child: UdmProgressBar(fraction: fraction),
           ),
           for (final assignment in assignments)
             _PlanDay(
               assignment: assignment,
-              onComplete: () => controller.completeAssignment(assignment['id'] as String),
+              onComplete: () =>
+                  controller.completeAssignment(assignment['id'] as String),
             ),
         ],
       ),
@@ -1079,7 +1360,10 @@ class _PlanDay extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText('Day ${assignment['day']}', style: theme.textTheme.titleSmall),
+                AppText(
+                  'Day ${assignment['day']}',
+                  style: theme.textTheme.titleSmall,
+                ),
                 AppText(
                   assignment['reference'] as String? ?? '',
                   style: theme.textTheme.bodySmall,
@@ -1090,9 +1374,19 @@ class _PlanDay extends StatelessWidget {
             ),
           ),
           if (done)
-            const MetaPill(label: 'Done', icon: AppIcons.check, tone: AppColors.success)
+            const MetaPill(
+              label: 'Done',
+              icon: AppIcons.check,
+              tone: AppColors.success,
+            )
           else
-            AppIconButton(icon: AppIcons.check, onTap: onComplete, tooltip: 'Mark complete', size: 36, iconSize: 18),
+            AppIconButton(
+              icon: AppIcons.check,
+              onTap: onComplete,
+              tooltip: 'Mark complete',
+              size: 36,
+              iconSize: 18,
+            ),
         ],
       ),
     );
@@ -1107,28 +1401,31 @@ class _Licensing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Panel(
-        radius: AppSpacing.radiusTile,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Eyebrow('Licensing'),
-            const SizedBox(height: AppSpacing.sm),
-            AppText(translation['attribution'] as String? ?? '', style: theme.textTheme.bodySmall),
-            if ((translation['source_url'] as String? ?? '').startsWith('https://'))
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton.icon(
-                  onPressed: () => launchUrl(
-                    Uri.parse(translation['source_url'] as String),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                  icon: const Icon(AppIcons.external, size: 16),
-                  label: const AppText('Translation license and source'),
-                ),
-              ),
-          ],
+    radius: AppSpacing.radiusTile,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Eyebrow('Licensing'),
+        const SizedBox(height: AppSpacing.sm),
+        AppText(
+          translation['attribution'] as String? ?? '',
+          style: theme.textTheme.bodySmall,
         ),
-      );
+        if ((translation['source_url'] as String? ?? '').startsWith('https://'))
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => launchUrl(
+                Uri.parse(translation['source_url'] as String),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(AppIcons.external, size: 16),
+              label: const AppText('Translation license and source'),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _Problem extends StatelessWidget {
@@ -1138,12 +1435,12 @@ class _Problem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CenteredSlot(
-        child: MessagePanel(
-          icon: AppIcons.book,
-          title: 'Scripture unavailable',
-          message: message,
-          actionLabel: 'Try again',
-          onAction: retry,
-        ),
-      );
+    child: MessagePanel(
+      icon: AppIcons.book,
+      title: 'Scripture unavailable',
+      message: message,
+      actionLabel: 'Try again',
+      onAction: retry,
+    ),
+  );
 }

@@ -40,25 +40,26 @@ from .bible_passages import (
     route_is_configured,
 )
 from .bible_refs import InvalidReference, parse_reference
-from .youversion import YouVersionError, available_translations, translation_books, translation_chapter
+from .helloao import HelloAOError, available_translations, translation_books, translation_chapter
 
 
-def _youversion_translation_defaults(metadata):
+def _helloao_translation_defaults(metadata):
     return {
+        "provider_id": metadata["provider_id"],
         "name": metadata["name"],
         "license_name": metadata["license_name"],
         "attribution": metadata["attribution"],
         "source_url": metadata["source_url"],
         "offline_allowed": metadata["offline_allowed"],
         "is_active": True,
-        "source_provider": "youversion",
+        "source_provider": "helloao",
     }
 
 
 @transaction.atomic
-def _sync_youversion_books(metadata, books):
+def _sync_helloao_books(metadata, books):
     translation, _ = BibleTranslation.objects.update_or_create(
-        code=metadata["code"], defaults=_youversion_translation_defaults(metadata)
+        code=metadata["code"], defaults=_helloao_translation_defaults(metadata)
     )
     for row in books:
         book, _ = BibleBook.objects.update_or_create(
@@ -76,7 +77,7 @@ def _sync_youversion_books(metadata, books):
 
 
 @transaction.atomic
-def _sync_youversion_chapter(chapter, payload):
+def _sync_helloao_chapter(chapter, payload):
     for row in payload["verses"]:
         BibleVerse.objects.update_or_create(
             chapter=chapter,
@@ -283,46 +284,28 @@ class BibleTranslationsView(generics.ListAPIView):
     pagination_class = None
 
     def get(self, request, *args, **kwargs):
-        # Provider records from older integrations or other languages may
-        # remain in the database because bookmarks and notes reference their
-        # verse rows. The live YouVersion catalog is always the English range,
-        # so retain only manual entries from local rows.
-        local = list(
-            BibleTranslation.objects.filter(is_active=True)
-            .filter(source_provider="")
-            .order_by("name")
-        )
-        local_data = BibleTranslationSerializer(local, many=True).data
-        local_by_code = {item["code"]: item for item in local_data}
+        # HelloAO's catalog uses ISO 639-3 language codes; the adapter retains
+        # only `eng` before any translation reaches the app.
         try:
-            provider_rows = available_translations()
-        except YouVersionError as exc:
-            provider_rows = []
-            if not local:
+            results = available_translations()
+        except HelloAOError as exc:
+            # Previously synced English provider entries remain available while
+            # HelloAO is offline. No other provider or language is substituted.
+            cached = BibleTranslation.objects.filter(
+                is_active=True, source_provider="helloao"
+            ).order_by("name")
+            if not cached.exists():
                 raise BibleProviderError(str(exc)) from exc
-        for row in provider_rows:
-            if not row or not row.get("code"):
-                continue
-            existing = local_by_code.get(row["code"])
-            if existing and not existing.get("source_provider"):
-                continue
-            local_by_code[row["code"]] = row
-        results = list(local_by_code.values())
+            results = BibleTranslationSerializer(cached, many=True).data
         query = request.query_params.get("search", "").strip().casefold()
         if query:
-            results = [row for row in results if query in " ".join(str(row.get(field, "")) for field in ("name", "code", "language")).casefold()]
-        results = [
-            row for row in results
-            if row.get("source_provider") != "youversion"
-            or not row.get("language_code")
-            or str(row.get("language_code", "")).casefold().startswith("en")
-        ]
-        results.sort(key=lambda row: (
-            not str(row.get("language_code", "")).casefold().startswith("en"),
-            not row.get("offline_allowed", False),
-            str(row.get("language", "")).casefold(),
-            str(row.get("name", "")).casefold(),
-        ))
+            results = [
+                row for row in results
+                if query in " ".join(
+                    str(row.get(field, "")) for field in ("name", "code", "language")
+                ).casefold()
+            ]
+        results.sort(key=lambda row: str(row.get("name", "")).casefold())
         return Response({"count": len(results), "next": None, "previous": None, "results": results})
 
 
@@ -331,44 +314,40 @@ class BibleBooksView(generics.ListAPIView):
     serializer_class = BibleBookSerializer
 
     def get_queryset(self):
-        translation = BibleTranslation.objects.filter(code=self.kwargs["code"], is_active=True).first()
-        if not translation or translation.source_provider == "youversion":
-            return BibleBook.objects.none()
-        return BibleBook.objects.filter(
-            translation__code=self.kwargs["code"], translation__is_active=True
-        ).annotate(chapter_count=Count("chapters")).order_by("order")
+        return BibleBook.objects.none()
 
     def list(self, request, *args, **kwargs):
-        translation = BibleTranslation.objects.filter(code=self.kwargs["code"], is_active=True).first()
-        if not translation or translation.source_provider == "youversion":
-            try:
-                metadata, books = translation_books(translation.code if translation else self.kwargs["code"])
-                translation_record = _sync_youversion_books(metadata, books)
-            except YouVersionError as exc:
-                raise BibleProviderError(str(exc)) from exc
-            synced = BibleBook.objects.filter(translation=translation_record).annotate(
-                chapter_count=Count("chapters")
-            ).order_by("order")
-            return Response(self.get_serializer(synced, many=True).data)
-        return super().list(request, *args, **kwargs)
+        translation = BibleTranslation.objects.filter(
+            code=self.kwargs["code"], is_active=True
+        ).first()
+        try:
+            metadata, books = translation_books(
+                translation.code if translation else self.kwargs["code"],
+                provider_id=translation.provider_id if translation else "",
+            )
+            if metadata["code"] != self.kwargs["code"].lower():
+                raise NotFound("Only English HelloAO translations are available.")
+            translation_record = _sync_helloao_books(metadata, books)
+        except HelloAOError as exc:
+            raise BibleProviderError(str(exc)) from exc
+        synced = BibleBook.objects.filter(translation=translation_record).annotate(
+            chapter_count=Count("chapters")
+        ).order_by("order")
+        return Response(self.get_serializer(synced, many=True).data)
 
 
 class BibleBookChaptersView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, code, book):
-        translation = BibleTranslation.objects.filter(code=code, is_active=True).first()
-        if not translation or translation.source_provider != "youversion":
-            local_book = get_object_or_404(
-                BibleBook.objects.filter(translation__code=code, translation__is_active=True),
-                Q(name__iexact=book) | Q(provider_id=book),
-            )
-            return Response(list(local_book.chapters.values_list("number", flat=True)))
         local_book = get_object_or_404(
-            BibleBook.objects.filter(translation=translation), provider_id=book
+            BibleBook.objects.filter(
+                translation__code=code, translation__source_provider="helloao",
+                translation__is_active=True,
+            ),
+            provider_id=book,
         )
-        numbers = list(local_book.chapters.values_list("number", flat=True))
-        return Response(numbers)
+        return Response(list(local_book.chapters.values_list("number", flat=True)))
 
 
 class BibleChapterView(generics.RetrieveAPIView):
@@ -377,26 +356,35 @@ class BibleChapterView(generics.RetrieveAPIView):
     lookup_url_kwarg = "number"
 
     def get_queryset(self):
-        return BibleChapter.objects.select_related("book", "book__translation").prefetch_related("verses").filter(
-            book__translation__code=self.kwargs["code"], book__translation__is_active=True
+        return BibleChapter.objects.select_related(
+            "book", "book__translation"
+        ).prefetch_related("verses").filter(
+            book__translation__code=self.kwargs["code"],
+            book__translation__source_provider="helloao",
+            book__translation__is_active=True,
         )
 
     def get_object(self):
-        from django.shortcuts import get_object_or_404
-        from django.db.models import Q
         chapter = get_object_or_404(
-            self.get_queryset().filter(Q(book__name=self.kwargs["book"]) | Q(book__provider_id=self.kwargs["book"])),
+            self.get_queryset().filter(
+                Q(book__name=self.kwargs["book"])
+                | Q(book__provider_id=self.kwargs["book"])
+            ),
             number=self.kwargs["number"],
         )
-        if chapter.book.translation.source_provider == "youversion" and not chapter.verses.exists():
-            try:
-                payload = translation_chapter(chapter.book.translation.code, chapter.book.provider_id, chapter.number)
-                _sync_youversion_chapter(chapter, payload)
-                chapter = self.get_queryset().get(pk=chapter.pk)
-            except YouVersionError as exc:
+        try:
+            payload = translation_chapter(
+                    chapter.book.translation.code,
+                chapter.book.provider_id,
+                chapter.number,
+                    provider_id=chapter.book.translation.provider_id,
+            )
+            _sync_helloao_chapter(chapter, payload)
+            chapter = self.get_queryset().get(pk=chapter.pk)
+        except HelloAOError as exc:
+            if not chapter.verses.exists():
                 raise BibleProviderError(str(exc)) from exc
         return chapter
-
 
 def _with_local_verse_ids(passage: dict) -> dict:
     """Tag verses this deployment already stores with their database id.

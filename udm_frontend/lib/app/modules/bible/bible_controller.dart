@@ -1,4 +1,5 @@
 import 'package:udm_frontend/app/core/widgets/app_text.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,8 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   final plans = <Map<String, dynamic>>[].obs;
   final bookmarks = <Map<String, dynamic>>[].obs;
   final notes = <Map<String, dynamic>>[].obs;
+  final verseHighlights = <String, int>{}.obs;
+  final readingProgress = 0.0.obs;
   final pendingOperations = <Map<String, dynamic>>[].obs;
   final busy = false.obs;
   final offline = false.obs;
@@ -32,14 +35,6 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   final selectedTranslation = ''.obs;
   final selectedBook = ''.obs;
   final selectedChapter = 1.obs;
-  final translationQuery = ''.obs;
-  final sources = <Map<String, dynamic>>[].obs;
-  final passage = Rxn<Map<String, dynamic>>();
-  final passageBusy = false.obs;
-  final passageOffline = false.obs;
-  final passageMessage = ''.obs;
-  final passageQuery = ''.obs;
-  final passageTranslation = ''.obs;
   String? _accountEmail;
   Worker? _sessionWorker;
 
@@ -78,22 +73,20 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     await _syncPending();
     const catalogCacheKey = 'bible.translations';
     try {
-      translations.assignAll(await api.bibleTranslations());
-      await cache.writeJson(catalogCacheKey, {
-        'items': translations.toList(),
-      });
+      translations.assignAll(_englishOnly(await api.bibleTranslations()));
+      await cache.writeJson(catalogCacheKey, {'items': translations.toList()});
     } on Failure catch (failure) {
-      translations.assignAll(_cachedList(catalogCacheKey));
+      translations.assignAll(_englishOnly(_cachedList(catalogCacheKey)));
       if (translations.isEmpty) message.value = failure.message;
     }
-    // Loaded before the catalog check: looking a reference up needs no synced
-    // rows, so an empty translation catalog must not hide the search.
-    await loadSources();
     stampCurrentContent();
     if (translations.isNotEmpty) {
       if (selectedTranslation.value.isEmpty ||
           !translations.any((t) => t['code'] == selectedTranslation.value)) {
-        selectedTranslation.value = translations.first['code'] as String;
+        selectedTranslation.value =
+            translations.firstWhereOrNull((t) => t['code'] == 'kjv')?['code']
+                as String? ??
+            translations.first['code'] as String;
       }
       await loadBooks();
       await loadPlans();
@@ -101,6 +94,20 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     }
     busy.value = false;
   }
+
+  List<Map<String, dynamic>> _englishOnly(
+    Iterable<Map<String, dynamic>> rows,
+  ) => rows.where((row) {
+    if ('${row['source_provider'] ?? ''}'.toLowerCase() != 'helloao') {
+      return false;
+    }
+    final languageCode = '${row['language_code'] ?? ''}'.toLowerCase();
+    final language = '${row['language'] ?? ''}'.trim().toLowerCase();
+    return languageCode == 'eng' ||
+        languageCode == 'en' ||
+        languageCode.startsWith('en-') ||
+        language == 'english';
+  }).toList();
 
   Future<void> loadBooks() async {
     try {
@@ -160,107 +167,6 @@ class BibleController extends GetxController with RefetchesOnContentChange {
         chapterNumbers.isNotEmpty) {
       selectedChapter.value = chapterNumbers.first;
     }
-  }
-
-  /// Which versions this deployment can print, and which it can only hand to an
-  /// authorized site. The picker is built from the server, never from a list
-  /// baked into the app, so a key added to `.env` shows up without a release.
-  Future<void> loadSources() async {
-    try {
-      sources.assignAll(await api.biblePassageSources());
-      await cache.writeJson(_sourcesCacheKey, {'items': sources.toList()});
-    } on Failure {
-      sources.assignAll(_cachedList(_sourcesCacheKey));
-    }
-    final chosen = _sourceFor(passageTranslation.value);
-    if (chosen == null) {
-      passageTranslation.value =
-          _sourceFor(selectedTranslation.value)?['code'] as String? ?? 'kjv';
-    }
-  }
-
-  Map<String, dynamic>? _sourceFor(String code) {
-    if (code.isEmpty) return null;
-    final wanted = code.toLowerCase();
-    return sources.firstWhereOrNull(
-      (row) => '${row['code']}'.toLowerCase() == wanted,
-    );
-  }
-
-  /// Resolves any spelling of a reference through the backend's passage router.
-  Future<void> searchPassage([String? reference]) async {
-    final text = (reference ?? passageQuery.value).trim();
-    passageQuery.value = text;
-    if (text.isEmpty) {
-      passage.value = null;
-      passageOffline.value = false;
-      passageMessage.value = 'Type a reference, for example John 3:16.';
-      return;
-    }
-    final code = passageTranslation.value;
-    final key = _passageCacheKey(text, code);
-    passageBusy.value = true;
-    passageMessage.value = '';
-    try {
-      final fresh = await api.biblePassage(text, translation: code);
-      passage.value = fresh;
-      passageOffline.value = false;
-      // The response says whether the text it served may live on the device;
-      // a licensed source that forbids caching is not our choice to override.
-      if (fresh['offline_allowed'] == true) await cache.writeJson(key, fresh);
-    } on Failure catch (failure) {
-      final cached = cache.readJson(key);
-      if (cached != null) {
-        passage.value = cached;
-        passageOffline.value = true;
-      } else {
-        passage.value = null;
-        passageOffline.value = false;
-        passageMessage.value = failure.message;
-      }
-    } finally {
-      passageBusy.value = false;
-    }
-  }
-
-  Future<void> selectPassageVersion(String code) async {
-    if (code == passageTranslation.value) return;
-    passageTranslation.value = code;
-    if (passageQuery.value.trim().isNotEmpty) await searchPassage();
-  }
-
-  void clearPassage() {
-    passage.value = null;
-    passageOffline.value = false;
-    passageMessage.value = '';
-  }
-
-  List<Map<String, dynamic>> get visibleTranslations {
-    final query = translationQuery.value.trim().toLowerCase();
-    if (query.isNotEmpty) {
-      final matches = translations
-          .where((translation) {
-            final searchText =
-                '${translation['name'] ?? ''} ${translation['code'] ?? ''} ${translation['language'] ?? ''}'
-                    .toLowerCase();
-            return searchText.contains(query);
-          })
-          .take(60)
-          .toList();
-      final selected = translations.firstWhereOrNull(
-        (translation) => translation['code'] == selectedTranslation.value,
-      );
-      if (selected != null && !matches.contains(selected)) {
-        matches.add(selected);
-      }
-      return matches;
-    }
-    final selected = translations.firstWhereOrNull(
-      (translation) => translation['code'] == selectedTranslation.value,
-    );
-    final result = translations.take(39).toList();
-    if (selected != null && !result.contains(selected)) result.add(selected);
-    return result;
   }
 
   Future<void> loadChapter() async {
@@ -677,10 +583,6 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   String get _cacheKey =>
       'bible.chapter.${selectedTranslation.value}.${Uri.encodeComponent(selectedBook.value)}.${selectedChapter.value}';
-  String get _sourcesCacheKey => 'bible.passage.sources';
-  String _passageCacheKey(String reference, String code) =>
-      'bible.passage.${code.isEmpty ? 'default' : code}.'
-      '${reference.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '')}';
   String get _pendingKey => 'bible.pending.${_accountEmail ?? 'signed-out'}';
   String get _savedKey => 'bible.saved.${_accountEmail ?? 'signed-out'}';
 }

@@ -155,10 +155,8 @@ class UdmApi {
   });
   Future<List<Map<String, dynamic>>> biblePlans() => _list('/bible/plans/');
 
-  /// One passage by reference, from whichever source this deployment may use.
-  /// The server normalizes the spelling and never fails the request because a
-  /// licensed source is unavailable: it answers with public-domain text plus
-  /// `deep_link_url` and a `fallback` note instead.
+  /// Legacy reference lookup used by other clients; the Bible tab reads only
+  /// catalogued English chapters through the HelloAO-backed endpoints above.
   Future<Map<String, dynamic>> biblePassage(
     String reference, {
     String? translation,
@@ -174,8 +172,6 @@ class UdmApi {
     return _json(response);
   });
 
-  /// The routing matrix: what this backend can print, and what it can only
-  /// hand to an authorized site.
   Future<List<Map<String, dynamic>>> biblePassageSources() =>
       _client.guard(() async {
         final response = await _client.dio.get<dynamic>('/bible/sources/');
@@ -185,6 +181,7 @@ class UdmApi {
         }
         return (data['results'] as List).cast<Map<String, dynamic>>();
       });
+
   Future<void> addBibleBookmark(String verseId) => _client.guard(() async {
     await _client.dio.post<dynamic>(
       '/bible/bookmarks/',

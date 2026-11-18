@@ -194,12 +194,9 @@ class _WalkTiles extends GetView<ProfileController> {
       );
     }
     return Panel(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _Tile(
             value: '${numbers.dayStreak}',
@@ -207,6 +204,7 @@ class _WalkTiles extends GetView<ProfileController> {
             icon: AppIcons.sun,
             color: AppColors.gold,
           ),
+          _statsDivider(),
           _Tile(
             value: '${numbers.guidesCompleted}',
             label: numbers.guidesCompleted == 1
@@ -215,6 +213,7 @@ class _WalkTiles extends GetView<ProfileController> {
             icon: AppIcons.school,
             color: theme.colorScheme.primary,
           ),
+          _statsDivider(),
           _Tile(
             value: '${numbers.readingsCompleted}',
             label: numbers.readingsCompleted == 1
@@ -222,13 +221,18 @@ class _WalkTiles extends GetView<ProfileController> {
                 : 'devotionals read',
             icon: AppIcons.bookOpen,
             color: AppColors.success,
-            last: true,
           ),
         ],
       ),
     );
   });
 }
+
+Widget _statsDivider() => Container(
+  width: 1,
+  height: 72,
+  color: AppColors.mist.withValues(alpha: .9),
+);
 
 /// One number, big, with the word that says what it counts.
 class _Tile extends StatelessWidget {
@@ -237,14 +241,12 @@ class _Tile extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.color,
-    this.last = false,
   });
 
   final String value;
   final String label;
   final IconData icon;
   final Color color;
-  final bool last;
 
   @override
   Widget build(BuildContext context) {
@@ -252,18 +254,22 @@ class _Tile extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 6),
+          Icon(icon, size: 28, color: color),
+          const SizedBox(height: 8),
           AppText(
             value,
-            style: AppTypography.statValue(theme.textTheme.bodyLarge!.color!),
+            style: AppTypography.statValue(theme.textTheme.bodyLarge!.color!)
+                .copyWith(fontSize: 28),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           AppText(
             label,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: theme.textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -397,155 +403,167 @@ class _IdentityCard extends StatelessWidget {
   final VoidCallback onEdit;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: AppShadows.float,
-        border: Border.all(color: AppColors.mist.withValues(alpha: .7)),
-      ),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 132,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  AppArt.profileCrossBanner,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.centerRight,
-                ),
-                Container(color: AppColors.primaryBlue.withValues(alpha: .12)),
-              ],
-            ),
+  Widget build(BuildContext context) => Container(
+    height: 198,
+    width: double.infinity,
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(28),
+      boxShadow: AppShadows.float,
+      border: Border.all(color: AppColors.mist.withValues(alpha: .7)),
+    ),
+    child: Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(AppArt.profileCrossBanner, fit: BoxFit.fill),
+        ),
+        Positioned.fill(
+          child: ClipPath(
+            clipper: _ProfileCardWaveClipper(),
+            child: ColoredBox(color: Theme.of(context).colorScheme.surface),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-            child: Transform.translate(
-              offset: const Offset(0, -42),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(5),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: UdmAvatar(
-                              initials: profile.initials,
-                              size: 112,
-                              photoUrl: profile.photoUrl ?? '',
-                            ),
-                          ),
-                          Positioned(
-                            right: -1,
-                            bottom: 0,
-                            child: Material(
-                              color: AppColors.primaryBlue,
-                              shape: const CircleBorder(),
-                              elevation: 4,
-                              child: InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: onEdit,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: Icon(
-                                    AppIcons.camera,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+        ),
+        Positioned(
+          left: 18,
+          top: 37,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: UdmAvatar(
+                  initials: profile.initials,
+                  size: 88,
+                  photoUrl: profile.photoUrl ?? '',
+                ),
+              ),
+              Positioned(
+                right: -2,
+                bottom: 0,
+                child: Material(
+                  color: AppColors.primaryBlue,
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onEdit,
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(
+                        AppIcons.camera,
+                        color: Colors.white,
+                        size: 18,
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppText(
-                              profile.displayName,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.deepBlue,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            AppText(
-                              profile.email,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.secondaryText,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const MetaPill(
-                              icon: AppIcons.crown,
-                              label: 'Learner',
-                              tone: AppColors.gold,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      key: const Key('udm.editProfile'),
-                      onPressed: onEdit,
-                      icon: const Icon(AppIcons.edit, size: 18),
-                      label: const AppText('Edit Profile'),
                     ),
                   ),
-                  if (!profile.emailVerified) ...[
-                    const SizedBox(height: 8),
-                    const AppText(
-                      'Email verification is not available in this build yet.',
-                      style: TextStyle(
-                        fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 119,
+          right: 14,
+          top: 68,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppText(
+                      profile.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.deepBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    AppText(
+                      profile.email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
                         color: AppColors.secondaryText,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  const AppText(
-                    'Growing in Christ, one day at a time.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.deepBlue,
+                    const SizedBox(height: 7),
+                    const MetaPill(
+                      icon: AppIcons.crown,
+                      label: 'Learner',
+                      tone: AppColors.gold,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 6),
+              FilledButton.icon(
+                key: const Key('udm.editProfile'),
+                onPressed: onEdit,
+                style: FilledButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 11,
+                  ),
+                ),
+                icon: const Icon(AppIcons.edit, size: 15),
+                label: const AppText(
+                  'Edit Profile',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Positioned(
+          left: 18,
+          right: 18,
+          bottom: 12,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Divider(height: 1, color: AppColors.mist.withValues(alpha: .8)),
+              const SizedBox(height: 9),
+              const AppText(
+                'Growing in Christ, one day at a time.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.deepBlue,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ProfileCardWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) => Path()
+    ..moveTo(0, 106)
+    ..quadraticBezierTo(size.width * .48, 37, size.width, 103)
+    ..lineTo(size.width, size.height)
+    ..lineTo(0, size.height)
+    ..close();
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _ProfileEditResult {

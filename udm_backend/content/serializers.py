@@ -98,9 +98,14 @@ class NotificationBroadcastSerializer(serializers.Serializer):
 
 
 class BibleTranslationSerializer(serializers.ModelSerializer):
+    language_code = serializers.SerializerMethodField()
+
     class Meta:
         model = BibleTranslation
-        fields = ("id", "code", "name", "license_name", "attribution", "source_url", "offline_allowed", "source_provider")
+        fields = ("id", "code", "provider_id", "name", "license_name", "attribution", "source_url", "offline_allowed", "source_provider", "language_code")
+
+    def get_language_code(self, translation):
+        return "eng" if translation.source_provider == "helloao" else ""
 
 
 class BibleBookSerializer(serializers.ModelSerializer):
