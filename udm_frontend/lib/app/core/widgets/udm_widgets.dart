@@ -516,7 +516,6 @@ class SectionHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.subtitleWidget,
-    this.subtitleWidget,
     this.trailing,
     this.eyebrow,
     this.onSeeAll,
@@ -525,7 +524,6 @@ class SectionHeader extends StatelessWidget {
 
   final String title;
   final String? subtitle;
-  final Widget? subtitleWidget;
   final Widget? subtitleWidget;
   final Widget? trailing;
   final String? eyebrow;
@@ -672,6 +670,7 @@ class HeroPanel extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     this.subtitle,
+    this.subtitleWidget,
     this.trailing,
     this.children = const [],
     this.padding = const EdgeInsets.fromLTRB(
@@ -685,6 +684,7 @@ class HeroPanel extends StatelessWidget {
   final String eyebrow;
   final String title;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final Widget? trailing;
   final List<Widget> children;
   final EdgeInsetsGeometry padding;

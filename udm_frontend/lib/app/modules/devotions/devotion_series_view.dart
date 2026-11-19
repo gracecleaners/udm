@@ -143,6 +143,5 @@ class _DayRow extends StatelessWidget {
           ),
         ),
       ),
-    ),
   );
 }
