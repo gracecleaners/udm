@@ -221,6 +221,8 @@ export interface ResourceConfig<T extends Row = Row> {
   child?: (row: T) => ChildScreen<T>;
   /** One dropdown above the table, sent as a query parameter (parent scoping). */
   parentFilter?: { name: string; label: string; optionsFrom: { cacheKey: string; load: () => Promise<Option[]> } };
+  /** A nested child table stays scoped to one parent and assigns that parent on create. */
+  fixedParent?: { name: string; value: string; label: string };
   creatable?: boolean;
   editable?: boolean;
   deletable?: boolean;

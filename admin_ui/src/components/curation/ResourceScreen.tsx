@@ -257,7 +257,10 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
   const editable = writable && config.editable !== false && Boolean(config.fields?.length);
   const deletable = writable && config.deletable !== false;
   const hasActions = Boolean(config.child) || (writable && Boolean(config.state || editable || deletable));
-  const params = config.parentFilter && filterValue ? { [config.parentFilter.name]: filterValue } : undefined;
+  const params = {
+    ...(config.fixedParent ? { [config.fixedParent.name]: config.fixedParent.value } : {}),
+    ...(config.parentFilter && filterValue ? { [config.parentFilter.name]: filterValue } : {}),
+  };
   const filterSource = config.parentFilter?.optionsFrom;
   const filtersQ = useQuery({
     queryKey: ["options", filterSource?.cacheKey ?? "no-filter"],
@@ -267,7 +270,7 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
   });
 
   const listQ = useQuery({
-    queryKey: ["resource", config.endpoint, page, debouncedSearch, filterValue],
+    queryKey: ["resource", config.endpoint, page, debouncedSearch, filterValue, config.fixedParent?.value],
     queryFn: () =>
       listPage<T>(config.endpoint, { page, search: debouncedSearch || undefined, ordering: config.ordering, params }),
   });
@@ -366,6 +369,9 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
       }
       if (value === undefined) continue;
       body[field.name] = value;
+    }
+    if (creating && config.fixedParent) {
+      body[config.fixedParent.name] = config.fixedParent.value;
     }
     if (creating) {
       const missing = (config.fields ?? []).find((field) => {
@@ -583,8 +589,7 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
               <DialogHeader>
                 <DialogTitle>{config.child(childRow).title(childRow)}</DialogTitle>
                 <DialogDescription>
-                  These {config.child(childRow).config.plural.toLowerCase()} belong to the{" "}
-                  {config.singular.toLowerCase()} above; the API files them under it automatically.
+                  {config.child(childRow).config.description}
                 </DialogDescription>
               </DialogHeader>
               <ResourceScreen config={config.child(childRow).config} />

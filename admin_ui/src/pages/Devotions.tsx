@@ -2,12 +2,12 @@ import { ResourceScreen } from "@/components/curation/ResourceScreen";
 import { StateBadge, countText, dateText, dateTimeText, ellipsis } from "@/components/curation/cells";
 import { datedPublishState, seriesOptions, type ResourceConfig } from "@/lib/curation";
 
-const config: ResourceConfig = {
+export const devotionsConfig: ResourceConfig = {
   endpoint: "admin/devotions/",
   singular: "Devotion",
   plural: "Devotions",
   description:
-    "Build a complete series reading with an optional opening introduction, Scripture, reflection, practice, and closing prayer. Unfiled readings can still appear as a daily home devotion.",
+    "Add a daily home devotion or a one-off reading here. To build a series, open Devotional series and choose Manage readings so each reading is attached to the right series.",
   state: datedPublishState,
   searchPlaceholder: "Search titles, references or authors",
   parentFilter: { name: "series", label: "Series", optionsFrom: seriesOptions },
@@ -69,8 +69,8 @@ const config: ResourceConfig = {
       type: "text",
       help: "Optional for the Introduction. Example: “John 1:1-13”.",
     },
-    { name: "scripture_text", label: "Scripture text", type: "textarea", help: "The quoted passage shown before the reflection. Rich formatting is supported." },
-    { name: "excerpt", label: "Home feed excerpt", type: "textarea", help: "Short preview for the home feed. Older readings can keep their Scripture here if Scripture text is empty." },
+    { name: "scripture_text", label: "Scripture passage", type: "textarea", help: "The quoted Bible passage shown before the reflection. Rich formatting is supported." },
+    { name: "excerpt", label: "Home preview", type: "textarea", help: "Short optional text shown in the home feed. For older readings, this also appears as Scripture if the Scripture passage is empty." },
     { name: "body", label: "Reflection and teaching", type: "textarea", required: true, help: "The main reading. Use paragraphs and rich formatting for a comfortable devotional flow." },
     { name: "reflection_questions", label: "Reflection questions", type: "lines", help: "One question per line." },
     { name: "application", label: "Application", type: "textarea", help: "Optional practical response after the reflection." },
@@ -107,5 +107,5 @@ const config: ResourceConfig = {
 };
 
 export default function Devotions() {
-  return <ResourceScreen config={config} />;
+  return <ResourceScreen config={devotionsConfig} />;
 }
