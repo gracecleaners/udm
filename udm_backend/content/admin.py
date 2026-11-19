@@ -48,7 +48,11 @@ class DevotionalInline(admin.StackedInline):
 
     model = Devotional
     extra = 1
-    fields = ("day", "title", "scripture_reference", "scripture_text", "excerpt", "body", "prayer", "image", "is_published", "publish_at")
+    fields = (
+        "day", "title", "scripture_reference", "scripture_text", "excerpt", "body",
+        "reflection_questions", "application", "prayer", "memory_scripture_reference",
+        ("image", "image_link"), "reading_minutes", "is_published", "publish_at",
+    )
     ordering = ("-day",)
 
 
@@ -74,7 +78,7 @@ class DevotionalAdmin(PublishedContentAdmin):
     search_fields = ("title", "scripture_reference", "body")
     fieldsets = (
         ("Series", {"fields": ("series", "day")}),
-        ("Reading", {"fields": ("title", "author", "scripture_reference", "scripture_text", "excerpt", "body", ("image", "image_link") )}),
+        ("Reading", {"fields": ("title", "author", "scripture_reference", "scripture_text", "excerpt", "body", ("image", "image_link"))}),
         ("Response", {"fields": ("reflection_questions", "application", "prayer", "memory_scripture_reference")}),
         ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),
     )

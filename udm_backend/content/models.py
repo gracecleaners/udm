@@ -73,7 +73,7 @@ class ArtworkLink:
             )
 
 
-class DevotionalSeries(TimestampedModel):
+class DevotionalSeries(ArtworkLink, TimestampedModel):
     """A named set of devotions read day by day — *The Book of James*, *Christmas*.
 
     The app's Devotions tab is this table and nothing more, so a series with no

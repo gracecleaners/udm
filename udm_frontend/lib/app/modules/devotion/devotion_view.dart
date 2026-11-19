@@ -73,7 +73,9 @@ class _DevotionBody extends StatelessWidget {
                   Image.network(
                     devotional.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
+                    errorBuilder: (_, _, _) => const DecoratedBox(
+                      decoration: BoxDecoration(gradient: AppGradients.hero),
+                    ),
                   )
                 else
                   const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
@@ -94,7 +96,7 @@ class _DevotionBody extends StatelessWidget {
                           ),
                           child: const Icon(
                             Icons.menu_book_rounded,
-                          color: AppColors.primaryBlue,
+                            color: AppColors.primaryBlue,
                             size: 30,
                           ),
                         ),
@@ -228,7 +230,7 @@ class _DevotionBody extends StatelessWidget {
                     const Text(
                       'Put it into practice',
                       style: TextStyle(
-                      color: AppColors.deepBlue,
+                        color: AppColors.deepBlue,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),

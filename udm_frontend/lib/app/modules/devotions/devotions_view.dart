@@ -142,7 +142,7 @@ class _SeriesTile extends StatelessWidget {
         const SizedBox(height: 9),
         AppText(
           series.title,
-      style: const TextStyle(
+          style: const TextStyle(
             color: AppColors.deepBlue,
             fontSize: 15,
             fontWeight: FontWeight.w700,
