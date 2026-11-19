@@ -37,21 +37,45 @@ class HomeView extends GetView<HomeController> {
       onRetry: controller.load,
       emptyTitle: 'Nothing published yet',
       emptyMessage: 'Once the ministry team publishes a devotion or article it shows up here.',
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Color(0xFF075CE0),
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        child: SafeArea(
-          top: true,
+      child: Obx(
+        () => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: controller.statusBarUsesDarkIcons.value
+                ? Brightness.dark
+                : Brightness.light,
+            statusBarBrightness: controller.statusBarUsesDarkIcons.value
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: SafeArea(
+          top: false,
           bottom: false,
           child: Stack(
             children: [
               const Positioned.fill(child: _HomeBackdrop()),
-              RefreshIndicator(
-                onRefresh: controller.load,
-                child: ListView(
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  final verseHeight = controller.data?.memoryVerse == null
+                      ? 0.0
+                      : _HomeMemoryVerseCard.heightForWidth(
+                          MediaQuery.sizeOf(context).width,
+                        );
+                  final lightBackgroundStartsAt =
+                      MediaQuery.paddingOf(context).top + 110 + verseHeight;
+                  if (notification.depth == 0 &&
+                      (notification is ScrollUpdateNotification ||
+                          notification is OverscrollNotification)) {
+                    controller.updateStatusBarTone(
+                      notification.metrics.pixels,
+                      lightBackgroundStartsAt,
+                    );
+                  }
+                  return false;
+                },
+                child: RefreshIndicator(
+                  onRefresh: controller.load,
+                  child: ListView(
                   padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
                   children: [
                     _HomeHeader(
@@ -120,9 +144,11 @@ class HomeView extends GetView<HomeController> {
                       child: const _SignInNudge(),
                     ),
                   ],
+                  ),
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -303,7 +329,7 @@ class _Greeting extends GetView<HomeController> {
                       height: 58,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF1386FF),
+                        color: AppColors.royalBlue,
                       ),
                       child: const Icon(
                         AppIcons.person,
@@ -430,7 +456,7 @@ class _SectionAccent extends StatelessWidget {
     width: 4,
     height: 24,
     decoration: BoxDecoration(
-      color: const Color(0xFF0864F9),
+      color: AppColors.primaryBlue,
       borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
     ),
   );
@@ -502,36 +528,33 @@ class _HomeHeader extends StatelessWidget {
   final double verseExtension;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.only(top: 0, bottom: 14),
-    child: Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: -verseExtension,
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF0349B5),
-                  Color(0xFF0864F9),
-                  Color(0xFF0876F5),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.topRight,
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.paddingOf(context).top;
+    return Container(
+      padding: EdgeInsets.only(top: topInset, bottom: 14),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -topInset,
+            bottom: -verseExtension,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppGradients.hero,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(20),
+                ),
               ),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
             ),
           ),
-        ),
-        const Positioned.fill(child: _HeaderDecorations()),
-        child,
-      ],
-    ),
-  );
+          const Positioned.fill(child: _HeaderDecorations()),
+          child,
+        ],
+      ),
+    );
+  }
 }
 
 class _HeaderDecorations extends StatelessWidget {
@@ -583,7 +606,7 @@ class _HomeBackdrop extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Colors.white, Color(0xFFFBFDFF), Color(0xFFEAF5FF)],
+        colors: [Colors.white, Color(0xFFFBFDFF), AppColors.lightBlue],
         stops: [0, .65, 1],
       ),
     ),
@@ -1028,13 +1051,13 @@ class _SeeAll extends StatelessWidget {
       AppText(
         'See all',
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF0864F9),
+          color: AppColors.primaryBlue,
           fontSize: 14.5,
           fontWeight: FontWeight.w800,
         ),
       ),
       const SizedBox(width: 2),
-      Icon(AppIcons.next, size: 19, color: const Color(0xFF0864F9)),
+      Icon(AppIcons.next, size: 19, color: AppColors.primaryBlue),
     ],
   );
 }

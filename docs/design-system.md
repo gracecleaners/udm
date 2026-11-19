@@ -12,10 +12,10 @@ The look the ministry asked for is premium, modern and youthful — the reading 
 
 | Token | Value | Use |
 |---|---|---|
-| `primaryBlue` | `#2563EB` | Main actions, active navigation, links, selected pills |
+| `primaryBlue` | `#186285` | Main actions, active navigation, links, selected pills |
 | `deepBlue` / `ink` | `#101B3D` | Gradient foot, headers, shadow tint |
-| `royalBlue` | `#3B82F6` | The lit corner of `AppGradients.hero` only |
-| `lightBlue` | `#EFF6FF` | Scripture and selected surfaces |
+| `royalBlue` | `#2C819B` | The lit corner of `AppGradients.hero` only |
+| `lightBlue` | `#EAF3F6` | Scripture and selected surfaces |
 | `white` | `#FFFFFF` | Cards and reading surfaces |
 | `background` | `#F8FAFC` | Main light canvas |
 | `darkText` | `#172033` | Primary text |
@@ -25,7 +25,7 @@ The look the ministry asked for is premium, modern and youthful — the reading 
 | `danger` | `#C0392B` | Rejected input, session problems |
 | `gold` | `#F5B942` | Decoration only — the verse rule, the streak flame. Never a status colour, because `warning` already owns amber |
 
-Dark mode keeps the same hues and lifts the surfaces: `darkBackground` `#0B1020`, `darkSurface` `#111A2E`, `darkElevated` `#18243B`, `darkModeText` `#F1F5F9`, `darkModeSecondaryText` `#9AAAC1`, `darkLightBlue` `#1D3563`. Hairlines, the field wash and the brand tints (`hairline`, `hairlineStrong`, `field`, `primaryTint`, `successTint`, `goldTint`, `mist`, `scrim`) exist so a card edge or a highlighted row is a token rather than an opinion.
+The optional dark palette uses the same hues and lifted surfaces: `darkBackground` `#0B1020`, `darkSurface` `#111A2E`, `darkElevated` `#18243B`, `darkModeText` `#F1F5F9`, `darkModeSecondaryText` `#9AAAC1`, `darkLightBlue` `#143F55`. Hairlines, the field wash and the brand tints (`hairline`, `hairlineStrong`, `field`, `primaryTint`, `successTint`, `goldTint`, `mist`, `scrim`) exist so a card edge or a highlighted row is a token rather than an opinion.
 
 Screens never read `AppColors` for a foreground: they read `Theme.of(context).colorScheme` and `textTheme`. The two brightnesses are tuned in one place, and `AppSurfaces` (a `ThemeExtension`) supplies what Material has no slot for — the scripture tint, the hairline pair, the field wash, the shadow tint and the three gradients — through `card()`, `inset()` and `pill()`.
 
@@ -158,7 +158,7 @@ The community wall met the same rule on ground the Learn tab had not covered:
 
 ## Console (web) adaptation
 
-`admin_ui/` is staff-facing, so it keeps the same identity but not the same kit: Tailwind HSL tokens plus one hand-written stylesheet (`src/design-system.css`), still on the earlier brand blues `#1769AA` / `#123B63` and `#EAF4FC`. The mobile palette above is the current brand of record; the console carries the previous one, and aligning it is a separate pass that the 2026 UI modernization explicitly left out of scope.
+`admin_ui/` is staff-facing, so it uses its own kit: Tailwind HSL tokens plus one hand-written stylesheet (`src/design-system.css`). Its primary action, focus ring, navigation accents and brand mark follow the same `#186285` primary and `#EAF3F6` tint as the mobile app.
 
 - **The fonts are bundled, not fetched.** *Plus Jakarta Sans* for chrome and *Newsreader* for prose are `@font-face`d from `src/fonts/` with their OFL texts beside them, mirroring the mobile decision and keeping a campus network from needing a CDN. Newsreader is reserved for what a person wrote and what the ministry sets over it — the login headline and a prayer request's body — which is the same rule the app applies to Scripture.
 - **Console rules qualify their selectors.** `design-system.css` is `@import`ed *before* `@tailwind`, so at equal specificity a Tailwind utility wins. Every console rule therefore names its element or stacks its class (`div.console-toolbar label.console-search`, `.console-panel thead th`), and the table variant is an explicit `console-panel-table` modifier rather than a `:has()` query.

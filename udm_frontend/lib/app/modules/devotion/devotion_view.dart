@@ -106,7 +106,7 @@ class _DevotionBody extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 34,
+                            fontSize: 30,
                             height: 1.15,
                             fontWeight: FontWeight.w800,
                           ),
@@ -148,7 +148,7 @@ class _DevotionBody extends StatelessWidget {
                       devotional.scriptureText,
                       style: const TextStyle(
                         color: Color(0xFF343434),
-                        fontSize: 20,
+                        fontSize: 15,
                         height: 1.65,
                         fontStyle: FontStyle.italic,
                       ),
@@ -162,7 +162,7 @@ class _DevotionBody extends StatelessWidget {
                             '—${devotional.scriptureReference}',
                             style: const TextStyle(
                               color: Color(0xFF343434),
-                              fontSize: 16,
+                        fontSize: 15,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w600,
                             ),
@@ -186,8 +186,8 @@ class _DevotionBody extends StatelessWidget {
                       devotional.body,
                       style: const TextStyle(
                         color: Color(0xFF393939),
-                        fontSize: 19,
-                        height: 1.72,
+                        fontSize: 15,
+                        height: 1.68,
                       ),
                     ),
                   ),
@@ -200,7 +200,7 @@ class _DevotionBody extends StatelessWidget {
                       'Reflect',
                       style: TextStyle(
                         color: AppColors.deepBlue,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -216,7 +216,7 @@ class _DevotionBody extends StatelessWidget {
                           '${i + 1}. ${devotional.reflectionQuestions[i]}',
                           style: const TextStyle(
                             color: Color(0xFF393939),
-                            fontSize: 18,
+                            fontSize: 16,
                             height: 1.55,
                           ),
                         ),
@@ -231,7 +231,7 @@ class _DevotionBody extends StatelessWidget {
                       'Put it into practice',
                       style: TextStyle(
                         color: AppColors.deepBlue,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -240,8 +240,8 @@ class _DevotionBody extends StatelessWidget {
                       devotional.application,
                       style: const TextStyle(
                         color: Color(0xFF393939),
-                        fontSize: 19,
-                        height: 1.72,
+                        fontSize: 15,
+                        height: 1.68,
                       ),
                     ),
                   ],
@@ -254,7 +254,7 @@ class _DevotionBody extends StatelessWidget {
                       devotional.prayer,
                       style: const TextStyle(
                         color: Color(0xFF343434),
-                        fontSize: 20,
+                        fontSize: 15,
                         height: 1.7,
                         fontStyle: FontStyle.italic,
                       ),
@@ -266,7 +266,7 @@ class _DevotionBody extends StatelessWidget {
                         '—Prayer',
                         style: TextStyle(
                           color: Color(0xFF343434),
-                          fontSize: 16,
+                          fontSize: 15,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w600,
                         ),

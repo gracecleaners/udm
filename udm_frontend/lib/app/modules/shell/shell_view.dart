@@ -34,16 +34,24 @@ class ShellView extends GetView<ShellController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Obx(
-        () => IndexedStack(index: controller.tab.value, children: tabs),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
-      bottomNavigationBar: Obx(
-        () => _TabBar(
-          key: const Key('udm.tabBar'),
-          items: _items,
-          index: controller.tab.value,
-          onSelect: controller.select,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Obx(
+          () => IndexedStack(index: controller.tab.value, children: tabs),
+        ),
+        bottomNavigationBar: Obx(
+          () => _TabBar(
+            key: const Key('udm.tabBar'),
+            items: _items,
+            index: controller.tab.value,
+            onSelect: controller.select,
+          ),
         ),
       ),
     );

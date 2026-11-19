@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   const AppColors._();
 
-  static const Color primaryBlue = Color(0xFF2563EB);
+  static const Color primaryBlue = Color(0xFF186285);
   static const Color deepBlue = Color(0xFF101B3D);
-  static const Color lightBlue = Color(0xFFEFF6FF);
+  static const Color lightBlue = Color(0xFFEAF3F6);
   static const Color white = Color(0xFFFFFFFF);
   static const Color background = Color(0xFFF8FAFC);
 
@@ -24,22 +24,22 @@ class AppColors {
   static const Color darkElevated = Color(0xFF18243B);
   static const Color darkModeText = Color(0xFFF1F5F9);
   static const Color darkModeSecondaryText = Color(0xFF9AAAC1);
-  static const Color darkLightBlue = Color(0xFF1D3563);
+  static const Color darkLightBlue = Color(0xFF143F55);
 
   static const Color danger = Color(0xFFC0392B);
 
   // Brand extensions. These exist so gradients and hairlines stay in the family
   // instead of each screen inventing its own blue.
-  static const Color royalBlue = Color(0xFF3B82F6);
+  static const Color royalBlue = Color(0xFF2C819B);
   static const Color ink = Color(0xFF101B3D);
-  static const Color mist = Color(0xFFDCEBFF);
+  static const Color mist = Color(0xFFD7EAF0);
 
   /// Candle gold: decoration only (the verse rule, the streak flame). Never a
   /// status colour, because warning already owns amber.
   static const Color gold = Color(0xFFF5B942);
 
   static const Color darkInk = Color(0xFF070B16);
-  static const Color darkMist = Color(0xFF294A83);
+  static const Color darkMist = Color(0xFF244D61);
 
   /// The wash under a cover that has no artwork, and the scrim laid over a
   /// photograph so white type stays legible on whatever the ministry uploaded.
@@ -55,7 +55,7 @@ class AppColors {
 
   /// The tinted fill an inactive input or a quiet row sits on.
   static const Color field = Color(0xFFF4F8FC);
-  static const Color primaryTint = Color(0x1A2563EB);
+  static const Color primaryTint = Color(0x1A186285);
   static const Color successTint = Color(0x1A269B72);
   static const Color goldTint = Color(0x24F5B942);
 }

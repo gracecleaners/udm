@@ -29,7 +29,7 @@ class LearnView extends GetView<LearnController> {
       emptyTitle: 'No recordings published yet',
       emptyMessage: 'When the ministry team publishes a teaching series, it will appear here.',
       child: ColoredBox(
-        color: const Color(0xFFF7FAFF),
+        color: AppColors.background,
         child: RefreshIndicator(
           color: AppColors.primaryBlue,
           onRefresh: controller.load,
@@ -92,106 +92,79 @@ class _LearnFeatureHero extends StatelessWidget {
   final VoidCallback onWatch;
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    bottom: false,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(17, 8, 17, 0),
-      child: Container(
-        height: 355,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: const Color(0xFF073A83),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: AppShadows.float,
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CoverArt(
-              url: shelf.imageUrl,
-              monogram: shelf.monogram,
-              radius: 0,
-              monogramSize: 48,
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 1768 / 906,
+            child: Image.asset(
+              'assets/images/learn_feature_thumbnail.png',
+              fit: BoxFit.cover,
             ),
-            const DecoratedBox(
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(17, 12, 17, 0),
+            child: Container(
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xC40739A0),
-                    Color(0x27144A83),
-                    Color(0xF500173F),
-                  ],
-                  stops: [0, .38, 1],
-                ),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.hairline),
+                boxShadow: AppShadows.card(AppColors.primaryBlue),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(21, 20, 21, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Learn',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.deepBlue,
                                 fontFamily: AppFonts.scripture,
-                                fontSize: 41,
-                                height: 1.03,
+                                fontSize: 32,
+                                height: 1.05,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -1,
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            SizedBox(height: 3),
                             Text(
                               'Grow in God’s Word',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: .92),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              style: TextStyle(
+                                color: AppColors.secondaryText,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      if (offline) const OfflineChip(onDark: true),
+                      if (offline) const OfflineChip(),
                     ],
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 18),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 7,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .17),
+                      color: AppColors.lightBlue,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .32),
-                      ),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Colors.white,
-                          size: 15,
-                        ),
+                        Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 15),
                         SizedBox(width: 6),
                         Text(
                           'FEATURED TEACHING',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.primaryBlue,
                             fontSize: 10,
                             letterSpacing: .7,
                             fontWeight: FontWeight.w800,
@@ -200,16 +173,16 @@ class _LearnFeatureHero extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 11),
                   FormattedContent(
                     shelf.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.deepBlue,
                       fontFamily: AppFonts.scripture,
-                      fontSize: 29,
-                      height: 1.04,
+                      fontSize: 25,
+                      height: 1.08,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -220,21 +193,21 @@ class _LearnFeatureHero extends StatelessWidget {
                         : shelf.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .88),
-                      fontSize: 12,
-                      height: 1.25,
+                    style: const TextStyle(
+                      color: AppColors.secondaryText,
+                      fontSize: 13,
+                      height: 1.4,
                     ),
                   ),
                   const SizedBox(height: 14),
                   SizedBox(
-                    height: 44,
+                    height: 46,
+                    width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: onWatch,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.deepBlue,
-                        padding: const EdgeInsets.symmetric(horizontal: 17),
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
                         shape: const StadiumBorder(),
                         elevation: 0,
                       ),
@@ -248,11 +221,11 @@ class _LearnFeatureHero extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ContinueWatching extends GetView<LearnController> {

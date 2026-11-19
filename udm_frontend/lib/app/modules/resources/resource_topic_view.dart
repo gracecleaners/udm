@@ -17,7 +17,7 @@ class ResourceTopicView extends GetView<ResourceTopicController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F8FF),
+      backgroundColor: AppColors.background,
       body: Obx(() {
         final topic = controller.topic.value;
         return StateView(
@@ -56,7 +56,7 @@ class _ResourceDetail extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: Color(0xFFEAF2FF)),
+        const ColoredBox(color: AppColors.lightBlue),
         SafeArea(
           bottom: false,
           child: Padding(

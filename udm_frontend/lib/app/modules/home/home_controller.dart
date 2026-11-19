@@ -21,6 +21,14 @@ class HomeController extends GetxController with RefetchesOnContentChange {
   final RxString failureMessage = ''.obs;
   final RxBool savingVerse = false.obs;
   final RxBool savingReading = false.obs;
+  final RxBool statusBarUsesDarkIcons = false.obs;
+
+  void updateStatusBarTone(double offset, double lightBackgroundStartsAt) {
+    final useDarkIcons = offset >= lightBackgroundStartsAt;
+    if (statusBarUsesDarkIcons.value != useDarkIcons) {
+      statusBarUsesDarkIcons.value = useDarkIcons;
+    }
+  }
 
   /// Where the student stopped in the recordings, and what they have finished.
   /// Both belong to an account, so both stay empty until there is one, and a

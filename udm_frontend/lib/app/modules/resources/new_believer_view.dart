@@ -38,7 +38,7 @@ class NewBelieverView extends GetView<NewBelieverController> {
                 child: Row(
                   children: [
                     const CircleAvatar(
-                      backgroundColor: Color(0xFFE7F0FF),
+                      backgroundColor: AppColors.lightBlue,
                       child: Icon(Icons.menu_book_rounded, color: AppColors.primaryBlue),
                     ),
                     const SizedBox(width: 14),

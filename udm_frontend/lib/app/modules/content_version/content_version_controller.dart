@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
@@ -17,6 +19,13 @@ class ContentVersionController extends GetxController {
 
   final UdmApi _api;
   AppLifecycleListener? _lifecycle;
+  Timer? _pollTimer;
+  bool _pollInFlight = false;
+
+  /// The content stamp response is tiny; the full screen reload only happens
+  /// when its value changes. Keeping this timer foreground-only gives active
+  /// readers timely updates without repeatedly downloading unchanged content.
+  static const _pollInterval = Duration(seconds: 30);
 
   /// Null until the server has answered. Deliberately not an observed zero: a
   /// screen must be able to tell "we do not know yet" from "version 0".
@@ -25,14 +34,34 @@ class ContentVersionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _lifecycle = AppLifecycleListener(onResume: poll);
+    _lifecycle = AppLifecycleListener(
+      onResume: _resumePolling,
+      onPause: _pausePolling,
+      onDetach: _pausePolling,
+    );
     poll();
+    _startPolling();
   }
 
   @override
   void onClose() {
+    _pausePolling();
     _lifecycle?.dispose();
     super.onClose();
+  }
+
+  void _resumePolling() {
+    poll();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer ??= Timer.periodic(_pollInterval, (_) => poll());
+  }
+
+  void _pausePolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
   }
 
   /// Never fatal: offline, the app simply keeps the last number it saw.
@@ -40,13 +69,17 @@ class ContentVersionController extends GetxController {
   /// Named `poll` rather than `refresh` because GetX already owns `refresh()` on
   /// a controller, and that one notifies listeners instead of asking the server.
   Future<void> poll() async {
+    if (_pollInFlight) return;
+    _pollInFlight = true;
     try {
       final version = await _api.contentVersion();
       // Only a real change is published, so a resume with nothing new does not
       // set the whole app refetching.
       if (known.value != version) known.value = version;
     } on Failure {
-      return;
+      // Keep the last known version when the device is offline.
+    } finally {
+      _pollInFlight = false;
     }
   }
 }

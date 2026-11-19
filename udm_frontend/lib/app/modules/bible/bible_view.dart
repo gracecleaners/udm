@@ -572,7 +572,7 @@ class _ReadingBar extends StatelessWidget {
                           return Material(
                             color: selected
                                 ? AppColors.primaryBlue
-                                : const Color(0xFFEAF2FF),
+                                : AppColors.lightBlue,
                             borderRadius: BorderRadius.circular(13),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(13),
@@ -1225,7 +1225,7 @@ class _ReaderActionBar extends StatelessWidget {
     const colors = [
       Color(0xFFFFF1A8),
       Color(0xFFD9FBE8),
-      Color(0xFFDCEBFF),
+      AppColors.mist,
       Color(0xFFFFDFE6),
     ];
     final chosen = await showModalBottomSheet<Color>(

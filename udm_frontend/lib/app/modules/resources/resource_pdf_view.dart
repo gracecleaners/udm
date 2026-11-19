@@ -47,7 +47,7 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFFF2F6FD),
+    backgroundColor: AppColors.background,
     appBar: AppBar(
       backgroundColor: Colors.white,
       foregroundColor: AppColors.deepBlue,

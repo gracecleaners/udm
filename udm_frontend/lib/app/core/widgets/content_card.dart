@@ -474,7 +474,7 @@ class ScripturePanel extends StatelessWidget {
                       height: 31,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF2F7FF),
+                        color: AppColors.lightBlue,
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Row(

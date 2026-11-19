@@ -91,15 +91,13 @@ class DevotionsView extends GetView<DevotionsController> {
                   ),
                 ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(22, 0, 22, AppSpacing.xl),
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, AppSpacing.xl),
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: coverColumns(
-                      MediaQuery.sizeOf(context).width,
-                    ),
-                    mainAxisSpacing: 26,
-                    crossAxisSpacing: 24,
-                    childAspectRatio: .72,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 18,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: .84,
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final series = controller.series[index];
@@ -135,8 +133,8 @@ class _SeriesTile extends StatelessWidget {
           child: CoverArt(
             url: series.coverImageUrl,
             monogram: series.monogram,
-            monogramSize: 34,
-            radius: 8,
+            monogramSize: 28,
+            radius: 12,
           ),
         ),
         const SizedBox(height: 9),
@@ -144,7 +142,7 @@ class _SeriesTile extends StatelessWidget {
           series.title,
           style: const TextStyle(
             color: AppColors.deepBlue,
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
           maxLines: 2,

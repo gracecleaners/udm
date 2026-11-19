@@ -9,8 +9,8 @@ export function BrandMark({ size = 36, id = "udm-brand-mark" }: { size?: number;
       <svg width={size} height={size} viewBox="0 0 36 36" role="presentation">
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#2E8FD0" />
-            <stop offset="0.52" stopColor="#1769AA" />
+            <stop offset="0" stopColor="#2C819B" />
+            <stop offset="0.52" stopColor="#186285" />
             <stop offset="1" stopColor="#123B63" />
           </linearGradient>
         </defs>
