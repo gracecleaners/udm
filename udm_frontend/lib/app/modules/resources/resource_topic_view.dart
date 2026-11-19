@@ -137,7 +137,7 @@ class _ResourceDetail extends StatelessWidget {
         DraggableScrollableSheet(
           initialChildSize: .25,
           minChildSize: .20,
-          maxChildSize: .68,
+          maxChildSize: .94,
           builder: (context, scrollController) => Container(
             decoration: BoxDecoration(
               color: Colors.white,
