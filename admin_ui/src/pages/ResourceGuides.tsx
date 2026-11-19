@@ -29,6 +29,7 @@ const config: ResourceConfig = {
       ),
     },
     { header: "Steps", cell: (row) => countText(row.step_count, "step") },
+    { header: "PDF", cell: (row) => <span className="console-cell-sub">{row.pdf_url ? "PDF attached" : "No PDF"}</span> },
     { header: "List position", cell: (row) => String(row.order) },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
     { header: "Publish date", cell: (row) => dateText(row.publish_at) },
@@ -59,6 +60,12 @@ const config: ResourceConfig = {
       label: "Or use an image URL",
       type: "text",
       help: "Use a full https:// URL when the ministry's image already lives on another host. An uploaded file takes priority.",
+    },
+    {
+      name: "pdf",
+      label: "Resource PDF",
+      type: "file",
+      help: "Optional PDF opened by Read now in the app. Upload a PDF document.",
     },
     {
       name: "order",

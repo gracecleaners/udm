@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models import F, Q
 from django.utils import timezone
@@ -193,6 +194,13 @@ class ResourceTopic(ArtworkLink, TimestampedModel):
         help_text="Optional cover image for this guide. Leave empty for the branded fallback.",
     )
     image_link = models.URLField(blank=True)
+    pdf = models.FileField(
+        upload_to="resource_pdfs/",
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(["pdf"])],
+        help_text="Optional PDF opened by Read now in the mobile app.",
+    )
     order = models.PositiveSmallIntegerField(
         default=1,
         help_text="Position in the home 'Find resources on' list, lowest first.",

@@ -122,38 +122,66 @@ void main() {
     return repository;
   }
 
-  testWidgets('the tab shows the ministry\'s shelves with what each one holds', (tester) async {
+  /// The tab is a scroll view and the test window is short, so a shelf in the
+  /// second grid row is either not built yet or built below the fold where a
+  /// tap cannot land. Drag until the row sits inside the viewport.
+  Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+    final viewport = tester.getRect(find.byType(CustomScrollView));
+    for (var attempt = 0; attempt < 8; attempt++) {
+      if (finder.evaluate().isNotEmpty && tester.getRect(finder.first).bottom <= viewport.bottom) {
+        return;
+      }
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -220));
+      await tester.pumpAndSettle();
+    }
+  }
+
+  testWidgets('the tab opens on the heading and the teaching it carries', (tester) async {
     final repository = await pumpLearn(tester, rows: sampleMediaShelves());
 
-    expect(find.text('WATCH AND LISTEN'), findsOneWidget);
-    expect(find.text('SOMA'), findsOneWidget);
-    expect(find.text('Study, Observe, Meditate, and Apply the Scriptures.'), findsOneWidget);
-    expect(find.text('2 recordings'), findsOneWidget);
+    expect(find.text('Learn'), findsOneWidget);
+    expect(find.text('Grow in God’s Word'), findsOneWidget);
+    // The teaching the ministry puts first is its own card under the heading,
+    // and it is also a shelf on the grid, so its name is on the screen twice.
+    expect(find.text('Featured Teaching'), findsOneWidget);
+    expect(find.text('Watch Now'), findsOneWidget);
+    expect(find.text('SOMA'), findsWidgets);
+    expect(find.text('Study, Observe, Meditate, and Apply the Scriptures.'), findsWidgets);
+    expect(find.text('2 Lessons'), findsOneWidget);
     expect(find.text('Podcast'), findsOneWidget);
     // One recording reads as one recording.
-    expect(find.text('1 recording'), findsOneWidget);
+    expect(find.text('1 Lesson'), findsOneWidget);
     expect(find.text('Offline copy'), findsNothing);
     expect(repository.shelvesCalls, 1);
+  });
+
+  testWidgets('Watch Now opens the featured shelf\'s first recording', (tester) async {
+    await pumpLearn(tester, rows: sampleMediaShelves());
+
+    await tester.tap(find.text('Watch Now'));
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.mediaItem);
+    expect(find.text('RECORDING SCREEN'), findsOneWidget);
   });
 
   testWidgets('shelf art that will not load leaves the name, not a broken box', (tester) async {
     await pumpLearn(tester, rows: sampleMediaShelves());
 
     // SOMA has art on the ministry's host and Podcast has none at all; neither
-    // row is allowed to show a hole.
-    expect(find.byType(Image), findsOneWidget);
-    expect(find.text('S'), findsOneWidget);
-    expect(find.text('P'), findsOneWidget);
+    // tile is allowed to show a hole, so each answers with its own letter.
+    expect(find.text('S'), findsWidgets);
+    await scrollTo(tester, find.text('P'));
+    expect(find.text('P'), findsWidgets);
   });
 
   testWidgets('tapping a shelf really opens that shelf', (tester) async {
-    await pumpLearn(
-      tester,
-      rows: sampleMediaShelves(),
-      shelfRow: sampleMediaShelves().first,
-    );
+    await pumpLearn(tester, rows: sampleMediaShelves(), shelfRow: sampleMediaShelves().first);
 
-    await tester.tap(find.text('SOMA'));
+    // Podcast is only ever a grid tile: SOMA is also the featured shelf in the
+    // heading, where tapping it opens a recording instead of the shelf.
+    await scrollTo(tester, find.text('Podcast'));
+    await tester.tap(find.text('Podcast'));
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.mediaCollection);
@@ -166,9 +194,7 @@ void main() {
 
     expect(find.text('No recordings published yet'), findsOneWidget);
     expect(
-      find.text(
-        'When the ministry team puts a teaching recording on a shelf it appears here.',
-      ),
+      find.text('When the ministry team publishes a teaching series, it will appear here.'),
       findsOneWidget,
     );
   });
@@ -185,12 +211,8 @@ void main() {
       failure: const Failure(FailureKind.offline, 'No connection to the UDM service.'),
     );
 
-    expect(find.text('SOMA'), findsOneWidget);
+    expect(find.text('SOMA'), findsWidgets);
     expect(find.text('Offline copy'), findsOneWidget);
-    expect(
-      find.text('Saved on this device. Pull to refresh when you are online.'),
-      findsOneWidget,
-    );
     // The failure is not shown as an error over shelves that read fine.
     expect(find.text('We could not load this'), findsNothing);
     expect(repository.shelvesCalls, 1);
@@ -211,7 +233,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.shelvesCalls, 2);
-    expect(find.text('SOMA'), findsOneWidget);
+    // SOMA is both the teaching the heading carries and a shelf of its own.
+    expect(find.text('SOMA'), findsWidgets);
   });
 
   testWidgets('a ministry edit reloads the tab while it is open', (tester) async {
@@ -222,19 +245,14 @@ void main() {
 
     final versions = Get.find<ContentVersionController>() as FakeContentVersionController;
     repository.shelfRows = [
-      const MediaCollection(
-        id: 'c7',
-        title: 'Uliza',
-        order: 2,
-        itemCount: 4,
-        contentVersion: 9,
-      ),
+      const MediaCollection(id: 'c7', title: 'Uliza', order: 2, itemCount: 4, contentVersion: 9),
     ];
     versions.emit(9);
     await tester.pumpAndSettle();
 
     expect(repository.shelvesCalls, 2);
-    expect(find.text('Uliza'), findsOneWidget);
+    // Uliza is both the shelf the grid lists and the one the heading features.
+    expect(find.text('Uliza'), findsWidgets);
     expect(find.text('Podcast'), findsNothing);
   });
 
@@ -263,19 +281,70 @@ void main() {
       ],
     );
 
-    expect(find.text('PICK UP WHERE YOU STOPPED'), findsOneWidget);
-    expect(find.text('Continue watching'), findsOneWidget);
-    expect(
-      find.text('True faith sides with God | Hebrews 11:29-31'),
-      findsOneWidget,
+    expect(find.text('Continue Watching'), findsOneWidget);
+    expect(find.text('True faith sides with God | Hebrews 11:29-31'), findsOneWidget);
+    expect(find.text('Series: SOMA'), findsOneWidget);
+    // The heading carries its door whether the student has one place to return
+    // to or several, and Browse Series has the same words further down the tab.
+    final door = find.descendant(
+      of: find.ancestor(of: find.text('Continue Watching'), matching: find.byType(Row)).first,
+      matching: find.text('See All'),
     );
-    // Five minutes of a fifteen-minute talk is the promise the card makes.
-    expect(find.text('5 min left'), findsOneWidget);
+    expect(door, findsOneWidget);
     expect(repository.resumeCalls, 1);
 
-    await tester.tap(
-      find.text('True faith sides with God | Hebrews 11:29-31').first,
+    await tester.tap(find.text('True faith sides with God | Hebrews 11:29-31').first);
+    await tester.pumpAndSettle();
+
+    expect(Get.currentRoute, AppRoutes.mediaItem);
+    expect(find.text('RECORDING SCREEN'), findsOneWidget);
+  });
+
+  testWidgets('the two newest places are on the tab, the rest are one tap away', (tester) async {
+    await pumpLearn(
+      tester,
+      rows: sampleMediaShelves(),
+      signedIn: true,
+      resumeRows: const [
+        ResumeItem(
+          id: 'm1',
+          title: 'True faith sides with God | Hebrews 11:29-31',
+          durationSeconds: 940,
+          positionSeconds: 640,
+          collectionTitle: 'SOMA',
+        ),
+        ResumeItem(
+          id: 'm2',
+          title: 'Why the law was not enough',
+          durationSeconds: 1200,
+          positionSeconds: 300,
+          collectionTitle: 'SOMA',
+        ),
+        ResumeItem(
+          id: 'm3',
+          title: 'Prayer the church cannot outpray',
+          durationSeconds: 1500,
+          positionSeconds: 300,
+          collectionTitle: 'Uliza',
+        ),
+      ],
     );
+
+    // The tab carries the two places the server put first; a third waits in the
+    // sheet rather than pushing the library off the first screen.
+    expect(find.text('True faith sides with God | Hebrews 11:29-31'), findsOneWidget);
+    expect(find.text('Why the law was not enough'), findsOneWidget);
+    expect(find.text('Prayer the church cannot outpray'), findsNothing);
+
+    // Continue Watching is the first heading on the tab, so its door is first.
+    await tester.tap(find.text('See All').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Prayer the church cannot outpray'), findsOneWidget);
+    // The sheet answers the question the card cannot: how much is left.
+    expect(find.text('Uliza · 20 min left'), findsOneWidget);
+
+    await tester.tap(find.text('Prayer the church cannot outpray'));
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.mediaItem);
@@ -287,7 +356,7 @@ void main() {
     // so the tab shows the shelves the ministry published and nothing else.
     final repository = await pumpLearn(tester, rows: sampleMediaShelves());
 
-    expect(find.text('Continue watching'), findsNothing);
+    expect(find.text('Continue Watching'), findsNothing);
     expect(repository.resumeCalls, 0);
   });
 

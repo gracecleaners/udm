@@ -866,6 +866,7 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, serializers.ModelSe
     step_count = serializers.IntegerField(read_only=True)
     steps_completed = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ResourceTopic
@@ -874,6 +875,7 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, serializers.ModelSe
             "title",
             "summary",
             "image_url",
+            "pdf_url",
             "order",
             "publish_at",
             "step_count",
@@ -891,6 +893,13 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, serializers.ModelSe
 
     def get_image_url(self, topic):
         return artwork_url(topic, self.context.get("request"))
+
+    def get_pdf_url(self, topic):
+        if not topic.pdf:
+            return ""
+        url = topic.pdf.url
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
 
 class ResourceStepRowSerializer(serializers.ModelSerializer):

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -16,7 +20,7 @@ class ReadingSize {
   final double scale;
 }
 
-/// Device-level looks: light or dark, and how large the reading text is.
+/// The fixed light appearance and the scripture reading size.
 ///
 /// Deliberately not on the account. A shared family phone can be dark for one
 /// student and light for the next, and neither choice is data the ministry
@@ -26,7 +30,7 @@ class AppearanceController extends GetxController {
 
   final SettingsRepository _settings;
 
-  final Rx<ThemeMode> mode = ThemeMode.system.obs;
+  final Rx<ThemeMode> mode = ThemeMode.light.obs;
   final RxDouble readingScale = 1.0.obs;
 
   static const List<ReadingSize> readingSizes = [
@@ -38,11 +42,8 @@ class AppearanceController extends GetxController {
 
   @override
   void onInit() {
-    mode.value = switch (_settings.themeModeCode) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
+    // Clear a dark/system preference saved by an older app version.
+    unawaited(_settings.setThemeModeCode('light'));
     readingScale.value = _settings.readingScale;
     _publishScale();
     super.onInit();
@@ -51,7 +52,10 @@ class AppearanceController extends GetxController {
   /// The step whose scale the student is on, or the middle step when the
   /// stored value came from a release that offered different ones.
   ReadingSize get readingSize =>
-      readingSizes.firstWhereOrNull((size) => size.scale == readingScale.value) ?? readingSizes[1];
+      readingSizes.firstWhereOrNull(
+        (size) => size.scale == readingScale.value,
+      ) ??
+      readingSizes[1];
 
   /// A design size run through the student's choice, for the surfaces that set
   /// their type from this controller and so can follow the change on the frame
@@ -59,15 +63,6 @@ class AppearanceController extends GetxController {
   double scaled(double base) => base * readingScale.value;
 
   void _publishScale() => AppTypography.readingScale = readingScale.value;
-
-  Future<void> selectMode(ThemeMode selected) async {
-    mode.value = selected;
-    await _settings.setThemeModeCode(switch (selected) {
-      ThemeMode.light => 'light',
-      ThemeMode.dark => 'dark',
-      ThemeMode.system => 'system',
-    });
-  }
 
   Future<void> selectReadingSize(ReadingSize size) async {
     readingScale.value = size.scale;

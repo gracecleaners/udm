@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -17,57 +16,61 @@ class SplashView extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // The whole opening screen is one photograph with the brand written on
-          // it, so the app's first impression is the ministry's own art rather
-          // than a gradient. The gradient stays underneath: a first launch
-          // paints before the asset decodes, and a dark photo needs the scrim
-          // to keep white text legible on any phone.
-          const ColoredBox(color: AppColors.darkInk),
           Positioned.fill(child: BackdropArt(asset: AppArt.splash)),
-          const Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.scrim))),
-          Positioned.fill(child: Mark.backdrop(tint: AppColors.white, alpha: 0.10)),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xF5003C9B),
+                    Color(0xE80048B4),
+                    Color(0x5B0757B9),
+                    Color(0xA500347F),
+                  ],
+                  stops: [0, .44, .72, 1],
+                ),
+              ),
+            ),
+          ),
           SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const FadeIn(
-                        child: _BrandMark(),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      FadeIn(
-                        delay: const Duration(milliseconds: 140),
-                        child: AppText(
-                          'University Discipleship Mission',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: AppColors.white,
-                                letterSpacing: 0.6,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      FadeIn(
-                        delay: const Duration(milliseconds: 240),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                          child: AppText(
-                            AppConfig.tagline,
-                            textAlign: TextAlign.center,
-                            style: AppTypography.scriptureReference(Colors.white70).copyWith(fontSize: 15.5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl + AppSpacing.md),
-                      const FadeIn(
-                        delay: Duration(milliseconds: 340),
-                        child: _LoadingRule(),
-                      ),
-                    ],
+                const Spacer(flex: 1),
+                const FadeIn(child: _SplashLogo()),
+                const SizedBox(height: AppSpacing.md),
+                FadeIn(
+                  delay: const Duration(milliseconds: 140),
+                  child: AppText(
+                    'University Discipleship\nMission',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                const FadeIn(
+                  delay: Duration(milliseconds: 240),
+                  child: AppText(
+                    'Grow · Learn · Connect · Serve',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(flex: 3),
+                const FadeIn(
+                  delay: Duration(milliseconds: 340),
+                  child: _SplashDots(),
+                ),
+                const SizedBox(height: AppSpacing.xl),
               ],
             ),
           ),
@@ -77,39 +80,79 @@ class SplashView extends StatelessWidget {
   }
 }
 
-/// The mark on the gradient needs its own light ring, so it is not the flat
-/// `UdmLogo` tile used on white surfaces.
-class _BrandMark extends StatelessWidget {
-  const _BrandMark();
+/// Recreates the supplied UDM lockup in the same cross, open-Bible and wordmark
+/// arrangement, without the rounded app-icon tile used on other screens.
+class _SplashLogo extends StatelessWidget {
+  const _SplashLogo();
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 116,
-        height: 116,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.22), width: 1.4),
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox(
+        width: 78,
+        height: 58,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            const Icon(Icons.menu_book_rounded, color: Colors.white, size: 68),
+            Positioned(
+              top: 0,
+              child: Container(
+                width: 4,
+                height: 39,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 9,
+              child: Container(
+                width: 28,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ],
         ),
-        child: const Center(child: Mark(size: 78, icon: AppIcons.bookOpen)),
-      );
+      ),
+      const SizedBox(height: 3),
+      const Text(
+        'UDM',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 38,
+          height: 1,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1,
+        ),
+      ),
+    ],
+  );
 }
 
-/// A thin gold rule that sweeps while the session is restored — the brand
-/// equivalent of a spinner, and honest about waiting without a second widget.
-class _LoadingRule extends StatelessWidget {
-  const _LoadingRule();
+class _SplashDots extends StatelessWidget {
+  const _SplashDots();
 
   @override
-  Widget build(BuildContext context) => const SizedBox(
-        width: 120,
-        child: ClipRRect(
-          borderRadius: BorderRadius.all(Radius.circular(2)),
-          child: LinearProgressIndicator(
-            minHeight: 3,
-            backgroundColor: Colors.white24,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.gold),
-          ),
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: List.generate(
+      5,
+      (index) => Container(
+        width: 6,
+        height: 6,
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: index == 2 ? 1 : .55),
+          shape: BoxShape.circle,
         ),
-      );
+      ),
+    ),
+  );
 }

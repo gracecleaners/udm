@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
@@ -53,63 +54,47 @@ class HomeView extends GetView<HomeController> {
                   padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
                   children: [
                     _HomeHeader(
-                      child: Column(
-                        children: [
-                          const _Greeting(),
-                          if (controller.data?.memoryVerse != null) ...[
-                            const SizedBox(height: AppSpacing.md),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: FadeIn(
-                                child: Obx(
-                                  () => ScripturePanel(
-                                    compact: true,
-                                    reference:
-                                        controller.data!.memoryVerse!.reference,
-                                    text: controller.data!.memoryVerse!.text,
-                                    translationCode: controller
-                                        .data!
-                                        .memoryVerse!
-                                        .translationCode,
-                                    artUrl:
-                                        controller.data!.memoryVerse!.imageUrl,
-                                    offline: controller.isOfflineCopy,
-                                    ctaLabel: controller.data!.devotion == null
-                                        ? null
-                                        : 'Read More',
-                                    onTap: controller.data!.devotion == null
-                                        ? null
-                                        : () => controller.openDevotion(
-                                            controller.data!.devotion!.id,
-                                          ),
-                                    onReview: () => controller.markMemorized(),
-                                    memorized: controller.verseMemorized,
-                                    savingReview: controller.savingVerse.value,
-                                  ),
-                                ),
+                      verseExtension: controller.data?.memoryVerse == null
+                          ? 0
+                          : _HomeMemoryVerseCard.heightForWidth(
+                                  MediaQuery.sizeOf(context).width,
+                                ) *
+                                .75,
+                      child: const _Greeting(),
+                    ),
+                    if (controller.data?.memoryVerse != null)
+                      Transform.translate(
+                        offset: const Offset(0, -15),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: FadeIn(
+                            child: Obx(
+                              () => _HomeMemoryVerseCard(
+                                reference:
+                                    controller.data!.memoryVerse!.reference,
+                                text: controller.data!.memoryVerse!.text,
+                                artUrl: controller.data!.memoryVerse!.imageUrl,
                               ),
                             ),
-                          ],
-                        ],
+                          ),
+                        ),
                       ),
-                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: FadeIn(
                         delay: const Duration(milliseconds: 120),
-                        child: const _QuickAccessGrid(),
+                        child: const _HomeFeatureCards(),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: FadeIn(
+                    if (controller.data?.resources.isNotEmpty ?? false)
+                      FadeIn(
                         delay: const Duration(milliseconds: 150),
-                        child: const _TodaysActivities(),
+                        child: _RecommendedResources(
+                          resources: controller.data!.resources,
+                          onSelect: controller.openTopic,
+                        ),
                       ),
-                    ),
                     if (controller.data?.reading != null) ...[
                       const SizedBox(height: AppSpacing.lg),
                       Padding(
@@ -146,34 +131,6 @@ class HomeView extends GetView<HomeController> {
                             .toList(),
                       ),
                     ],
-                    if (controller.data?.resources.isNotEmpty ?? false) ...[
-                      const SizedBox(height: AppSpacing.xl),
-                      const RailHeader(
-                        eyebrow: 'Guided reading',
-                        title: 'Courses',
-                        subtitle: 'Short guides for the questions students actually ask',
-                        onSeeAll: _openCourses,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.screen,
-                        ),
-                        child: Column(
-                          children: [
-                            for (final topic in controller.data!.resources)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.sm,
-                                ),
-                                child: _ResourceRow(
-                                  topic: topic,
-                                  onOpen: () => controller.openTopic(topic.id),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: AppSpacing.lg),
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -191,16 +148,144 @@ class HomeView extends GetView<HomeController> {
     ),
   );
 
-  /// Courses is a screen of its own, not a section of the feed, so both doors
-  /// into it go to the same route.
-  static void _openCourses() => Get.toNamed(AppRoutes.courses);
-
   static String _byline(Article article) {
     final parts = [
       if (article.author.isNotEmpty) article.author,
       if (article.category.isNotEmpty) article.category,
     ];
     return parts.isEmpty ? 'UDM' : parts.join(' · ');
+  }
+}
+
+/// The image-led verse strip shown in the supplied home header reference.
+/// Staff artwork wins; the bundled sunrise is the offline/default backdrop.
+class _HomeMemoryVerseCard extends StatelessWidget {
+  const _HomeMemoryVerseCard({
+    required this.reference,
+    required this.text,
+    required this.artUrl,
+  });
+
+  final String reference;
+  final String text;
+  final String artUrl;
+
+  static double heightForWidth(double width) =>
+      (width * .49).clamp(180.0, 210.0).toDouble();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final height = heightForWidth(width);
+    return Container(
+      height: height,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x39001F5B),
+            blurRadius: 15,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (artUrl.isNotEmpty)
+            Image.network(
+              artUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Image.asset(
+                AppArt.splash,
+                fit: BoxFit.cover,
+                alignment: const Alignment(.28, .48),
+              ),
+            )
+          else
+            Image.asset(
+              AppArt.splash,
+              fit: BoxFit.cover,
+              alignment: const Alignment(.28, .48),
+            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Color(0xD900173D),
+                  Color(0x9B001B40),
+                  Color(0x3D001B40),
+                ],
+                stops: [0, .56, 1],
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Color(0x70000D25), Colors.transparent],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(19, 18, 19, 15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '“${text.trim().replaceAll(RegExp(r'^[“"]|[”"]$'), '')}”',
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: (width * .052).clamp(18.0, 22.0),
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -.3,
+                        shadows: const [
+                          Shadow(color: Color(0xB8000A1C), blurRadius: 9),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(
+                      AppIcons.bookOpen,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        reference,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -212,27 +297,15 @@ class _Greeting extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final session = Get.find<SessionController>();
     return Obx(() {
-      final greeting = controller.data?.greeting;
       final profile = session.profile.value;
       final displayName = profile?.displayName.trim() ?? '';
       final firstName = displayName.isEmpty
           ? ''
           : displayName.split(RegExp(r'\s+')).first;
-      final greetingText = greeting?.isNotEmpty == true
-          ? greeting!
-          : 'Good morning';
-      final greetingPrefix =
-          displayName.isNotEmpty && greetingText.endsWith(', $displayName')
-          ? greetingText.substring(
-              0,
-              greetingText.length - displayName.length - 2,
-            )
-          : greetingText;
       return Padding(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+        padding: const EdgeInsets.fromLTRB(19, 11, 19, 0),
         child: Row(
           children: [
             PressableScale(
@@ -244,8 +317,8 @@ class _Greeting extends GetView<HomeController> {
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
               child: profile == null
                   ? Container(
-                      width: 48,
-                      height: 48,
+                      width: 58,
+                      height: 58,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Color(0xFF1386FF),
@@ -253,54 +326,47 @@ class _Greeting extends GetView<HomeController> {
                       child: const Icon(
                         AppIcons.person,
                         color: Colors.white,
-                        size: 31,
+                        size: 36,
                       ),
                     )
                   : UdmAvatar(
                       initials: profile.initials,
-                      size: 48,
+                      size: 58,
                       photoUrl: profile.photoUrl ?? '',
                     ),
             ),
-            const SizedBox(width: 11),
-            Container(
-              width: 1.2,
-              height: 48,
-              color: Colors.white.withValues(alpha: .86),
-            ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 13),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: greetingPrefix),
-                        if (firstName.isNotEmpty) ...[
-                          const TextSpan(text: ', '),
-                          TextSpan(
-                            text: firstName,
-                            style: const TextStyle(color: Color(0xFF43E2CF)),
-                          ),
-                        ],
-                      ],
-                    ),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.35,
+                  const Text(
+                    'Good morning,',
+                    style: TextStyle(
                       color: Colors.white,
+                      fontSize: 18,
+                      height: 1.12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.2,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  AppText(
-                    'Grow deeper. Walk closer.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 14.5,
-                      color: Colors.white.withValues(alpha: 0.78),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: firstName.isEmpty ? 'Welcome' : firstName,
+                        ),
+                        const TextSpan(text: ' 👋'),
+                      ],
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      height: 1.16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.25,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -322,207 +388,56 @@ class _Greeting extends GetView<HomeController> {
 
 /// Four compact, two-column doors keep the home page's most common journeys
 /// visible without duplicating the shared bottom navigation.
-class _QuickAccessGrid extends StatelessWidget {
-  const _QuickAccessGrid();
-
-  static const List<_QuickAccessItem> _items = [
-    _QuickAccessItem(
-      title: 'Courses',
-      subtitle: 'Guided courses',
-      icon: AppIcons.school,
-      tint: const Color(0xFFDCEEFF),
-      iconTint: const Color(0xFF0864F9),
-      onTap: HomeView._openCourses,
-    ),
-    _QuickAccessItem(
-      title: 'Articles',
-      subtitle: 'Ideas to grow',
-      icon: AppIcons.book,
-      tint: const Color(0xFFC9F8E8),
-      iconTint: const Color(0xFF00A982),
-      onTap: _openArticles,
-    ),
-    _QuickAccessItem(
-      title: 'New Believer',
-      subtitle: 'Faith essentials',
-      icon: AppIcons.sparkles,
-      tint: const Color(0xFFFFF0D1),
-      iconTint: const Color(0xFFE39A00),
-      onTap: _openNewBeliever,
-    ),
-    _QuickAccessItem(
-      title: 'Media',
-      subtitle: 'Watch & listen',
-      icon: AppIcons.play,
-      tint: const Color(0xFFEDE4FF),
-      iconTint: const Color(0xFF6420E8),
-      onTap: _openMedia,
-    ),
-  ];
-
-  static void _openArticles() => Get.toNamed(AppRoutes.articles);
-  static void _openNewBeliever() => Get.toNamed(AppRoutes.newBeliever);
-  static void _openMedia() =>
-      Get.find<ShellController>().select(ShellController.learnTab);
+class _HomeFeatureCards extends StatelessWidget {
+  const _HomeFeatureCards();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const _SectionAccent(),
-            const SizedBox(width: 10),
-            Expanded(
-              child: AppText(
-                'Quick Access',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppColors.deepBlue,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: HomeView._openCourses,
-              child: const _SeeAll(),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final tileWidth = (constraints.maxWidth - AppSpacing.sm) / 2;
-            return Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                for (final item in _items)
-                  SizedBox(
-                    width: tileWidth,
-                    child: Panel(
-                      onTap: item.onTap,
-                      padding: const EdgeInsets.all(10),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          item.tint.withValues(alpha: .88),
-                          item.tint.withValues(alpha: .68),
-                        ],
-                      ),
-                      child: SizedBox(
-                        height: 62,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Positioned(
-                              right: -42,
-                              bottom: -58,
-                              child: Container(
-                                width: 118,
-                                height: 118,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: .19),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: item.iconTint.withValues(alpha: .13),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Icon(
-                                    item.icon,
-                                    color: item.iconTint,
-                                    size: 25,
-                                  ),
-                                ),
-                                const SizedBox(width: 9),
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      AppText(
-                                        item.title,
-                                        style: theme.textTheme.titleSmall
-                                            ?.copyWith(
-                                              color: AppColors.deepBlue,
-                                              fontSize: 15.5,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 3),
-                                      AppText(
-                                        item.subtitle,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(fontSize: 12),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Container(
-                                  width: 26,
-                                  height: 26,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.4,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    AppIcons.chevron,
-                                    size: 20,
-                                    color: AppColors.deepBlue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+    children: [
+      _HomeFeatureImage(
+        asset: 'assets/images/new_believer.png',
+        semanticLabel: 'New Believer — Start your journey with Christ',
+        onTap: () => Get.toNamed(AppRoutes.newBeliever),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      _HomeFeatureImage(
+        asset: 'assets/images/articles.png',
+        semanticLabel: 'Articles — Insights to strengthen your faith',
+        onTap: () => Get.toNamed(AppRoutes.articles),
+      ),
+    ],
+  );
 }
 
-class _QuickAccessItem {
-  const _QuickAccessItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.tint,
+class _HomeFeatureImage extends StatelessWidget {
+  const _HomeFeatureImage({
+    required this.asset,
+    required this.semanticLabel,
     required this.onTap,
-    this.iconTint = AppColors.primaryBlue,
   });
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color tint;
-  final Color iconTint;
+  final String asset;
+  final String semanticLabel;
   final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: semanticLabel,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: AspectRatio(
+            aspectRatio: 1.78,
+            child: Ink.image(image: AssetImage(asset), fit: BoxFit.cover),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _SectionAccent extends StatelessWidget {
@@ -599,24 +514,37 @@ class _NotificationBell extends GetView<NotificationsController> {
 /// point from the approved reference while leaving the app's shared tab bar
 /// untouched.
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.child});
+  const _HomeHeader({required this.child, this.verseExtension = 0});
 
   final Widget child;
+  final double verseExtension;
 
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: AppSpacing.md),
-    padding: const EdgeInsets.only(top: 4, bottom: 18),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF0349B5), Color(0xFF0864F9), Color(0xFF0876F5)],
-        begin: Alignment.topLeft,
-        end: Alignment.topRight,
-      ),
-      borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-    ),
+    padding: const EdgeInsets.only(top: 0, bottom: 14),
     child: Stack(
+      clipBehavior: Clip.none,
       children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: -verseExtension,
+          child: const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF0349B5),
+                  Color(0xFF0864F9),
+                  Color(0xFF0876F5),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            ),
+          ),
+        ),
         const Positioned.fill(child: _HeaderDecorations()),
         child,
       ],
@@ -845,247 +773,263 @@ class _TodaysReading extends GetView<HomeController> {
 /// Today, as a list a student can finish. Each row is real content the server
 /// published for this day, and the tick is the server's own record that this
 /// student has done it — not a streak the app guessed.
-///
-/// The plan rows come first and the finished rows are what makes their ticks
-/// true, so nothing is listed twice: a devotion read today is one row with a
-/// check on it, not a to-do and a log entry.
-class _TodaysActivities extends GetView<HomeController> {
-  const _TodaysActivities();
+/// Swipeable resource cards scale up as they become the focused item. The list
+/// and each resource's details are supplied by the ministry API.
+class _RecommendedResources extends StatefulWidget {
+  const _RecommendedResources({
+    required this.resources,
+    required this.onSelect,
+  });
+
+  final List<ResourceTopic> resources;
+  final ValueChanged<String> onSelect;
 
   @override
-  Widget build(BuildContext context) => Obx(() => _activities(context));
+  State<_RecommendedResources> createState() => _RecommendedResourcesState();
+}
 
-  Widget _activities(BuildContext context) {
-    final theme = Theme.of(context);
-    final payload = controller.data;
-    final rows = <_ActivityRow>[
-      if (payload?.devotion != null)
-        _ActivityRow(
-          label: 'Daily devotional',
-          title: payload!.devotion!.title,
-          subtitle: payload.devotion!.excerpt.isNotEmpty
-              ? payload.devotion!.excerpt
-              : 'Find peace in God’s promises.',
-          icon: AppIcons.calendar,
-          tone: const Color(0xFFDCEEFF),
-          iconColor: const Color(0xFF0864F9),
-          done: controller.isDone(payload.devotion!.id),
-          onTap: () => controller.openDevotion(payload.devotion!.id),
-        ),
-      if (payload?.memoryVerse != null)
-        _ActivityRow(
-          label: 'Verse to keep',
-          title: payload!.memoryVerse!.reference,
-          subtitle: 'Let God’s Word guide you today.',
-          icon: AppIcons.crown,
-          tone: const Color(0xFFD5F7EA),
-          iconColor: const Color(0xFF00A982),
-          done: controller.verseMemorized,
-          onTap: controller.markMemorized,
-        ),
-      if (payload?.reading != null)
-        _ActivityRow(
-          label: 'Reading for today',
-          title: payload!.reading!.day.reference,
-          subtitle: 'Continue your reading plan.',
-          icon: AppIcons.bible,
-          tone: const Color(0xFFDCEEFF),
-          iconColor: const Color(0xFF0864F9),
-          done: payload.reading!.day.completed,
-          onTap: controller.openReading,
-        ),
-    ];
-    if (rows.isEmpty) return const SizedBox.shrink();
+class _RecommendedResourcesState extends State<_RecommendedResources> {
+  late final PageController _pageController;
+  int _focusedIndex = 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: .78);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
           children: [
             const _SectionAccent(),
             const SizedBox(width: 10),
             Expanded(
               child: AppText(
-                "Today's Activities",
-                style: theme.textTheme.titleLarge?.copyWith(
+                'Recommended Resources',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppColors.deepBlue,
-                  fontSize: 22,
+                  fontSize: 21,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             TextButton(
-              key: const Key('udm.home.activityHistory'),
-              onPressed: () => Get.toNamed(AppRoutes.readingHistory),
-              child: const _SeeAll(),
+              onPressed: _showAll,
+              child: AppText(
+                'View All',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: AppColors.primaryBlue),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        for (final row in rows)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Panel(
-              onTap: row.onTap,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: SizedBox(
-                height: 64,
-                child: Row(
-                  children: [
-                    _ActivityIcon(row: row),
-                    const SizedBox(width: 16),
-                    Container(
-                      width: 1.2,
-                      height: 64,
-                      color: const Color(0xFFA7B5D2),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: row.iconColor.withValues(alpha: .12),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: AppText(
-                              row.label,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: row.iconColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
+      ),
+      const SizedBox(height: 4),
+      SizedBox(
+        height: 355,
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.resources.length,
+          onPageChanged: (index) => setState(() => _focusedIndex = index),
+          itemBuilder: (context, index) {
+            final resource = widget.resources[index];
+            final focused = index == _focusedIndex;
+            return AnimatedScale(
+              scale: focused ? 1 : .86,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 5),
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(23),
+                  clipBehavior: Clip.antiAlias,
+                  elevation: focused ? 7 : 2,
+                  shadowColor: AppColors.deepBlue.withValues(alpha: .18),
+                  child: InkWell(
+                    onTap: () => widget.onSelect(resource.id),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CoverArt(
+                                url: resource.imageUrl,
+                                monogram: resource.monogram,
+                                radius: 0,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Color(0xA500173F),
+                                    ],
+                                    stops: [.5, 1],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 11,
+                                    vertical: 7,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: .94),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    resource.pdfUrl.isNotEmpty
+                                        ? 'PDF'
+                                        : 'GUIDE',
+                                    style: const TextStyle(
+                                      color: AppColors.deepBlue,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: .5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom: 15,
+                                child: Text(
+                                  '${resource.stepCount} ${resource.stepCount == 1 ? 'lesson' : 'lessons'}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          AppText(
-                            row.title,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: AppColors.deepBlue,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 13, 16, 15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                resource.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.deepBlue,
+                                  fontFamily: AppFonts.scripture,
+                                  fontSize: 18,
+                                  height: 1.12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                resource.summary.isEmpty
+                                    ? 'Open this resource to explore its overview.'
+                                    : resource.summary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.secondaryText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                          AppText(
-                            row.subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: row.done
-                            ? const Color(0xFF0864F9)
-                            : const Color(0xFFDCEEFF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        row.done ? AppIcons.check : AppIcons.next,
-                        color: row.done
-                            ? Colors.white
-                            : const Color(0xFF0864F9),
-                        size: 23,
-                      ),
-                    ),
-                  ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      if (widget.resources.length > 1)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var index = 0; index < widget.resources.length; index++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: index == _focusedIndex ? 22 : 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: index == _focusedIndex
+                      ? AppColors.primaryBlue
+                      : AppColors.primaryBlue.withValues(alpha: .25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+          ],
+        ),
+    ],
+  );
+
+  Future<void> _showAll() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Recommended Resources',
+                style: TextStyle(
+                  color: AppColors.deepBlue,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
-          ),
-      ],
-    );
-  }
-}
-
-/// One line of today's list: what the ministry put in front of this student,
-/// whether their account says it is finished, and where it opens.
-class _ActivityRow {
-  const _ActivityRow({
-    required this.label,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.tone,
-    required this.iconColor,
-    required this.done,
-    required this.onTap,
-  });
-
-  final String label;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color tone;
-  final Color iconColor;
-  final bool done;
-  final VoidCallback onTap;
-}
-
-class _ActivityIcon extends StatelessWidget {
-  const _ActivityIcon({required this.row});
-
-  final _ActivityRow row;
-
-  @override
-  Widget build(BuildContext context) {
-    if (row.icon != AppIcons.calendar) {
-      return Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(color: row.tone, shape: BoxShape.circle),
-        child: Icon(row.icon, color: row.iconColor, size: 30),
-      );
-    }
-    final today = DateTime.now();
-    const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: row.tone,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(AppIcons.calendar, color: Color(0xFF0864F9), size: 20),
-          Text(
-            '${today.day}',
-            style: const TextStyle(
-              color: Color(0xFF0864F9),
-              fontSize: 15,
-              height: 1,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            weekdays[today.weekday - 1],
-            style: const TextStyle(
-              color: AppColors.deepBlue,
-              fontSize: 9,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
+            for (final resource in widget.resources)
+              ListTile(
+                leading: CoverArt(
+                  url: resource.imageUrl,
+                  monogram: resource.monogram,
+                  width: 58,
+                  height: 58,
+                  radius: 10,
+                ),
+                title: Text(resource.title),
+                subtitle: Text('${resource.stepCount} lessons'),
+                trailing: const Icon(
+                  AppIcons.chevron,
+                  color: AppColors.primaryBlue,
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  widget.onSelect(resource.id);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1112,108 +1056,6 @@ class _SeeAll extends StatelessWidget {
       Icon(AppIcons.next, size: 19, color: const Color(0xFF0864F9)),
     ],
   );
-}
-
-/// One row of the "Courses" list. The row is the guide's own name, not a
-/// generic button, because the ministry writes the list and reorders it without
-/// an app release.
-class _ResourceRow extends StatelessWidget {
-  const _ResourceRow({required this.topic, required this.onOpen});
-
-  final ResourceTopic topic;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Panel(
-      onTap: onOpen,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CoverArt(
-            url: topic.imageUrl,
-            monogram: topic.monogram,
-            width: 68,
-            height: 76,
-            radius: AppSpacing.radiusTile,
-            monogramSize: 18,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText(
-                  topic.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 3),
-                if (topic.summary.isNotEmpty)
-                  AppText(
-                    topic.summary,
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Icon(
-                      AppIcons.steps,
-                      size: 15,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: AppText(
-                        '${topic.stepsCompleted} of ${topic.stepCount} steps',
-                        style: theme.textTheme.labelMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                UdmProgressBar(
-                  fraction: topic.fractionComplete,
-                  height: 5,
-                  gradient: AppGradients.hero,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppText(
-                        topic.stepsCompleted == 0
-                            ? 'Start course'
-                            : 'Continue learning',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      AppIcons.next,
-                      color: theme.colorScheme.primary,
-                      size: 17,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Signing in has to be reachable where the student actually reads, not only

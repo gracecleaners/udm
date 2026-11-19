@@ -49,143 +49,173 @@ class BibleView extends GetView<BibleController> {
     final verses =
         (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const [];
 
-    return RefreshIndicator(
-      onRefresh: controller.load,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification.metrics.axis == Axis.vertical &&
-              notification.metrics.maxScrollExtent > 0) {
-            controller.readingProgress.value =
-                (notification.metrics.pixels /
-                        notification.metrics.maxScrollExtent)
-                    .clamp(0, 1)
-                    .toDouble();
-          }
-          return false;
-        },
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-          children: [
-            _Header(),
-            if (controller.offline.value) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                // The full sentence needs the width a pill cannot give it: this
-                // chapter is on the device, not on the network.
-                child: const NoticeBanner(
-                  message: 'Offline copy · saved on this device',
-                ),
-              ),
-            ],
-            if (translation != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              _ReadingBar(controller: controller),
-            ],
-            if (controller.message.value.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: AppText(
-                  controller.message.value,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
-            if (translation == null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: AppText(
-                  'No translation has been synced into this deployment yet, so '
-                  'reading a whole chapter is not available yet.',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: verses.isEmpty && controller.busy.value
-                    ? const _ReadingSkeleton()
-                    : _ScriptureBlock(
-                        heading: chapterHeading(controller),
-                        translationCode: '${translation['code'] ?? ''}',
-                        translationName: '${translation['name'] ?? ''}',
-                        verses: verses,
-                        attribution: '${translation['attribution'] ?? ''}',
-                      ),
-              ),
-            ],
-            if (translation != null && verses.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: _ReaderActionBar(controller: controller, verses: verses),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: const _ReadingProgress(),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.xl),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screen,
-              ),
-              child: controller.session.isSignedIn
-                  ? _SavedVerses(controller: controller, theme: theme)
-                  : _KeepPrompt(theme: theme),
+    return Container(
+      color: Colors.white,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 110,
+            child: IgnorePointer(
+              child: CustomPaint(painter: _ReaderWavePainter()),
             ),
-            if (controller.plans.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xl),
-              const RailHeader(
-                eyebrow: 'Go with a group',
-                title: 'Reading plans',
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: Column(
-                  children: [
-                    for (final plan in controller.plans)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _PlanCard(
-                          plan: plan,
-                          controller: controller,
-                          theme: theme,
-                        ),
+          ),
+          RefreshIndicator(
+            color: AppColors.primaryBlue,
+            onRefresh: controller.load,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.metrics.axis == Axis.vertical &&
+                    notification.metrics.maxScrollExtent > 0) {
+                  controller.readingProgress.value =
+                      (notification.metrics.pixels /
+                              notification.metrics.maxScrollExtent)
+                          .clamp(0, 1)
+                          .toDouble();
+                }
+                return false;
+              },
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                children: [
+                  const _Header(),
+                  if (translation != null)
+                    _ChapterTitle(
+                      heading: chapterHeading(controller),
+                      translationName: '${translation['name'] ?? ''}',
+                      translationCode: '${translation['code'] ?? ''}',
+                    ),
+                  if (controller.offline.value) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
                       ),
+                      // The full sentence needs the width a pill cannot give it: this
+                      // chapter is on the device, not on the network.
+                      child: const NoticeBanner(
+                        message: 'Offline copy · saved on this device',
+                      ),
+                    ),
                   ],
-                ),
+                  if (translation != null) ...[
+                    const SizedBox(height: 18),
+                    _ReadingBar(controller: controller),
+                  ],
+                  if (controller.message.value.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: AppText(
+                        controller.message.value,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                  if (translation == null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: AppText(
+                        'No translation has been synced into this deployment yet, so '
+                        'reading a whole chapter is not available yet.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 25),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: verses.isEmpty && controller.busy.value
+                          ? const _ReadingSkeleton()
+                          : _ScriptureBlock(
+                              heading: chapterHeading(controller),
+                              translationCode: '${translation['code'] ?? ''}',
+                              verses: verses,
+                              attribution:
+                                  '${translation['attribution'] ?? ''}',
+                            ),
+                    ),
+                  ],
+                  if (translation != null && verses.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    const SizedBox(height: AppSpacing.md),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: _ReaderActionBar(
+                        controller: controller,
+                        verses: verses,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: const _ReadingProgress(),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.xl),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screen,
+                    ),
+                    child: controller.session.isSignedIn
+                        ? _SavedVerses(controller: controller, theme: theme)
+                        : _KeepPrompt(theme: theme),
+                  ),
+                  if (controller.plans.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    const RailHeader(
+                      eyebrow: 'Go with a group',
+                      title: 'Reading plans',
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: Column(
+                        children: [
+                          for (final plan in controller.plans)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppSpacing.sm,
+                              ),
+                              child: _PlanCard(
+                                plan: plan,
+                                controller: controller,
+                                theme: theme,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (translation != null) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screen,
+                      ),
+                      child: _Licensing(translation: translation, theme: theme),
+                    ),
+                  ],
+                ],
               ),
-            ],
-            if (translation != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screen,
-                ),
-                child: _Licensing(translation: translation, theme: theme),
-              ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   });
@@ -202,53 +232,80 @@ class BibleView extends GetView<BibleController> {
 }
 
 class _Header extends StatelessWidget {
+  const _Header();
+
   @override
   Widget build(BuildContext context) {
-    final appearance = Get.find<AppearanceController>();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
       child: Row(
         children: [
-          _CircleHeaderButton(
-            icon: AppIcons.back,
-            label: 'Back to Home',
-            onTap: () =>
-                Get.find<ShellController>().select(ShellController.homeTab),
-          ),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: AppText(
-              'Bible',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: AppColors.deepBlue,
-              ),
-            ),
-          ),
-          Obx(
-            () => _CircleHeaderButton(
-              icon: appearance.mode.value == ThemeMode.dark
-                  ? AppIcons.sun
-                  : AppIcons.moon,
-              label: 'Toggle appearance',
-              onTap: () => appearance.selectMode(
-                appearance.mode.value == ThemeMode.dark
-                    ? ThemeMode.light
-                    : ThemeMode.dark,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          _CircleHeaderButton(
-            icon: AppIcons.settings,
-            label: 'Bible settings',
-            onTap: () => Get.toNamed(AppRoutes.settings),
-          ),
+          const SizedBox(width: 0),
         ],
       ),
     );
   }
+}
+
+class _ChapterTitle extends StatelessWidget {
+  const _ChapterTitle({
+    required this.heading,
+    required this.translationName,
+    required this.translationCode,
+  });
+
+  final String heading;
+  final String translationName;
+  final String translationCode;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+    child: Column(
+      children: [
+        AppText(
+          heading,
+          textAlign: TextAlign.center,
+          style: AppTypography.editorialTitle(
+            AppColors.deepBlue,
+            size: 30,
+          ).copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        AppText(
+          '$translationName${translationCode.isEmpty ? '' : ' (${translationCode.toUpperCase()})'}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.secondaryText,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 15),
+        SizedBox(
+          width: 190,
+          height: 3,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.mist,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: 62,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.royalBlue,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _CircleHeaderButton extends StatelessWidget {
@@ -289,154 +346,63 @@ class _ReadingBar extends StatelessWidget {
     final selectedTranslation = controller.translations.firstWhereOrNull(
       (row) => row['code'] == controller.selectedTranslation.value,
     );
-    final ordered = controller.books;
-    final selectedIndex = ordered.indexWhere(
+    final selectedBook = controller.books.firstWhereOrNull(
       (book) => controller.bookKey(book) == controller.selectedBook.value,
-    );
-    final visible = <Map<String, dynamic>>[];
-    if (selectedIndex >= 0) {
-      visible.addAll(ordered.skip(selectedIndex).take(4));
-      if (visible.length < 4) visible.addAll(ordered.take(4 - visible.length));
-    } else {
-      visible.addAll(ordered.take(4));
-    }
-    final chapterIndex = controller.chapterNumbers.indexOf(
-      controller.selectedChapter.value,
     );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
-      child: Column(
-        children: [
-          Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: AppColors.lightBlue,
-              borderRadius: BorderRadius.circular(30),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.lightBlue,
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: _ReaderSegment(
+                icon: AppIcons.book,
+                label: selectedBook?['name'] as String? ?? 'Book',
+                alignment: MainAxisAlignment.start,
+                onTap: () => _showAllBooks(context),
+              ),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  AppIcons.book,
-                  size: 24,
-                  color: AppColors.primaryBlue,
-                ),
-                const SizedBox(width: 12),
-                const AppText(
-                  'Select Version:',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.deepBlue,
-                  ),
-                ),
-                const Spacer(),
-                Material(
-                  color: AppColors.primaryBlue,
-                  borderRadius: BorderRadius.circular(30),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: () => _chooseTranslation(context),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 11,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${selectedTranslation?['code'] ?? controller.selectedTranslation.value}'
-                                .toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          const Icon(
-                            AppIcons.chevronDown,
-                            size: 19,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            _segmentDivider(),
+            Expanded(
+              flex: 1,
+              child: _ReaderSegment(
+                label:
+                    '${selectedTranslation?['code'] ?? controller.selectedTranslation.value}'
+                        .toUpperCase(),
+                alignment: MainAxisAlignment.center,
+                onTap: () => _chooseTranslation(context),
+              ),
             ),
-          ),
-          const SizedBox(height: 13),
-          SizedBox(
-            height: 48,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: visible.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(width: 7),
-              itemBuilder: (context, index) {
-                if (index == visible.length) {
-                  return _SelectorPill(
-                    label: 'More',
-                    selected: false,
-                    trailing: AppIcons.chevronDown,
-                    onTap: () => _showAllBooks(context),
-                  );
-                }
-                final book = visible[index];
-                final name = book['name'] as String? ?? '';
-                final selected =
-                    controller.bookKey(book) == controller.selectedBook.value;
-                return _SelectorPill(
-                  label: name,
-                  selected: selected,
-                  leading: selected ? AppIcons.book : null,
-                  onTap: () => controller.selectBook(controller.bookKey(book)),
-                );
-              },
-            ),
-          ),
-          if (controller.chapterNumbers.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _ChapterControl(
-                    icon: AppIcons.back,
-                    label: 'Chapter ${controller.selectedChapter.value}',
-                    trailing: true,
-                    onTap: chapterIndex > 0
-                        ? () => _setChapter(
-                            controller.chapterNumbers[chapterIndex - 1],
-                          )
-                        : null,
-                    onChoose: () => _chooseChapter(context),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _ChapterControl(
-                    icon: AppIcons.next,
-                    label:
-                        'Chapter ${chapterIndex >= 0 && chapterIndex + 1 < controller.chapterNumbers.length ? controller.chapterNumbers[chapterIndex + 1] : controller.selectedChapter.value}',
-                    onTap:
-                        chapterIndex >= 0 &&
-                            chapterIndex + 1 < controller.chapterNumbers.length
-                        ? () => _setChapter(
-                            controller.chapterNumbers[chapterIndex + 1],
-                          )
-                        : null,
-                  ),
-                ),
-              ],
+            _segmentDivider(),
+            Expanded(
+              flex: 1,
+              child: _ReaderSegment(
+                icon: AppIcons.calendar,
+                label: 'Chapter ${controller.selectedChapter.value}',
+                alignment: MainAxisAlignment.end,
+                onTap: () => _chooseChapter(context),
+              ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
+
+  Widget _segmentDivider() => Container(
+    width: 1,
+    height: 38,
+    margin: const EdgeInsets.symmetric(horizontal: 8),
+    color: AppColors.royalBlue.withValues(alpha: .45),
+  );
 
   Future<void> _chooseTranslation(BuildContext context) async {
     final search = TextEditingController();
@@ -503,31 +469,143 @@ class _ReadingBar extends StatelessWidget {
     }
   }
 
-  void _setChapter(int number) {
+  Future<void> _setChapter(int number) async {
     controller.selectedChapter.value = number;
-    controller.loadChapter();
+    await controller.loadChapter();
   }
 
   Future<void> _chooseChapter(BuildContext context) async {
-    final chosen = await showModalBottomSheet<int>(
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            for (final number in controller.chapterNumbers)
-              ListTile(
-                title: Text('Chapter $number'),
-                trailing: number == controller.selectedChapter.value
-                    ? const Icon(Icons.check, color: AppColors.primaryBlue)
-                    : null,
-                onTap: () => Navigator.pop(context, number),
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) => Obx(() {
+          final verses =
+              (controller.chapterData.value?['verses'] as List<dynamic>?) ??
+              const <dynamic>[];
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * .58,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: AppText(
+                            'Choose a verse',
+                            style: TextStyle(
+                              color: AppColors.deepBlue,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        DropdownButton<int>(
+                          value:
+                              controller.chapterNumbers.contains(
+                                controller.selectedChapter.value,
+                              )
+                              ? controller.selectedChapter.value
+                              : null,
+                          hint: const Text('Chapter'),
+                          items: controller.chapterNumbers
+                              .map(
+                                (number) => DropdownMenuItem<int>(
+                                  value: number,
+                                  child: Text('Chapter $number'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (number) async {
+                            if (number == null ||
+                                number == controller.selectedChapter.value) {
+                              return;
+                            }
+                            await _setChapter(number);
+                            setModalState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppText(
+                        'Tap a number to open that verse',
+                        style: TextStyle(color: AppColors.secondaryText),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (controller.busy.value && verses.isEmpty)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (verses.isEmpty)
+                    const Expanded(
+                      child: Center(
+                        child: Text('No verses available for this chapter.'),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 1,
+                            ),
+                        itemCount: verses.length,
+                        itemBuilder: (context, index) {
+                          final verse = verses[index] as Map<String, dynamic>;
+                          final number =
+                              '${verse['number'] ?? verse['verse'] ?? index + 1}';
+                          final selected =
+                              controller.selectedVerseNumber.value == number;
+                          return Material(
+                            color: selected
+                                ? AppColors.primaryBlue
+                                : const Color(0xFFEAF2FF),
+                            borderRadius: BorderRadius.circular(13),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(13),
+                              onTap: () {
+                                controller.selectVerse(
+                                  number,
+                                  '${verse['id'] ?? ''}',
+                                );
+                                Navigator.pop(sheetContext);
+                              },
+                              child: Center(
+                                child: Text(
+                                  number,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.deepBlue,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          );
+        }),
       ),
     );
-    if (chosen != null) _setChapter(chosen);
   }
 
   Future<void> _showAllBooks(BuildContext context) async {
@@ -607,6 +685,50 @@ class _SelectorPill extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    ),
+  );
+}
+
+class _ReaderSegment extends StatelessWidget {
+  const _ReaderSegment({
+    required this.label,
+    required this.alignment,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final MainAxisAlignment alignment;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(30),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Row(
+        mainAxisAlignment: alignment,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: AppColors.deepBlue),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.deepBlue,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -712,14 +834,12 @@ class _ScriptureBlock extends StatelessWidget {
   const _ScriptureBlock({
     required this.heading,
     required this.translationCode,
-    required this.translationName,
     required this.verses,
     this.attribution = '',
   });
 
   final String heading;
   final String translationCode;
-  final String translationName;
   final List<dynamic> verses;
 
   /// The license line the passage came with, carried to the verse screen so a
@@ -728,53 +848,26 @@ class _ScriptureBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     if (verses.isEmpty) {
-      return Panel(
+      return Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppText(heading, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 3),
             AppText(
               'This chapter has no text in the copy saved on this device. Pull to refresh, '
               'or try again when you are connected to the internet.',
-              style: theme.textTheme.bodySmall,
+              style: const TextStyle(color: AppColors.secondaryText),
             ),
           ],
         ),
       );
     }
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.mist),
-        boxShadow: AppShadows.float,
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 17, 20, 16),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 0, 2, 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppText(
-            heading,
-            textAlign: TextAlign.center,
-            style: AppTypography.editorialTitle(AppColors.deepBlue, size: 28),
-          ),
-          const SizedBox(height: 2),
-          AppText(
-            '$translationName${translationCode.isEmpty ? '' : ' (${translationCode.toUpperCase()})'}',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.secondaryText,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Divider(height: 1, color: AppColors.mist.withValues(alpha: .9)),
-          const SizedBox(height: 14),
           for (final raw in verses)
             _VerseLine(
               number:
@@ -792,8 +885,7 @@ class _ScriptureBlock extends StatelessWidget {
   }
 }
 
-/// One verse of the chapter. The row is the door to the verse's own screen,
-/// where it can be kept, sized, sent on or written on.
+/// Tap a verse to select it for the reader actions; long-press opens its detail.
 class _VerseLine extends StatelessWidget {
   const _VerseLine({
     required this.number,
@@ -817,12 +909,13 @@ class _VerseLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final appearance = Get.find<AppearanceController>();
     final bible = Get.find<BibleController>();
-    return Obx(
-      () => PressableScale(
-        onTap: () => Get.toNamed(
+    return Obx(() {
+      final selected = bible.selectedVerseNumber.value == number;
+      return InkWell(
+        onTap: () => bible.selectVerse(number, verseId),
+        onLongPress: () => Get.toNamed(
           AppRoutes.verse,
           arguments: {
             RouteArgs.verse: VerseFocus(
@@ -838,19 +931,37 @@ class _VerseLine extends StatelessWidget {
             ),
           },
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          key: bible.verseRowKey(number),
+          duration: const Duration(milliseconds: 160),
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.symmetric(horizontal: selected ? 8 : 0),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.lightBlue : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 26,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: AppText(
+                width: 52,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  margin: const EdgeInsets.only(top: 4),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.lightBlue,
+                  ),
+                  child: Text(
                     number,
-                    style: AppTypography.verseNumber(AppColors.primaryBlue),
+                    style: const TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
@@ -866,12 +977,11 @@ class _VerseLine extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 1),
                     child: AppText(
                       text,
-                      style: theme.textTheme.bodyLarge!.copyWith(
-                        color: AppColors.deepBlue,
-                        fontSize: 17.5 * appearance.readingScale.value,
-                        height: 1.48,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTypography.scriptureBody(
+                        AppColors.deepBlue,
+                        baseSize: 18,
+                        scale: appearance.readingScale.value,
+                      ).copyWith(height: 1.5),
                     ),
                   ),
                 ),
@@ -879,9 +989,60 @@ class _VerseLine extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      );
+    });
+  }
+}
+
+class _ReaderWavePainter extends CustomPainter {
+  const _ReaderWavePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final back = Path()
+      ..moveTo(0, size.height * .48)
+      ..quadraticBezierTo(
+        size.width * .28,
+        size.height * .15,
+        size.width * .56,
+        size.height * .62,
+      )
+      ..quadraticBezierTo(
+        size.width * .78,
+        size.height * .92,
+        size.width,
+        size.height * .42,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(back, Paint()..color = AppColors.lightBlue);
+
+    final front = Path()
+      ..moveTo(0, size.height * .68)
+      ..quadraticBezierTo(
+        size.width * .35,
+        size.height * .25,
+        size.width * .64,
+        size.height * .72,
+      )
+      ..quadraticBezierTo(
+        size.width * .83,
+        size.height,
+        size.width,
+        size.height * .60,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      front,
+      Paint()..color = AppColors.royalBlue.withValues(alpha: .2),
     );
   }
+
+  @override
+  bool shouldRepaint(covariant _ReaderWavePainter oldDelegate) => false;
 }
 
 class _ReaderActionBar extends StatelessWidget {
@@ -890,48 +1051,99 @@ class _ReaderActionBar extends StatelessWidget {
   final List<dynamic> verses;
 
   Map<String, dynamic> get _first => verses.first as Map<String, dynamic>;
-  String get _id => '${_first['id'] ?? ''}';
-  String get _text => '${_first['text'] ?? ''}';
+  Map<String, dynamic> get _target {
+    final selected = controller.selectedVerseNumber.value;
+    if (selected.isNotEmpty) {
+      for (final raw in verses) {
+        final verse = raw as Map<String, dynamic>;
+        if ('${verse['number'] ?? verse['verse']}' == selected) return verse;
+      }
+    }
+    return _first;
+  }
+
+  String get _id => controller.selectedVerseNumber.value.isEmpty
+      ? '${_target['id'] ?? ''}'
+      : controller.selectedVerseId.value;
+  String get _text => '${_target['text'] ?? ''}';
   String get _reference =>
-      '${_first['reference'] ?? '${BibleView.chapterHeading(controller)}:${_first['number'] ?? _first['verse'] ?? 1}'}';
+      '${_target['reference'] ?? '${BibleView.chapterHeading(controller)}:${_target['number'] ?? _target['verse'] ?? 1}'}';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Obx(() {
+    final hasSelection = controller.selectedVerseNumber.value.isNotEmpty;
     final actions = <({IconData icon, String label, VoidCallback onTap})>[
       (
         icon: AppIcons.bookmark,
         label: 'Bookmark',
         onTap: () {
-          if (_id.isNotEmpty)
+          if (!hasSelection) {
+            _promptSelection();
+            return;
+          }
+          if (_id.isNotEmpty) {
             controller.bookmark(_id);
-          else
+          } else {
             Get.snackbar(
               'Bookmark unavailable',
               'This translation can only be read from an authorized source.',
             );
+          }
         },
       ),
       (
         icon: AppIcons.note,
         label: 'Add Note',
         onTap: () {
-          if (_id.isNotEmpty)
+          if (!hasSelection) {
+            _promptSelection();
+            return;
+          }
+          if (_id.isNotEmpty) {
             controller.note(_id);
-          else
+          } else {
             Get.snackbar(
               'Notes unavailable',
               'This translation can only be read from an authorized source.',
             );
+          }
         },
       ),
       (
         icon: AppIcons.edit,
         label: 'Highlight',
-        onTap: () => _highlight(context),
+        onTap: () {
+          if (!hasSelection) {
+            _promptSelection();
+            return;
+          }
+          _highlight(context);
+        },
       ),
-      (icon: AppIcons.share, label: 'Share', onTap: _share),
-      (icon: AppIcons.copy, label: 'Copy', onTap: _copy),
+      (
+        icon: AppIcons.share,
+        label: 'Share',
+        onTap: () {
+          if (!hasSelection) {
+            _promptSelection();
+            return;
+          }
+          _share();
+        },
+      ),
+      (
+        icon: AppIcons.copy,
+        label: 'Copy',
+        onTap: () {
+          if (!hasSelection) {
+            _promptSelection();
+            return;
+          }
+          _copy();
+        },
+      ),
     ];
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -940,41 +1152,67 @@ class _ReaderActionBar extends StatelessWidget {
         boxShadow: AppShadows.card(AppColors.mist),
       ),
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) Container(width: 1, height: 38, color: AppColors.mist),
-            Expanded(
-              child: InkWell(
-                onTap: actions[i].onTap,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(
-                    children: [
-                      Icon(
-                        actions[i].icon,
-                        size: 21,
-                        color: AppColors.primaryBlue,
-                      ),
-                      const SizedBox(height: 4),
-                      AppText(
-                        actions[i].label,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.deepBlue,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 7),
+            child: AppText(
+              hasSelection
+                  ? 'Selected: $_reference'
+                  : 'Tap a verse to select it',
+              style: TextStyle(
+                color: hasSelection
+                    ? AppColors.primaryBlue
+                    : AppColors.secondaryText,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
+          ),
+          Row(
+            children: [
+              for (var i = 0; i < actions.length; i++) ...[
+                if (i > 0)
+                  Container(width: 1, height: 38, color: AppColors.mist),
+                Expanded(
+                  child: InkWell(
+                    onTap: actions[i].onTap,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        children: [
+                          Icon(
+                            actions[i].icon,
+                            size: 21,
+                            color: AppColors.primaryBlue,
+                          ),
+                          const SizedBox(height: 4),
+                          AppText(
+                            actions[i].label,
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: AppColors.deepBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
-  }
+  });
+
+  void _promptSelection() => Get.snackbar(
+    'Select a verse',
+    'Tap a verse in the chapter, then choose an action.',
+  );
 
   Future<void> _highlight(BuildContext context) async {
     if (_id.isEmpty) {

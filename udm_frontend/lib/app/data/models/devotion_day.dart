@@ -9,6 +9,7 @@ class DevotionDay {
     this.scriptureReference = '',
     this.excerpt = '',
     this.readingMinutes = 5,
+    this.imageUrl = '',
   });
 
   final String id;
@@ -17,24 +18,27 @@ class DevotionDay {
   final String scriptureReference;
   final String excerpt;
   final int readingMinutes;
+  final String imageUrl;
 
   bool get isIntroduction => day == null;
 
   factory DevotionDay.fromJson(Map<String, dynamic> json) => DevotionDay(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        day: (json['day'] as num?)?.toInt(),
-        scriptureReference: json['scripture_reference'] as String? ?? '',
-        excerpt: json['excerpt'] as String? ?? '',
-        readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 5,
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    day: (json['day'] as num?)?.toInt(),
+    scriptureReference: json['scripture_reference'] as String? ?? '',
+    excerpt: json['excerpt'] as String? ?? '',
+    readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 5,
+    imageUrl: json['image_url'] as String? ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'day': day,
-        'scripture_reference': scriptureReference,
-        'excerpt': excerpt,
-        'reading_minutes': readingMinutes,
-      };
+    'id': id,
+    'title': title,
+    'day': day,
+    'scripture_reference': scriptureReference,
+    'excerpt': excerpt,
+    'reading_minutes': readingMinutes,
+    'image_url': imageUrl,
+  };
 }

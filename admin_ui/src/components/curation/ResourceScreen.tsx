@@ -75,7 +75,7 @@ function toBodyValue(field: FieldSpec, raw: unknown): unknown {
 }
 
 function seedDraft(field: FieldSpec, row: Row | null): unknown {
-  if (field.type === "image") return "";
+  if (field.type === "image" || field.type === "file") return "";
   if (row === null) {
     if (field.default !== undefined) return field.type === "switch" ? Boolean(field.default) : field.default;
     return field.type === "switch" ? false : "";
@@ -117,10 +117,10 @@ function FieldEditor({
   const inputId = field.type === "verse" ? undefined : `field-${field.name}`;
   // A writable file field comes back with its URL under the same name plus
   // `_url`, which is the picture the row already carries.
-  const currentImage = typeof row?.[`${field.name}_url`] === "string" ? String(row?.[`${field.name}_url`]) : "";
+  const currentFileUrl = typeof row?.[`${field.name}_url`] === "string" ? String(row?.[`${field.name}_url`]) : "";
 
   return (
-    <div className={`console-field${field.wide || field.type === "textarea" || field.type === "json" || field.type === "lines" || field.type === "verse" || field.type === "image" ? " console-field-wide" : ""}`}>
+    <div className={`console-field${field.wide || field.type === "textarea" || field.type === "json" || field.type === "lines" || field.type === "verse" || field.type === "image" || field.type === "file" ? " console-field-wide" : ""}`}>
       <Label htmlFor={inputId}>
         {field.label}
         {field.required && <span className="console-required" aria-hidden="true"> *</span>}
@@ -202,20 +202,22 @@ function FieldEditor({
           {field.type === "verse" && (
             <VersePicker value={String(value ?? "")} onChange={(id) => onChange(id)} />
           )}
-          {field.type === "image" && (
+          {(field.type === "image" || field.type === "file") && (
             <div className="console-image-field">
-              {currentImage && value !== NONE
-                ? <img src={currentImage} alt="" className="console-image-preview" />
-                : <span className="console-image-none">{value === NONE ? "Image will be removed on save" : "No picture yet"}</span>}
-              {currentImage && value !== NONE && (
+              {field.type === "image" && currentFileUrl && value !== NONE
+                ? <img src={currentFileUrl} alt="" className="console-image-preview" />
+                : <span className="console-image-none">
+                    {value === NONE ? `${field.label} will be removed on save` : currentFileUrl ? `Current ${field.label.toLowerCase()} is uploaded` : `No ${field.label.toLowerCase()} uploaded`}
+                  </span>}
+              {currentFileUrl && value !== NONE && (
                 <Button type="button" size="sm" variant="ghost" onClick={() => onChange(NONE)}>
-                  Remove current image
+                  Remove current {field.label.toLowerCase()}
                 </Button>
               )}
               <Input
                 id={inputId}
                 type="file"
-                accept="image/*"
+                accept={field.type === "image" ? "image/*" : ".pdf,application/pdf"}
                 onChange={(event) => onChange(event.target.files?.[0] ?? "")}
               />
             </div>
@@ -349,8 +351,8 @@ export function ResourceScreen<T extends Row>({ config }: { config: ResourceConf
       const locked = field.readOnly || (field.readOnlyOnEdit && editing);
       if (locked) continue;
       const raw = draft[field.name];
-      if (field.type === "image") {
-        // A chosen picture travels as a file, never as JSON.
+      if (field.type === "image" || field.type === "file") {
+        // A chosen upload travels as a file, never as JSON.
         if (raw instanceof File) files[field.name] = raw;
         else if (raw === NONE) body[field.name] = null;
         continue;

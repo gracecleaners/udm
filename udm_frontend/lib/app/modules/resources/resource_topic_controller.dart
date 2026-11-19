@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/network/failure.dart';
 import '../../core/routes/app_routes.dart';
@@ -10,7 +11,8 @@ import '../content_version/content_version_controller.dart';
 
 /// One guide opened: its steps in the order they are meant to be worked
 /// through, the unnumbered starting point first.
-class ResourceTopicController extends GetxController with RefetchesOnContentChange {
+class ResourceTopicController extends GetxController
+    with RefetchesOnContentChange {
   ResourceTopicController(this._resources, this.topicId);
 
   final ResourcesRepository _resources;
@@ -69,5 +71,24 @@ class ResourceTopicController extends GetxController with RefetchesOnContentChan
       arguments: {RouteArgs.resourceStepId: step.id},
     );
     load();
+  }
+
+  Future<void> openPdf() async {
+    final url = topic.value?.pdfUrl ?? '';
+    if (url.isEmpty) {
+      Get.snackbar(
+        'PDF unavailable',
+        'The ministry has not uploaded a PDF for this resource yet.',
+      );
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      Get.snackbar(
+        'Could not open PDF',
+        'Please check your connection and try again.',
+      );
+    }
   }
 }

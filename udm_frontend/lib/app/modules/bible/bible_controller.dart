@@ -35,6 +35,9 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   final selectedTranslation = ''.obs;
   final selectedBook = ''.obs;
   final selectedChapter = 1.obs;
+  final selectedVerseNumber = ''.obs;
+  final selectedVerseId = ''.obs;
+  final Map<String, GlobalKey> _verseRowKeys = {};
   String? _accountEmail;
   Worker? _sessionWorker;
 
@@ -171,6 +174,9 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> loadChapter() async {
     if (selectedBook.value.isEmpty) return;
+    selectedVerseNumber.value = '';
+    selectedVerseId.value = '';
+    _verseRowKeys.clear();
     final key = _cacheKey;
     final offlineAllowed =
         translations.firstWhereOrNull(
@@ -202,6 +208,31 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       busy.value = false;
     }
   }
+
+  void selectVerse(String number, String id) {
+    if (selectedVerseNumber.value == number) {
+      selectedVerseNumber.value = '';
+      selectedVerseId.value = '';
+      return;
+    }
+    selectedVerseNumber.value = number;
+    selectedVerseId.value = id;
+    final key = verseRowKey(number);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = key.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.3,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  GlobalKey verseRowKey(String number) =>
+      _verseRowKeys.putIfAbsent(number, GlobalKey.new);
 
   Future<void> loadPlans() async {
     const plansCacheKey = 'bible.plans';

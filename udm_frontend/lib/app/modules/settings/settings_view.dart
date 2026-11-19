@@ -56,7 +56,11 @@ class SettingsView extends StatelessWidget {
 
 /// One titled group of settings rows.
 class _Group extends StatelessWidget {
-  const _Group({required this.eyebrow, required this.icon, required this.children});
+  const _Group({
+    required this.eyebrow,
+    required this.icon,
+    required this.children,
+  });
 
   final String eyebrow;
   final IconData icon;
@@ -64,45 +68,43 @@ class _Group extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Eyebrow(eyebrow, color: Theme.of(context).colorScheme.primary, icon: icon),
-          const SizedBox(height: AppSpacing.sm),
-          Panel(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-            child: Column(children: children),
-          ),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Eyebrow(
+        eyebrow,
+        color: Theme.of(context).colorScheme.primary,
+        icon: icon,
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Panel(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        child: Column(children: children),
+      ),
+    ],
+  );
 }
 
-/// Light, dark, or whatever the phone asks for.
-class _Appearance extends GetView<AppearanceController> {
+/// The app stays in its light appearance.
+class _Appearance extends StatelessWidget {
   const _Appearance();
-
-  static const _choices = <(ThemeMode, String, IconData)>[
-    (ThemeMode.system, 'Follow the phone', AppIcons.settings),
-    (ThemeMode.light, 'Light', AppIcons.sun),
-    (ThemeMode.dark, 'Dark', AppIcons.moon),
-  ];
 
   @override
   Widget build(BuildContext context) => _Group(
     eyebrow: 'Appearance',
     icon: AppIcons.sun,
     children: [
-      for (var i = 0; i < _choices.length; i++)
-        Obx(
-          () => NavRow(
-            icon: _choices[i].$3,
-            label: _choices[i].$2,
-            last: i == _choices.length - 1,
-            trailing: controller.mode.value == _choices[i].$1
-                ? Icon(AppIcons.check, size: 20, color: Theme.of(context).colorScheme.primary)
-                : const SizedBox.shrink(),
-            onTap: () => controller.selectMode(_choices[i].$1),
-          ),
+      NavRow(
+        icon: AppIcons.sun,
+        label: 'Light mode',
+        trailing: Icon(
+          AppIcons.check,
+          size: 20,
+          color: Theme.of(context).colorScheme.primary,
         ),
+      ),
     ],
   );
 }
@@ -121,7 +123,10 @@ class _ReadingSize extends GetView<AppearanceController> {
           icon: AppIcons.textSize,
           label: 'Text size',
           subtitle: 'Scripture, devotionals and articles.',
-          trailing: MetaPill(label: controller.readingSize.label, icon: AppIcons.textSize),
+          trailing: MetaPill(
+            label: controller.readingSize.label,
+            icon: AppIcons.textSize,
+          ),
           onTap: () => ReadingSizeSheet.show(context),
           last: true,
         ),
@@ -154,7 +159,9 @@ class _About extends StatelessWidget {
                   children: [
                     AppText(
                       'UDM Discipleship',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     AppText(
@@ -212,7 +219,9 @@ class _Help extends StatelessWidget {
               children: [
                 Icon(AppIcons.checkCircle, size: 18, color: AppColors.success),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: AppText(fact, style: theme.textTheme.bodyMedium)),
+                Expanded(
+                  child: AppText(fact, style: theme.textTheme.bodyMedium),
+                ),
               ],
             ),
           ),

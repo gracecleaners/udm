@@ -9,190 +9,111 @@ import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/devotion_series.dart';
 import 'devotions_controller.dart';
 
-/// The Devotions tab: the ministry's reading series as a grid of covers.
+/// Series library: each cover opens the list of days published by the ministry.
 class DevotionsView extends GetView<DevotionsController> {
   const DevotionsView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Obx(() => StateView(
+  Widget build(BuildContext context) => Obx(
+    () => StateView(
       state: controller.state.value,
       failureMessage: controller.failureMessage.value,
       onRetry: controller.load,
       emptyTitle: 'Nothing published to read yet',
-      emptyMessage:
-          'When the ministry team publishes a devotional or a set of them as a series, it appears here.',
-      child: RefreshIndicator(
-        onRefresh: controller.load,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screen,
-                  AppSpacing.lg,
-                  AppSpacing.screen,
-                  AppSpacing.md,
+      emptyMessage: 'When the ministry team publishes a devotional series, it will appear here.',
+      child: Container(
+        color: const Color(0xFF08090B),
+        child: RefreshIndicator(
+          color: const Color(0xFF9AC755),
+          onRefresh: controller.load,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Eyebrow(
+                              'READ THROUGH',
+                              color: Color(0xFF9AC755),
+                              icon: AppIcons.bookOpen,
+                            ),
+                            const SizedBox(height: 8),
+                            const AppText(
+                              'Devotions',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 31,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            AppText(
+                              controller.isOfflineCopy
+                                  ? 'Saved on this device · pull to refresh online'
+                                  : 'Choose a series and follow it one day at a time.',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (controller.isOfflineCopy) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        const OfflineChip(),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Eyebrow('Read through', color: theme.colorScheme.primary, icon: AppIcons.bookOpen),
-                          const SizedBox(height: 9),
-                          AppText(
-                            'Devotions',
-                            style: AppTypography.editorialTitle(theme.textTheme.bodyLarge!.color!, size: 32),
-                          ),
-                          const SizedBox(height: 5),
-                          AppText(
-                            controller.isOfflineCopy
-                                ? 'Saved on this device. Pull to refresh when you are online.'
-                                : "Today's reading, then the series to work through.",
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
+              ),
+              if (controller.series.isNotEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(22, 0, 22, 12),
+                    child: AppText(
+                      'READING SERIES',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        letterSpacing: 1.4,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (controller.isOfflineCopy) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      const OfflineChip(),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: _TodaysDevotional()),
-            const SliverToBoxAdapter(child: _RecentDevotionals()),
-            if (controller.series.isNotEmpty)
-              const SliverToBoxAdapter(
-                child: RailHeader(
-                  eyebrow: 'Work through',
-                  title: 'Reading series',
-                  subtitle: 'Sets the ministry team is publishing now',
-                ),
-              ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screen,
-                AppSpacing.sm,
-                AppSpacing.screen,
-                AppSpacing.xl,
-              ),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: coverColumns(MediaQuery.sizeOf(context).width),
-                  mainAxisSpacing: AppSpacing.md,
-                  crossAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 0.6,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final series = controller.series[index];
-                    return FadeIn(
-                      delay: Duration(
-                        milliseconds: 60 * (index % coverColumns(MediaQuery.sizeOf(context).width)),
-                      ),
-                      child: _SeriesTile(
-                        series: series,
-                        onOpen: () => controller.openSeries(series),
-                      ),
-                    );
-                  },
-                  childCount: controller.series.length,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ));
-  }
-}
-
-/// The one page the tab opens on: whatever the ministry published most
-/// recently, on the ministry's own picture for it.
-class _TodaysDevotional extends GetView<DevotionsController> {
-  const _TodaysDevotional();
-
-  @override
-  Widget build(BuildContext context) => Obx(() {
-    final devotion = controller.todays;
-    if (devotion == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screen,
-        AppSpacing.sm,
-        AppSpacing.screen,
-        0,
-      ),
-      child: FadeIn(
-        delay: const Duration(milliseconds: 40),
-        child: FeatureCard(
-          eyebrow: "Today's devotional",
-          title: devotion.title,
-          subtitle: devotion.excerpt.isNotEmpty
-              ? devotion.excerpt
-              : devotion.scriptureReference,
-          artUrl: devotion.imageUrl,
-          monogram: UdmAvatar.initialsFor(devotion.title),
-          onTap: () => controller.openDevotion(devotion),
-          pills: [
-            MetaPill(
-              label: '${devotion.readingMinutes} min',
-              icon: AppIcons.clock,
-              onDark: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  });
-}
-
-/// What sits behind today's page, newest next. The order is the server's, so
-/// the staff decide what a student reads after the day's devotion.
-class _RecentDevotionals extends GetView<DevotionsController> {
-  const _RecentDevotionals();
-
-  @override
-  Widget build(BuildContext context) => Obx(() {
-    final more = controller.more;
-    if (more.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppSpacing.xl),
-        const RailHeader(eyebrow: 'Keep reading', title: 'Recent devotionals'),
-        FadeIn(
-          delay: const Duration(milliseconds: 80),
-          child: DiscoveryRail(
-            children: [
-              for (final devotion in more)
-                RailCard(
-                  title: devotion.title,
-                  subtitle: devotion.scriptureReference.isEmpty
-                      ? devotion.excerpt
-                      : devotion.scriptureReference,
-                  artUrl: devotion.imageUrl,
-                  monogram: UdmAvatar.initialsFor(devotion.title),
-                  pill: MetaPill(
-                    label: '${devotion.readingMinutes} min',
-                    icon: AppIcons.clock,
                   ),
-                  onTap: () => controller.openDevotion(devotion),
                 ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(22, 0, 22, AppSpacing.xl),
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: coverColumns(
+                      MediaQuery.sizeOf(context).width,
+                    ),
+                    mainAxisSpacing: 26,
+                    crossAxisSpacing: 24,
+                    childAspectRatio: .72,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final series = controller.series[index];
+                    return _SeriesTile(
+                      series: series,
+                      onOpen: () => controller.openSeries(series),
+                    );
+                  }, childCount: controller.series.length),
+                ),
+              ),
             ],
           ),
         ),
-      ],
-    );
-  });
+      ),
+    ),
+  );
 }
 
 class _SeriesTile extends StatelessWidget {
@@ -202,55 +123,41 @@ class _SeriesTile extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return PressableScale(
-      onTap: onOpen,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CoverArt(
-                  url: series.coverImageUrl,
-                  monogram: series.monogram,
-                  monogramSize: 34,
-                ),
-                // The count is the promise the tile makes, so it sits on the
-                // art where the eye lands rather than under the name.
-                PositionedDirectional(
-                  bottom: AppSpacing.sm,
-                  start: AppSpacing.sm,
-                  child: MetaPill(
-                    label: '${series.dayCount} ${series.dayCount == 1 ? 'day' : 'days'}',
-                    icon: AppIcons.calendar,
-                    onDark: true,
-                  ),
-                ),
-              ],
-            ),
+  Widget build(BuildContext context) => PressableScale(
+    onTap: onOpen,
+    borderRadius: BorderRadius.circular(8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: CoverArt(
+            url: series.coverImageUrl,
+            monogram: series.monogram,
+            monogramSize: 34,
+            radius: 8,
           ),
-          const SizedBox(height: AppSpacing.sm),
+        ),
+        const SizedBox(height: 9),
+        AppText(
+          series.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (series.description.isNotEmpty) ...[
+          const SizedBox(height: 3),
           AppText(
-            series.title,
-            style: theme.textTheme.titleMedium,
-            maxLines: 2,
+            series.description,
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          if (series.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            AppText(
-              series.description,
-              style: theme.textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }

@@ -216,18 +216,26 @@ class ArticleAdminSerializer(CurationSerializerMixin, PublishStateFields, serial
 class ResourceTopicAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
     step_count = serializers.IntegerField(read_only=True)
     image_url = serializers.SerializerMethodField()
+    pdf_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ResourceTopic
         fields = (
-            "id", "title", "summary", "order", "image", "image_link", "image_url",
+            "id", "title", "summary", "order", "image", "image_link", "image_url", "pdf", "pdf_url",
             "is_published", "publish_at", "publish_state", "step_count",
             "created_at", "updated_at",
         )
-        read_only_fields = ("id", "image_url", "publish_state", "step_count", "created_at", "updated_at")
+        read_only_fields = ("id", "image_url", "pdf_url", "publish_state", "step_count", "created_at", "updated_at")
 
     def get_image_url(self, obj):
         return artwork_url(obj, self.context.get("request"))
+
+    def get_pdf_url(self, obj):
+        if not obj.pdf:
+            return ""
+        url = obj.pdf.url
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
 
 class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):

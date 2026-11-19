@@ -20,6 +20,8 @@ serviceaccount*.json
 # Django
 staticfiles/
 media/
+!udm_frontend/lib/app/modules/media/
+!udm_frontend/lib/app/modules/media/**
 coverage.xml
 .coverage
 htmlcov/

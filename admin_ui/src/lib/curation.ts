@@ -171,7 +171,8 @@ export interface FieldSpec {
     | "json"
     | "lines"
     | "verse"
-    | "image";
+    | "image"
+    | "file";
   help?: string;
   placeholder?: string;
   options?: Option[];

@@ -105,7 +105,7 @@ class ResourceTopicAdmin(PublishedContentAdmin):
     search_fields = ("title", "summary")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
-        (None, {"fields": ("title", "summary", "order", ("image", "image_link"))}),
+        (None, {"fields": ("title", "summary", "order", ("image", "image_link"), "pdf")}),
         ("Publishing", {"fields": ("is_published", "publish_at", "created_at", "updated_at")}),
     )
     ordering = ("order",)

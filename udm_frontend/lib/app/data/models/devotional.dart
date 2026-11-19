@@ -13,6 +13,8 @@ class Devotional {
     this.readingMinutes = 5,
     this.imageUrl = '',
     this.publishAt,
+    this.seriesTitle = '',
+    this.day,
   });
 
   final String id;
@@ -31,40 +33,49 @@ class Devotional {
   /// uploaded, which the cards read as the brand tile, not a broken image.
   final String imageUrl;
   final DateTime? publishAt;
+  final String seriesTitle;
+  final int? day;
 
   bool get hasQuestions => reflectionQuestions.isNotEmpty;
 
   factory Devotional.fromJson(Map<String, dynamic> json) => Devotional(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        scriptureReference: json['scripture_reference'] as String? ?? '',
-        body: json['body'] as String? ?? '',
-        author: json['author'] as String? ?? '',
-        excerpt: json['excerpt'] as String? ?? '',
-        reflectionQuestions: (json['reflection_questions'] as List<dynamic>? ?? [])
-            .map((item) => item.toString())
-            .toList(),
-        application: json['application'] as String? ?? '',
-        prayer: json['prayer'] as String? ?? '',
-        memoryScriptureReference: json['memory_scripture_reference'] as String? ?? '',
-        readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 5,
-        imageUrl: json['image_url'] as String? ?? '',
-        publishAt: json['publish_at'] == null ? null : DateTime.tryParse(json['publish_at'] as String),
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    scriptureReference: json['scripture_reference'] as String? ?? '',
+    body: json['body'] as String? ?? '',
+    author: json['author'] as String? ?? '',
+    excerpt: json['excerpt'] as String? ?? '',
+    reflectionQuestions: (json['reflection_questions'] as List<dynamic>? ?? [])
+        .map((item) => item.toString())
+        .toList(),
+    application: json['application'] as String? ?? '',
+    prayer: json['prayer'] as String? ?? '',
+    memoryScriptureReference:
+        json['memory_scripture_reference'] as String? ?? '',
+    readingMinutes: (json['reading_minutes'] as num?)?.toInt() ?? 5,
+    imageUrl: json['image_url'] as String? ?? '',
+    publishAt: json['publish_at'] == null
+        ? null
+        : DateTime.tryParse(json['publish_at'] as String),
+    seriesTitle: json['series_title'] as String? ?? '',
+    day: (json['day'] as num?)?.toInt(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'scripture_reference': scriptureReference,
-        'body': body,
-        'author': author,
-        'excerpt': excerpt,
-        'reflection_questions': reflectionQuestions,
-        'application': application,
-        'prayer': prayer,
-        'memory_scripture_reference': memoryScriptureReference,
-        'reading_minutes': readingMinutes,
-        'image_url': imageUrl,
-        'publish_at': publishAt?.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'scripture_reference': scriptureReference,
+    'body': body,
+    'author': author,
+    'excerpt': excerpt,
+    'reflection_questions': reflectionQuestions,
+    'application': application,
+    'prayer': prayer,
+    'memory_scripture_reference': memoryScriptureReference,
+    'reading_minutes': readingMinutes,
+    'image_url': imageUrl,
+    'publish_at': publishAt?.toIso8601String(),
+    'series_title': seriesTitle,
+    'day': day,
+  };
 }

@@ -12,6 +12,7 @@ class ResourceTopic {
     required this.title,
     this.summary = '',
     this.imageUrl = '',
+    this.pdfUrl = '',
     this.order = 1,
     this.stepCount = 0,
     this.stepsCompleted = 0,
@@ -25,6 +26,7 @@ class ResourceTopic {
   final String title;
   final String summary;
   final String imageUrl;
+  final String pdfUrl;
   final int order;
   final int stepCount;
 
@@ -49,43 +51,47 @@ class ResourceTopic {
       .join();
 
   factory ResourceTopic.fromJson(Map<String, dynamic> json) => ResourceTopic(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        summary: json['summary'] as String? ?? '',
-        imageUrl: json['image_url'] as String? ?? '',
-        order: (json['order'] as num?)?.toInt() ?? 1,
-        stepCount: (json['step_count'] as num?)?.toInt() ?? 0,
-        stepsCompleted: (json['steps_completed'] as num?)?.toInt() ?? 0,
-        steps: (json['steps'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map(ResourceStep.fromJson)
-            .toList(),
-        cachedAt: json['cached_at'] == null
-            ? null
-            : DateTime.tryParse(json['cached_at'] as String),
-        fromCache: json['from_cache'] as bool? ?? false,
-        contentVersion: (json['content_version'] as num?)?.toInt(),
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    summary: json['summary'] as String? ?? '',
+    imageUrl: json['image_url'] as String? ?? '',
+    pdfUrl: json['pdf_url'] as String? ?? '',
+    order: (json['order'] as num?)?.toInt() ?? 1,
+    stepCount: (json['step_count'] as num?)?.toInt() ?? 0,
+    stepsCompleted: (json['steps_completed'] as num?)?.toInt() ?? 0,
+    steps: (json['steps'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(ResourceStep.fromJson)
+        .toList(),
+    cachedAt: json['cached_at'] == null
+        ? null
+        : DateTime.tryParse(json['cached_at'] as String),
+    fromCache: json['from_cache'] as bool? ?? false,
+    contentVersion: (json['content_version'] as num?)?.toInt(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'summary': summary,
-        'image_url': imageUrl,
-        'order': order,
-        'step_count': stepCount,
-        'steps_completed': stepsCompleted,
-        'steps': steps.map((step) => step.toJson()).toList(),
-        'cached_at': cachedAt?.toIso8601String(),
-        'from_cache': fromCache,
-        'content_version': contentVersion,
-      };
+    'id': id,
+    'title': title,
+    'summary': summary,
+    'image_url': imageUrl,
+    'pdf_url': pdfUrl,
+    'order': order,
+    'step_count': stepCount,
+    'steps_completed': stepsCompleted,
+    'steps': steps.map((step) => step.toJson()).toList(),
+    'cached_at': cachedAt?.toIso8601String(),
+    'from_cache': fromCache,
+    'content_version': contentVersion,
+  };
 
-  ResourceTopic withCacheStamp(DateTime moment, {int? version}) => ResourceTopic(
+  ResourceTopic withCacheStamp(DateTime moment, {int? version}) =>
+      ResourceTopic(
         id: id,
         title: title,
         summary: summary,
         imageUrl: imageUrl,
+        pdfUrl: pdfUrl,
         order: order,
         stepCount: stepCount,
         stepsCompleted: stepsCompleted,
@@ -95,16 +101,17 @@ class ResourceTopic {
       );
 
   ResourceTopic asCached() => ResourceTopic(
-        id: id,
-        title: title,
-        summary: summary,
-        imageUrl: imageUrl,
-        order: order,
-        stepCount: stepCount,
-        stepsCompleted: stepsCompleted,
-        steps: steps,
-        cachedAt: cachedAt,
-        fromCache: true,
-        contentVersion: contentVersion,
-      );
+    id: id,
+    title: title,
+    summary: summary,
+    imageUrl: imageUrl,
+    pdfUrl: pdfUrl,
+    order: order,
+    stepCount: stepCount,
+    stepsCompleted: stepsCompleted,
+    steps: steps,
+    cachedAt: cachedAt,
+    fromCache: true,
+    contentVersion: contentVersion,
+  );
 }

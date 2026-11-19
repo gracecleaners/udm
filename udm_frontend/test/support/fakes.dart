@@ -418,6 +418,11 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
   Failure? authFailure;
 
   Map<String, dynamic>? lastProfilePatch;
+
+  /// Where a saved profile's picture went, so an upload test can say which file
+  /// the app handed the API rather than only that it handed something.
+  String? lastPhotoPath;
+  String? lastPhotoName;
   String? revokedRefresh;
   final List<String> completions = [];
   int profileCalls = 0;
@@ -536,11 +541,17 @@ class FakeUdmApi with FakeNotifications implements UdmApi {
   }
 
   @override
-  Future<UserProfile> updateProfile(Map<String, dynamic> changes) async {
+  Future<UserProfile> updateProfile(
+    Map<String, dynamic> changes, {
+    String? photoPath,
+    String? photoName,
+  }) async {
     if (authFailure != null) throw authFailure!;
     if (serverProfile == null)
       throw StateError('FakeUdmApi has no profile configured.');
     lastProfilePatch = changes;
+    lastPhotoPath = photoPath;
+    lastPhotoName = photoName;
     serverProfile = UserProfile.fromJson({
       ...serverProfile!.toJson(),
       ...changes,
@@ -881,6 +892,9 @@ class FakeAuthRepository implements AuthRepository {
   int signOutCalls = 0;
   Map<String, dynamic>? savedChanges;
 
+  /// The picture a save carried, when it carried one.
+  XFile? savedPhoto;
+
   @override
   Future<bool> hasSession() async => hasSessionValue;
 
@@ -911,8 +925,9 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserProfile> save(UserProfile draft) async {
+  Future<UserProfile> save(UserProfile draft, {XFile? photo}) async {
     savedChanges = draft.patchPayload();
+    savedPhoto = photo;
     profile = draft;
     return _result();
   }
@@ -1133,9 +1148,14 @@ class FakeMediaRepository implements MediaRepository {
       if (shelfRow != null && shelfRow!.fromCache) return shelfRow!;
       throw failure!;
     }
-    if (shelfRow == null)
-      throw StateError('FakeMediaRepository has no shelf configured.');
-    return shelfRow!;
+    if (shelfRow != null) return shelfRow!;
+    // A shelf the tab just listed is readable by its own id — that is how the
+    // Learn heading fetches the featured shelf's recordings. Only an id this
+    // fake was never given anything about is the mistake it reports.
+    for (final row in shelfRows) {
+      if (row.id == id) return row;
+    }
+    throw StateError('FakeMediaRepository has no shelf configured.');
   }
 
   @override

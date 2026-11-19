@@ -4,125 +4,197 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
-import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
-import '../../data/models/resource_step.dart';
+import '../../data/models/resource_topic.dart';
 import 'resource_topic_controller.dart';
 
-/// A guide opened: its steps in the order the ministry wrote them.
+/// Resource cover and action above an expandable overview sheet.
 class ResourceTopicView extends GetView<ResourceTopicController> {
   const ResourceTopicView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Obx(() => AppText(controller.topic.value?.title ?? 'Resources')),
-      ),
-      body: Obx(() => StateView(
-        state: controller.state.value,
-        failureMessage: controller.failureMessage.value,
-        onRetry: controller.load,
-        emptyTitle: 'Nothing published in this guide yet',
-        emptyMessage:
-            'The ministry team has not released a step of this guide. Check back soon.',
-        child: RefreshIndicator(
-          onRefresh: controller.load,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              AppSpacing.md,
-              AppSpacing.screen,
-              AppSpacing.xl,
-            ),
-            children: [
-              if (controller.isOfflineCopy) ...[
-                const OfflineChip(message: 'Offline copy of this guide'),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              const _GuideSummary(),
-              const SizedBox(height: AppSpacing.md),
-              Eyebrow('Step order', color: theme.colorScheme.primary, icon: AppIcons.list),
-              const SizedBox(height: AppSpacing.sm),
-              ...controller.steps.map(
-                (step) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _StepRow(step: step, onOpen: () => controller.openStep(step)),
+      backgroundColor: const Color(0xFFF4F8FF),
+      body: Obx(() {
+        final topic = controller.topic.value;
+        return StateView(
+          state: controller.state.value,
+          failureMessage: controller.failureMessage.value,
+          onRetry: controller.load,
+          emptyTitle: 'Resource unavailable',
+          emptyMessage: 'This resource is not available right now.',
+          child: topic == null
+              ? const SizedBox.shrink()
+              : _ResourceDetail(
+                  topic: topic,
+                  offline: controller.isOfflineCopy,
+                  onRead: controller.openPdf,
                 ),
-              ),
-            ],
-          ),
-        ),
-      )),
+        );
+      }),
     );
   }
 }
 
-/// What the guide holds, beside the two letters the app draws for it. The name
-/// is already in the bar above, so this carries the length and the line the
-/// ministry wrote under it.
-class _GuideSummary extends GetView<ResourceTopicController> {
-  const _GuideSummary();
+class _ResourceDetail extends StatelessWidget {
+  const _ResourceDetail({
+    required this.topic,
+    required this.offline,
+    required this.onRead,
+  });
+
+  final ResourceTopic topic;
+  final bool offline;
+  final VoidCallback onRead;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final topic = controller.topic.value;
-    if (topic == null) return const SizedBox.shrink();
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: AppGradients.hero,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
-            boxShadow: AppShadows.glow(AppColors.primaryBlue),
-          ),
-          child: AppText(
-            topic.monogram,
-            style: AppTypography.scriptureVerse(AppColors.white, size: 16),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (topic.summary.isNotEmpty) ...[
-                AppText(
-                  topic.summary,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
+        const ColoredBox(color: Color(0xFFEAF2FF)),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _RoundAction(
+                      icon: AppIcons.back,
+                      label: 'Go back',
+                      onTap: () => Get.back(),
+                    ),
+                    if (offline)
+                      const OfflineChip(message: 'Offline copy')
+                    else
+                      const SizedBox(width: 44),
+                    const SizedBox(width: 44),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: screenHeight * .27,
+                  child: AspectRatio(
+                    aspectRatio: .78,
+                    child: CoverArt(
+                      url: topic.imageUrl,
+                      monogram: topic.monogram,
+                      radius: 18,
+                    ),
                   ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  topic.title,
+                  textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.deepBlue,
+                    fontFamily: AppFonts.scripture,
+                    fontSize: 27,
+                    height: 1.08,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
+                Text(
+                  '${topic.stepCount} ${topic.stepCount == 1 ? 'lesson' : 'lessons'}  ·  Resource guide',
+                  style: const TextStyle(
+                    color: AppColors.secondaryText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 13),
+                SizedBox(
+                  width: 210,
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: onRead,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: const StadiumBorder(),
+                    ),
+                    icon: const Icon(Icons.menu_book_rounded, size: 20),
+                    label: const Text(
+                      'Read now',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
               ],
-              MetaPill(
-                label: topic.stepsCompleted > 0
-                    ? '${topic.stepsCompleted} of ${topic.stepCount} '
-                        '${topic.stepCount == 1 ? 'step' : 'steps'} done'
-                    : '${topic.stepCount} ${topic.stepCount == 1 ? 'step' : 'steps'}',
-                icon: AppIcons.steps,
+            ),
+          ),
+        ),
+        DraggableScrollableSheet(
+          initialChildSize: .25,
+          minChildSize: .20,
+          maxChildSize: .68,
+          builder: (context, scrollController) => Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30),
               ),
-              // The same numbers the Courses screen drew the row with, so a
-              // student opening a guide sees the bar they left behind.
-              if (topic.stepsCompleted > 0) ...[
-                const SizedBox(height: AppSpacing.sm),
-                UdmProgressBar(
-                  fraction: topic.fractionComplete,
-                  height: 6,
-                  gradient: AppGradients.hero,
+              boxShadow: AppShadows.float,
+            ),
+            child: ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 30),
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC8D4E9),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Overview',
+                  style: TextStyle(
+                    color: AppColors.deepBlue,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  topic.summary.isEmpty
+                      ? 'Explore this resource and grow in your understanding of God’s Word.'
+                      : topic.summary,
+                  style: const TextStyle(
+                    color: Color(0xFF26334A),
+                    fontSize: 16,
+                    height: 1.65,
+                  ),
+                ),
+                if (topic.stepsCompleted > 0) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    '${topic.stepsCompleted} of ${topic.stepCount} lessons completed',
+                    style: const TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  UdmProgressBar(fraction: topic.fractionComplete, height: 7),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -130,118 +202,30 @@ class _GuideSummary extends GetView<ResourceTopicController> {
   }
 }
 
-class _StepRow extends StatelessWidget {
-  const _StepRow({required this.step, required this.onOpen});
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-  final ResourceStep step;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Panel(
-      onTap: onOpen,
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
-      child: Row(
-        children: [
-          _StepBadge(step: step),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText(
-                  step.isStartingPoint ? 'Starting point' : 'Step ${step.order}',
-                  style: AppTypography.eyebrow(theme.colorScheme.primary),
-                ),
-                const SizedBox(height: 4),
-                AppText(
-                  step.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontFamily: AppFonts.scripture,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 17,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppText(
-                        step.scriptureReference,
-                        style: AppTypography.scriptureReference(
-                          theme.textTheme.bodySmall?.color ?? AppColors.secondaryText,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Only a step the ministry attached a real link to shows
-                    // the play mark; the icon is the promise, so it is never decorative.
-                    if (step.hasVideo) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Icon(AppIcons.playCircle,
-                          size: 18, color: theme.colorScheme.primary),
-                    ],
-                    const SizedBox(width: AppSpacing.sm),
-                    MetaPill(label: '${step.readingMinutes} min', icon: AppIcons.clock),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            AppIcons.chevron,
-            color: theme.colorScheme.primary,
-            size: 22,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepBadge extends StatelessWidget {
-  const _StepBadge({required this.step});
-
-  final ResourceStep step;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    if (step.isStartingPoint) {
-      return const IconBadge(icon: AppIcons.play, size: 46, tone: IconBadgeTone.gold);
-    }
-    final theme = Theme.of(context);
-    // A step the server says this student finished is ticked where the number
-    // sits, so the list reads as a checklist rather than a table of contents.
-    if (step.completed) {
-      return Container(
-        width: AppSpacing.iconTile,
-        height: AppSpacing.iconTile,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.14),
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.success, width: 1.4),
-        ),
-        child: Icon(AppIcons.check, color: AppColors.success, size: 22),
-      );
-    }
-    return Container(
-      width: AppSpacing.iconTile,
-      height: AppSpacing.iconTile,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: AppGradients.hero,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-        boxShadow: AppShadows.glow(AppColors.primaryBlue),
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    shape: const CircleBorder(),
+    elevation: 3,
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Icon(icon, color: AppColors.deepBlue, semanticLabel: label),
       ),
-      child: AppText(
-        '${step.order}',
-        style: theme.textTheme.titleLarge?.copyWith(color: AppColors.white),
-      ),
-    );
-  }
+    ),
+  );
 }
