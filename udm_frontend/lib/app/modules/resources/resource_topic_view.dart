@@ -105,7 +105,7 @@ class _ResourceDetail extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${topic.stepCount} ${topic.stepCount == 1 ? 'lesson' : 'lessons'}  ·  Resource guide',
+                  '${topic.views} ${topic.views == 1 ? 'view' : 'views'}',
                   style: const TextStyle(
                     color: AppColors.secondaryText,
                     fontSize: 14,
@@ -137,7 +137,7 @@ class _ResourceDetail extends StatelessWidget {
         DraggableScrollableSheet(
           initialChildSize: .25,
           minChildSize: .20,
-          maxChildSize: .94,
+          maxChildSize: .88,
           builder: (context, scrollController) => Container(
             decoration: BoxDecoration(
               color: Colors.white,

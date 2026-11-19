@@ -1,0 +1,39 @@
+import 'package:get/get.dart';
+
+import '../../core/network/failure.dart';
+import '../../core/routes/app_routes.dart';
+import '../../core/widgets/state_view.dart';
+import '../../data/models/resource_step.dart';
+import '../../data/repositories/resources_repository.dart';
+
+class NewBelieverController extends GetxController {
+  NewBelieverController(this._resources);
+
+  final ResourcesRepository _resources;
+  final RxList<ResourceStep> steps = <ResourceStep>[].obs;
+  final Rx<ViewState> state = ViewState.loading.obs;
+  final RxString failureMessage = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    load();
+  }
+
+  Future<void> load() async {
+    failureMessage.value = '';
+    try {
+      final fresh = await _resources.newBelieverSteps();
+      steps.assignAll(fresh);
+      state.value = fresh.isEmpty ? ViewState.empty : ViewState.ready;
+    } on Failure catch (failure) {
+      failureMessage.value = failure.message;
+      state.value = ViewState.error;
+    }
+  }
+
+  void open(ResourceStep step) => Get.toNamed(
+    AppRoutes.resourceStep,
+    arguments: {RouteArgs.resourceStepId: step.id},
+  );
+}

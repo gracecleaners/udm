@@ -894,7 +894,7 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
                                 right: 16,
                                 bottom: 15,
                                 child: Text(
-                                  '${resource.stepCount} ${resource.stepCount == 1 ? 'lesson' : 'lessons'}',
+                                  '${resource.views} ${resource.views == 1 ? 'view' : 'views'}',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
@@ -998,7 +998,7 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
                   radius: 10,
                 ),
                 title: Text(resource.title),
-                subtitle: Text('${resource.stepCount} lessons'),
+                subtitle: Text('${resource.views} ${resource.views == 1 ? 'view' : 'views'}'),
                 trailing: const Icon(
                   AppIcons.chevron,
                   color: AppColors.primaryBlue,

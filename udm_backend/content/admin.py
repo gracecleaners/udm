@@ -101,7 +101,7 @@ class ResourceStepInline(admin.StackedInline):
 class ResourceTopicAdmin(PublishedContentAdmin):
     """The home 'Find resources on' list: one row per guide, its steps inline."""
 
-    list_display = ("title", "order", "step_count", "publish_state", "publish_at", "updated_at")
+    list_display = ("title", "order", "step_count", "views", "publish_state", "publish_at", "updated_at")
     search_fields = ("title", "summary")
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
@@ -122,7 +122,7 @@ class ResourceStepAdmin(PublishedContentAdmin):
     list_filter = ("is_published", "topic")
     search_fields = ("title", "scripture_reference", "body")
     fieldsets = (
-        ("Guide", {"fields": ("topic", "order")}),
+        ("Guide", {"fields": ("topic", "order", "is_new_believer")}),
         ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body")}),
         ("Media", {"fields": ("video_url",)}),
         ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),

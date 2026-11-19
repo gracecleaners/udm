@@ -39,6 +39,12 @@ const sections: Section[] = [
     icon: Compass,
     note: "The home “Find resources on” list, and the steps inside each guide.",
   },
+  {
+    title: "New Believer steps",
+    url: "/resource-steps",
+    icon: ListChecks,
+    note: "Publish and select steps that appear in the app’s New Believer section. Resource Guides are shown separately under Recommended Resources.",
+  },
   { title: "Reading plans", url: "/plans", icon: ListChecks, note: "Published plans, the day the app shows as Today’s reading, and each day’s four sections." },
   { title: "Translations", url: "/translations", icon: BookOpen, note: "Which Bible editions students may read, and offline." },
   {

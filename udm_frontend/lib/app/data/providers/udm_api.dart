@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -81,6 +82,27 @@ class UdmApi {
         final response = await _client.dio.get<dynamic>('/resources/$id/');
         return ResourceTopic.fromJson(_json(response));
       });
+
+  Future<int> registerResourceView(String id) => _client.guard(() async {
+    final response = await _client.dio.post<dynamic>('/resources/$id/view/');
+    final views = _json(response)['views'];
+    return views is num ? views.toInt() : 0;
+  });
+
+  Future<Uint8List> downloadResourcePdf(String url) => _client.guard(() async {
+    final response = await _client.dio.get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final bytes = response.data;
+    if (bytes == null || bytes.isEmpty) {
+      throw const FormatException('The PDF download was empty.');
+    }
+    return Uint8List.fromList(bytes);
+  });
+
+  Future<List<ResourceStep>> newBelieverSteps() async =>
+      (await _list('/resources/steps/')).map(ResourceStep.fromJson).toList();
 
   Future<ResourceStep> resourceStep(String id) => _client.guard(() async {
     final response = await _client.dio.get<dynamic>('/resources/steps/$id/');

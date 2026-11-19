@@ -1,15 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:internet_file/internet_file.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../core/theme/app_colors.dart';
 
 /// Reads a ministry PDF in the app, with pinch zoom and page navigation.
 class ResourcePdfView extends StatefulWidget {
-  const ResourcePdfView({required this.title, required this.url, super.key});
+  const ResourcePdfView({required this.loadPdf, super.key});
 
-  final String title;
-  final String url;
+  final Future<Uint8List> Function() loadPdf;
 
   @override
   State<ResourcePdfView> createState() => _ResourcePdfViewState();
@@ -18,6 +18,7 @@ class ResourcePdfView extends StatefulWidget {
 class _ResourcePdfViewState extends State<ResourcePdfView> {
   late PdfControllerPinch _pdfController;
   bool _failed = false;
+  String _failureMessage = 'The PDF could not be downloaded. Please try again.';
 
   @override
   void initState() {
@@ -27,8 +28,9 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
 
   void _openDocument() {
     _failed = false;
+    _failureMessage = 'The PDF could not be downloaded. Please try again.';
     _pdfController = PdfControllerPinch(
-      document: PdfDocument.openData(InternetFile.get(widget.url)),
+      document: PdfDocument.openData(widget.loadPdf()),
     );
   }
 
@@ -49,12 +51,6 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
     appBar: AppBar(
       backgroundColor: Colors.white,
       foregroundColor: AppColors.deepBlue,
-      title: Text(
-        widget.title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
     ),
     body: _failed
         ? Center(
@@ -79,24 +75,26 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Check your connection and try again.',
+                  Text(
+                    _failureMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.secondaryText),
+                    style: const TextStyle(color: AppColors.secondaryText),
                   ),
                   const SizedBox(height: 18),
-                  FilledButton(
-                    onPressed: _retry,
-                    child: const Text('Try again'),
-                  ),
+                  FilledButton(onPressed: _retry, child: const Text('Try again')),
                 ],
               ),
             ),
           )
         : PdfViewPinch(
             controller: _pdfController,
-            onDocumentError: (_) {
-              if (mounted) setState(() => _failed = true);
+            onDocumentError: (error) {
+              if (mounted) {
+                setState(() {
+                  _failureMessage = error.toString();
+                  _failed = true;
+                });
+              }
             },
           ),
   );

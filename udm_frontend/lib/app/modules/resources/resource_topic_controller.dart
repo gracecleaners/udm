@@ -46,6 +46,24 @@ class ResourceTopicController extends GetxController
     try {
       final fresh = await _resources.topic(topicId);
       topic.value = fresh;
+      try {
+        final views = await _resources.registerView(topicId);
+        topic.value = ResourceTopic(
+          id: fresh.id,
+          title: fresh.title,
+          summary: fresh.summary,
+          imageUrl: fresh.imageUrl,
+          pdfUrl: fresh.pdfUrl,
+          order: fresh.order,
+          stepCount: fresh.stepCount,
+          views: views,
+          stepsCompleted: fresh.stepsCompleted,
+          steps: fresh.steps,
+          contentVersion: fresh.contentVersion,
+        );
+      } catch (_) {
+        // A view counter is helpful metadata, never a reason to block reading.
+      }
       stampLoadedContent(fresh.contentVersion);
       state.value = ViewState.ready;
     } on Failure catch (failure) {
@@ -82,7 +100,6 @@ class ResourceTopicController extends GetxController
       );
       return;
     }
-    final resource = topic.value!;
-    Get.to(() => ResourcePdfView(title: resource.title, url: url));
+    Get.to(() => ResourcePdfView(loadPdf: () => _resources.downloadPdf(url)));
   }
 }

@@ -29,6 +29,8 @@ import '../../modules/resources/resource_step_binding.dart';
 import '../../modules/resources/resource_step_view.dart';
 import '../../modules/resources/resource_topic_binding.dart';
 import '../../modules/resources/resource_topic_view.dart';
+import '../../modules/resources/new_believer_binding.dart';
+import '../../modules/resources/new_believer_view.dart';
 import '../../modules/settings/settings_view.dart';
 import '../../modules/notifications/notifications_view.dart';
 import '../../modules/shell/shell_binding.dart';
@@ -121,8 +123,8 @@ abstract class AppPages {
     ),
     GetPage(
       name: AppRoutes.newBeliever,
-      page: () => const CoursesView(newBelieverMode: true),
-      binding: CoursesBinding(),
+      page: () => const NewBelieverView(),
+      binding: NewBelieverBinding(),
       transition: Transition.rightToLeft,
       transitionDuration: transitionDuration,
     ),

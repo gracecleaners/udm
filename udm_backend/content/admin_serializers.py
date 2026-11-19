@@ -222,10 +222,10 @@ class ResourceTopicAdminSerializer(CurationSerializerMixin, PublishStateFields, 
         model = ResourceTopic
         fields = (
             "id", "title", "summary", "order", "image", "image_link", "image_url", "pdf", "pdf_url",
-            "is_published", "publish_at", "publish_state", "step_count",
+            "is_published", "publish_at", "publish_state", "step_count", "views",
             "created_at", "updated_at",
         )
-        read_only_fields = ("id", "image_url", "pdf_url", "publish_state", "step_count", "created_at", "updated_at")
+        read_only_fields = ("id", "image_url", "pdf_url", "publish_state", "step_count", "views", "created_at", "updated_at")
 
     def get_image_url(self, obj):
         return artwork_url(obj, self.context.get("request"))
@@ -248,7 +248,7 @@ class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, s
         model = ResourceStep
         fields = (
             "id", "topic", "topic_title", "title", "author", "scripture_reference",
-            "excerpt", "body", "reading_minutes", "order", "video_url",
+            "excerpt", "body", "reading_minutes", "order", "video_url", "is_new_believer",
             "is_published", "publish_at", "publish_state",
             "created_at", "updated_at",
         )

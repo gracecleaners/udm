@@ -26,6 +26,7 @@ from .views import (
     PrayerModerationView, GroupPrayerModerationView,
     MediaResumeView, ProgressSummaryView,
     ResourceTopicListView, ResourceTopicDetailView, ResourceStepDetailView,
+    ResourceTopicViewCountView, NewBelieverResourceListView,
 )
 from .notification_views import (
     NotificationDeviceView,
@@ -52,6 +53,8 @@ urlpatterns = [
     path("articles/", ArticleListView.as_view(), name="articles"),
     path("articles/<uuid:pk>/", ArticleDetailView.as_view(), name="article-detail"),
     path("resources/", ResourceTopicListView.as_view(), name="resource-topics"),
+    path("resources/steps/", NewBelieverResourceListView.as_view(), name="new-believer-resource-steps"),
+    path("resources/<uuid:pk>/view/", ResourceTopicViewCountView.as_view(), name="resource-topic-view"),
     # Declared before the uuid detail route so `steps` is never read as a topic id.
     path("resources/steps/<uuid:pk>/", ResourceStepDetailView.as_view(), name="resource-step-detail"),
     path("resources/<uuid:pk>/", ResourceTopicDetailView.as_view(), name="resource-topic-detail"),

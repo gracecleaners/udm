@@ -1,5 +1,5 @@
 from django.db import InterfaceError, OperationalError, connection, transaction
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, F, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -231,6 +231,25 @@ class ResourceTopicDetailView(PublishedContentMixin, generics.RetrieveAPIView):
             **super().get_serializer_context(),
             "guide_progress": guide_progress(self.request.user),
         }
+
+
+class ResourceTopicViewCountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        topic = get_object_or_404(live_resource_topics(), pk=pk)
+        ResourceTopic.objects.filter(pk=topic.pk).update(views=F("views") + 1)
+        topic.refresh_from_db(fields=["views"])
+        return Response({"views": topic.views})
+
+
+class NewBelieverResourceListView(PublishedContentMixin, generics.ListAPIView):
+    serializer_class = ResourceStepSerializer
+
+    def get_queryset(self):
+        return ResourceStep.objects.published().filter(is_new_believer=True).select_related(
+            "topic"
+        ).order_by("topic__order", F("order").asc(nulls_first=True), "created_at")
 
 
 class ResourceStepDetailView(PublishedContentMixin, generics.RetrieveAPIView):

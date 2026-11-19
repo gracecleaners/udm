@@ -26,7 +26,7 @@ const config: ResourceConfig = {
         </>
       ),
     },
-    { header: "Steps", cell: (row) => countText(row.step_count, "step") },
+    { header: "Views", cell: (row) => countText(row.views, "view") },
     { header: "PDF", cell: (row) => <span className="console-cell-sub">{row.pdf_url ? "PDF attached" : "No PDF"}</span> },
     { header: "List position", cell: (row) => String(row.order) },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },

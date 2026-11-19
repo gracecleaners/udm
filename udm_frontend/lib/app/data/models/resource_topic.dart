@@ -15,6 +15,7 @@ class ResourceTopic {
     this.pdfUrl = '',
     this.order = 1,
     this.stepCount = 0,
+    this.views = 0,
     this.stepsCompleted = 0,
     this.steps = const [],
     this.cachedAt,
@@ -29,6 +30,7 @@ class ResourceTopic {
   final String pdfUrl;
   final int order;
   final int stepCount;
+  final int views;
 
   /// How many of those steps this student has finished, counted by the server
   /// against the same live rows `stepCount` promises. Zero for anybody who has
@@ -58,6 +60,7 @@ class ResourceTopic {
     pdfUrl: json['pdf_url'] as String? ?? '',
     order: (json['order'] as num?)?.toInt() ?? 1,
     stepCount: (json['step_count'] as num?)?.toInt() ?? 0,
+    views: (json['views'] as num?)?.toInt() ?? 0,
     stepsCompleted: (json['steps_completed'] as num?)?.toInt() ?? 0,
     steps: (json['steps'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
@@ -78,6 +81,7 @@ class ResourceTopic {
     'pdf_url': pdfUrl,
     'order': order,
     'step_count': stepCount,
+    'views': views,
     'steps_completed': stepsCompleted,
     'steps': steps.map((step) => step.toJson()).toList(),
     'cached_at': cachedAt?.toIso8601String(),
@@ -94,6 +98,7 @@ class ResourceTopic {
         pdfUrl: pdfUrl,
         order: order,
         stepCount: stepCount,
+        views: views,
         stepsCompleted: stepsCompleted,
         steps: steps,
         cachedAt: moment,
@@ -108,6 +113,7 @@ class ResourceTopic {
     pdfUrl: pdfUrl,
     order: order,
     stepCount: stepCount,
+    views: views,
     stepsCompleted: stepsCompleted,
     steps: steps,
     cachedAt: cachedAt,

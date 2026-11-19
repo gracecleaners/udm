@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
 import '../models/resource_topic.dart';
@@ -44,6 +46,12 @@ class ResourcesRepository {
       rethrow;
     }
   }
+
+  Future<int> registerView(String id) => _api.registerResourceView(id);
+
+  Future<Uint8List> downloadPdf(String url) => _api.downloadResourcePdf(url);
+
+  Future<List<ResourceStep>> newBelieverSteps() => _api.newBelieverSteps();
 
   /// The copy on this device, if there is one, labelled as cached. Used before
   /// the network answers so a returning student sees the guide immediately.

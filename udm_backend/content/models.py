@@ -204,6 +204,7 @@ class ResourceTopic(ArtworkLink, TimestampedModel):
         default=1,
         help_text="Position in the home 'Find resources on' list, lowest first.",
     )
+    views = models.PositiveIntegerField(default=0, editable=False)
     is_published = models.BooleanField(default=False)
     publish_at = models.DateTimeField(null=True, blank=True)
 
@@ -258,6 +259,10 @@ class ResourceStep(PublishableModel):
     video_url = models.URLField(
         blank=True,
         help_text="Optional https:// link the ministry hosts. Leave empty and the app shows no video action.",
+    )
+    is_new_believer = models.BooleanField(
+        default=False,
+        help_text="Show this step in the app's New Believer section.",
     )
 
     class Meta:

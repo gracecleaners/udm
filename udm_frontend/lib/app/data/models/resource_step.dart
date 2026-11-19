@@ -19,6 +19,7 @@ class ResourceStep {
     this.topicTitle = '',
     this.topicStepCount = 0,
     this.completed = false,
+    this.isNewBeliever = false,
   });
 
   final String id;
@@ -45,6 +46,7 @@ class ResourceStep {
   /// answers for every row it lists. A step opened on its own is not sent a
   /// flag, so an unread one and an unlabelled one read the same way: false.
   final bool completed;
+  final bool isNewBeliever;
 
   bool get isStartingPoint => order == null;
   bool get hasVideo => videoUrl.isNotEmpty;
@@ -66,6 +68,7 @@ class ResourceStep {
           ? (topic['step_count'] as num?)?.toInt() ?? 0
           : 0,
       completed: json['completed'] as bool? ?? false,
+      isNewBeliever: json['is_new_believer'] as bool? ?? false,
     );
   }
 
@@ -79,6 +82,7 @@ class ResourceStep {
         'reading_minutes': readingMinutes,
         'video_url': videoUrl,
         'completed': completed,
+        'is_new_believer': isNewBeliever,
         'topic': {
           if (topicId.isNotEmpty) 'id': topicId,
           if (topicTitle.isNotEmpty) 'title': topicTitle,

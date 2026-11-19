@@ -9,8 +9,8 @@ import { datedPublishState, topicOptions, type ResourceConfig } from "@/lib/cura
  */
 const config: ResourceConfig = {
   endpoint: "admin/resource-steps/",
-  singular: "Step",
-  plural: "Resource steps",
+  singular: "New Believer resource step",
+  plural: "New Believer resource steps",
   description:
     "A step is one screen of a guide: the teaching, the verse it stands on, and the video the ministry chose "
       + "to attach. Nothing plays inside the app, so an empty video link means the reader sees no Watch control.",
@@ -39,6 +39,7 @@ const config: ResourceConfig = {
           <span className="console-cell-sub">No guide</span>
         ),
     },
+    { header: "New Believer", cell: (row) => (row.is_new_believer ? "Included" : "—") },
     { header: "Scripture", cell: (row) => String(row.scripture_reference ?? "—") },
     {
       header: "Video",
@@ -66,6 +67,13 @@ const config: ResourceConfig = {
       type: "number",
       nullable: true,
       help: "Position inside the guide. Empty sorts first, which is where a starting point belongs.",
+    },
+    {
+      name: "is_new_believer",
+      label: "Show in New Believer",
+      type: "switch",
+      default: false,
+      help: "Only selected steps appear in the app’s New Believer section.",
     },
     {
       name: "scripture_reference",

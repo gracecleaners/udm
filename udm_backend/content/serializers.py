@@ -879,6 +879,7 @@ class ResourceTopicSerializer(ContentStampedSerializerMixin, serializers.ModelSe
             "order",
             "publish_at",
             "step_count",
+            "views",
             "steps_completed",
             "content_version",
         )
@@ -959,6 +960,7 @@ class ResourceStepSerializer(serializers.ModelSerializer):
             "publish_at",
             "order",
             "video_url",
+            "is_new_believer",
             "topic",
         )
         read_only_fields = fields
