@@ -516,6 +516,7 @@ class SectionHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.subtitleWidget,
+    this.subtitleWidget,
     this.trailing,
     this.eyebrow,
     this.onSeeAll,
@@ -524,6 +525,7 @@ class SectionHeader extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final Widget? subtitleWidget;
   final Widget? trailing;
   final String? eyebrow;

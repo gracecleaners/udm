@@ -77,7 +77,6 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
           ),
         ),
       ),
-    ),
   );
 }
 
