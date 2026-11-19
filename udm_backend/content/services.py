@@ -86,11 +86,12 @@ def latest_articles(limit=5, on_now=None):
 
 
 def live_resource_topics(on_now=None):
-    """The home 'Find resources on' list: every guide with something to read.
+    """The home resource list: a published PDF or at least one live step.
 
-    The count is the same rule `ResourceTopic.steps_live` applies, so a row never
-    promises a step the page then hides. An aggregate query discards the model's
-    default ordering, so the authored list order is restated here.
+    PDF-only guides are valid resources now. For step-based guides, the count is
+    the same rule `ResourceTopic.steps_live` applies, so a row never promises a
+    step the page then hides. An aggregate query discards the model's default
+    ordering, so the authored list order is restated here.
     """
     now = on_now or timezone.now()
     return (
@@ -104,7 +105,7 @@ def live_resource_topics(on_now=None):
                 ),
             )
         )
-        .filter(step_count__gt=0)
+        .filter(Q(step_count__gt=0) | (Q(pdf__isnull=False) & ~Q(pdf="")))
         .order_by("order", "created_at")
     )
 

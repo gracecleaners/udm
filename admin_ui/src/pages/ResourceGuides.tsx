@@ -3,10 +3,8 @@ import { StateBadge, countText, dateText, dateTimeText, ellipsis } from "@/compo
 import { datedPublishState, type ResourceConfig } from "@/lib/curation";
 
 /**
- * The home screen's "Find resources on" list is this table, in this order. A
- * guide with no published step is hidden from students rather than shown as a
- * row that opens on nothing, so steps are filed against it from the Resource
- * steps screen — the same pairing the Devotions grid uses.
+ * A published guide appears to students when it has a PDF or a published step.
+ * Steps can still be filed against it from the Resource steps screen.
  */
 const config: ResourceConfig = {
   endpoint: "admin/resource-topics/",
@@ -14,7 +12,7 @@ const config: ResourceConfig = {
   plural: "Resource guides",
   description:
     "One guided answer to a question a student actually asks — Receive Christ, Prayer, The Bible. "
-      + "A guide reaches the home list only when it is Live and has at least one published step.",
+      + "A guide reaches Recommended Resources when it is Live and has either an uploaded PDF or at least one published step.",
   state: datedPublishState,
   ordering: "order",
   searchPlaceholder: "Search guide titles or summaries",
@@ -47,7 +45,7 @@ const config: ResourceConfig = {
       name: "summary",
       label: "Summary",
       type: "textarea",
-      help: "Shown above the step list when the guide opens.",
+      help: "Shown in the draggable Overview sheet when the resource opens.",
     },
     {
       name: "image",

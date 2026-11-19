@@ -109,27 +109,7 @@ class HomeView extends GetView<HomeController> {
                     ],
                     if (controller.data?.articles.isNotEmpty ?? false) ...[
                       const SizedBox(height: AppSpacing.xl),
-                      const RailHeader(
-                        eyebrow: 'Deepen',
-                        title: 'Latest articles',
-                      ),
-                      DiscoveryRail(
-                        children: controller.data!.articles
-                            .map(
-                              (article) => RailCard(
-                                title: article.title,
-                                subtitle: _byline(article),
-                                monogram: UdmAvatar.initialsFor(article.title),
-                                artUrl: article.imageUrl,
-                                pill: MetaPill(
-                                  label: '${article.readingMinutes} min',
-                                  icon: AppIcons.clock,
-                                ),
-                                onTap: () => controller.openArticle(article.id),
-                              ),
-                            )
-                            .toList(),
-                      ),
+                     
                     ],
                     const SizedBox(height: AppSpacing.lg),
                     Padding(

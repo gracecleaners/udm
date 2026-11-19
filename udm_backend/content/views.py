@@ -207,8 +207,8 @@ class ResourceTopicListView(PublishedContentMixin, generics.ListAPIView):
     serializer_class = ResourceTopicSerializer
 
     def get_queryset(self):
-        # A guide with nothing to read is not rendered rather than shown as an
-        # empty folder, so the home list only ever holds something to open.
+        # A published PDF can stand alone; otherwise a guide needs a published
+        # step so its detail page has something to open.
         return live_resource_topics()
 
     def get_serializer_context(self):

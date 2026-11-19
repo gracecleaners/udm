@@ -179,10 +179,9 @@ class ResourceTopic(ArtworkLink, TimestampedModel):
     """One guided answer to a question a student actually asks — *Receive Christ*,
     *Prayer*, *The Bible*.
 
-    The home screen's "Find resources on" list is this table and nothing else, so
-    a topic with no published step is hidden rather than shown as a folder that
-    opens on nothing — the same rule the Devotions grid follows for a series with
-    no day.
+    The home screen's recommended resources are these topics. A published PDF
+    may stand on its own; without one, the topic needs a published step so it
+    opens on readable content.
     """
 
     title = models.CharField(max_length=220)
