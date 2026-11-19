@@ -55,6 +55,12 @@ class _ArticleBody extends StatelessWidget {
         FeatureCard(
           eyebrow: article.category.isEmpty ? 'Article' : article.category,
           title: article.title,
+          titleStyle: theme.textTheme.headlineSmall?.copyWith(
+            color: Colors.white,
+            fontSize: 22,
+            height: 1.18,
+            fontWeight: FontWeight.w800,
+          ),
           subtitle: article.author.isEmpty ? null : article.author,
           artUrl: article.imageUrl,
           monogram: UdmAvatar.initialsFor(article.title),
@@ -66,7 +72,16 @@ class _ArticleBody extends StatelessWidget {
           AppText(article.category, style: AppTypography.eyebrow(theme.colorScheme.primary)),
           const SizedBox(height: AppSpacing.sm),
         ],
-        AppText(article.title, style: AppTypography.editorialTitle(bodyColor, size: 32)),
+        AppText(
+          article.title,
+          style: theme.textTheme.displaySmall?.copyWith(
+            color: bodyColor,
+            fontSize: 26,
+            height: 1.2,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.3,
+          ),
+        ),
         const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
@@ -102,7 +117,9 @@ class _ArticleBody extends StatelessWidget {
                 Expanded(
                   child: FormattedContent(
                     article.excerpt,
-                    style: AppTypography.scriptureVerse(bodyColor, size: 17).copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: bodyColor,
+                      fontSize: 17,
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.w400,
                       height: 1.55,
@@ -118,7 +135,11 @@ class _ArticleBody extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: FormattedContent(
             article.body,
-            style: AppTypography.scriptureBody(bodyColor, baseSize: 19.5),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: bodyColor,
+              fontSize: 16.5,
+              height: 1.72,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),

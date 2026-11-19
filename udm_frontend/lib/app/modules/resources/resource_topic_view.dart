@@ -171,7 +171,7 @@ class _ResourceDetail extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 9),
-                Text(
+                FormattedContent(
                   topic.summary.isEmpty
                       ? 'Explore this resource and grow in your understanding of God’s Word.'
                       : topic.summary,

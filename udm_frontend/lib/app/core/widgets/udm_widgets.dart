@@ -515,6 +515,7 @@ class SectionHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleWidget,
     this.trailing,
     this.eyebrow,
     this.onSeeAll,
@@ -523,6 +524,7 @@ class SectionHeader extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final Widget? trailing;
   final String? eyebrow;
 
@@ -725,18 +727,19 @@ class HeroPanel extends StatelessWidget {
                               color: AppColors.white,
                             ),
                           ),
-                          if (subtitle != null) ...[
+                          if (subtitle != null || subtitleWidget != null) ...[
                             const SizedBox(height: 6),
-                            AppText(
-                              subtitle!,
-                              style: const TextStyle(
-                                fontFamily: AppFonts.ui,
-                                fontSize: 13.5,
-                                height: 1.4,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white70,
-                              ),
-                            ),
+                            subtitleWidget ??
+                                AppText(
+                                  subtitle!,
+                                  style: const TextStyle(
+                                    fontFamily: AppFonts.ui,
+                                    fontSize: 13.5,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white70,
+                                  ),
+                                ),
                           ],
                         ],
                       ),

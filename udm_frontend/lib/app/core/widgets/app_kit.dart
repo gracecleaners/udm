@@ -269,6 +269,7 @@ class FeatureCard extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     this.subtitle,
+    this.titleStyle,
     this.artUrl = '',
     this.monogram = '',
     this.artIcon,
@@ -282,6 +283,7 @@ class FeatureCard extends StatelessWidget {
   final String eyebrow;
   final String title;
   final String? subtitle;
+  final TextStyle? titleStyle;
   final String artUrl;
   final String monogram;
   final IconData? artIcon;
@@ -348,7 +350,7 @@ class FeatureCard extends StatelessWidget {
                       const SizedBox(height: 7),
                       AppText(
                         title,
-                        style: AppTypography.editorialTitleOnArt(AppColors.white),
+                        style: titleStyle ?? AppTypography.editorialTitleOnArt(AppColors.white),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

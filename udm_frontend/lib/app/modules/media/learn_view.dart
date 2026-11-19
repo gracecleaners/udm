@@ -214,7 +214,7 @@ class _LearnFeatureHero extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(
+                  FormattedContent(
                     shelf.description.isEmpty
                         ? 'Discover the beauty and purpose of God’s Word.'
                         : shelf.description,

@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/media_item.dart';
@@ -45,9 +46,16 @@ class MediaCollectionView extends GetView<MediaCollectionController> {
               HeroPanel(
                 eyebrow: _countLabel(controller.collection.value?.itemCount ?? 0),
                 title: controller.collection.value?.title ?? '',
-                subtitle: (controller.collection.value?.description ?? '').isEmpty
+                subtitleWidget: (controller.collection.value?.description ?? '').isEmpty
                     ? null
-                    : controller.collection.value!.description,
+                    : FormattedContent(
+                        controller.collection.value!.description,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 13.5,
+                          height: 1.4,
+                        ),
+                      ),
                 trailing: const Mark(size: 46, icon: AppIcons.playCircle),
                 children: [
                   if (controller.isOfflineCopy) ...[

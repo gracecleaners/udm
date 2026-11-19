@@ -226,12 +226,12 @@ class _HomeMemoryVerseCard extends StatelessWidget {
                       '“${text.trim().replaceAll(RegExp(r'^[“"]|[”"]$'), '')}”',
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                         color: Colors.white,
-                        fontSize: (width * .052).clamp(18.0, 22.0),
-                        height: 1.2,
+                        fontSize: (width * .05).clamp(18.0, 21.0),
+                        height: 1.3,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: -.3,
+                        letterSpacing: -.15,
                         shadows: const [
                           Shadow(color: Color(0xB8000A1C), blurRadius: 9),
                         ],
@@ -279,6 +279,7 @@ class _Greeting extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final session = Get.find<SessionController>();
+    final type = Theme.of(context).textTheme;
     return Obx(() {
       final profile = session.profile.value;
       final displayName = profile?.displayName.trim() ?? '';
@@ -321,14 +322,14 @@ class _Greeting extends GetView<HomeController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Good morning,',
-                    style: TextStyle(
+                    style: type.titleMedium?.copyWith(
                       color: Colors.white,
-                      fontSize: 18,
-                      height: 1.12,
+                      fontSize: 17,
+                      height: 1.2,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -.2,
+                      letterSpacing: -.1,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -342,12 +343,12 @@ class _Greeting extends GetView<HomeController> {
                         const TextSpan(text: ' 👋'),
                       ],
                     ),
-                    style: const TextStyle(
+                    style: type.titleMedium?.copyWith(
                       color: Colors.white,
-                      fontSize: 18,
-                      height: 1.16,
+                      fontSize: 17,
+                      height: 1.2,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -.25,
+                      letterSpacing: -.1,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -915,16 +916,15 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
                                 resource.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                   color: AppColors.deepBlue,
-                                  fontFamily: AppFonts.scripture,
-                                  fontSize: 18,
-                                  height: 1.12,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               const SizedBox(height: 5),
-                              Text(
+                              FormattedContent(
                                 resource.summary.isEmpty
                                     ? 'Open this resource to explore its overview.'
                                     : resource.summary,
