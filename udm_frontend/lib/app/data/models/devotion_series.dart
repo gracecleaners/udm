@@ -44,7 +44,7 @@ class DevotionSeries {
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
         description: json['description'] as String? ?? '',
-        coverImageUrl: json['cover_image_url'] as String? ?? '',
+        coverImageUrl: json['image_url'] as String? ?? json['cover_image_url'] as String? ?? '',
         order: (json['order'] as num?)?.toInt() ?? 1,
         dayCount: (json['day_count'] as num?)?.toInt() ?? 0,
         days: (json['days'] as List<dynamic>? ?? [])

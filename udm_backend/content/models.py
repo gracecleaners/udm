@@ -78,12 +78,19 @@ class DevotionalSeries(TimestampedModel):
 
     The app's Devotions tab is this table and nothing more, so a series with no
     published day is hidden rather than shown as an empty folder. Covers are
-    stored as URLs rather than uploads: the art belongs to the ministry's own
-    host, and this deployment has no second file store to keep in sync.
+    stored as an upload or hosted link, with the previous cover URL retained
+    for series created before artwork uploads were available.
     """
 
     title = models.CharField(max_length=220)
     description = models.TextField(blank=True)
+    image = models.ImageField(
+        upload_to="devotional_series/",
+        null=True,
+        blank=True,
+        help_text="Optional series cover image. This takes priority over linked cover art.",
+    )
+    image_link = models.URLField(blank=True)
     cover_image_url = models.URLField(blank=True)
     order = models.PositiveSmallIntegerField(default=1, help_text="Position in the Devotions grid, lowest first.")
     is_published = models.BooleanField(default=False)
@@ -129,7 +136,8 @@ class Devotional(ArtworkLink, PublishableModel):
         blank=True,
         help_text="Day number within the series. Empty sorts first, which is where an Introduction belongs.",
     )
-    scripture_reference = models.CharField(max_length=120)
+    scripture_reference = models.CharField(max_length=120, blank=True)
+    scripture_text = models.TextField(blank=True)
     image = models.ImageField(
         upload_to="devotionals/",
         null=True,

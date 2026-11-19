@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/formatted_content.dart';
@@ -23,9 +24,9 @@ class DevotionsView extends GetView<DevotionsController> {
       emptyTitle: 'Nothing published to read yet',
       emptyMessage: 'When the ministry team publishes a devotional series, it will appear here.',
       child: Container(
-        color: const Color(0xFF08090B),
+        color: AppColors.background,
         child: RefreshIndicator(
-          color: const Color(0xFF9AC755),
+          color: AppColors.primaryBlue,
           onRefresh: controller.load,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -41,14 +42,14 @@ class DevotionsView extends GetView<DevotionsController> {
                           children: [
                             const Eyebrow(
                               'READ THROUGH',
-                              color: Color(0xFF9AC755),
+                              color: AppColors.primaryBlue,
                               icon: AppIcons.bookOpen,
                             ),
                             const SizedBox(height: 8),
                             const AppText(
                               'Devotions',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.deepBlue,
                                 fontSize: 31,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -56,10 +57,10 @@ class DevotionsView extends GetView<DevotionsController> {
                             const SizedBox(height: 5),
                             AppText(
                               controller.isOfflineCopy
-                                  ? 'Saved on this device · pull to refresh online'
+                                ? 'Saved on this device · pull to refresh online'
                                   : 'Choose a series and follow it one day at a time.',
                               style: const TextStyle(
-                                color: Colors.white70,
+                                color: AppColors.secondaryText,
                                 fontSize: 13,
                               ),
                             ),
@@ -81,7 +82,7 @@ class DevotionsView extends GetView<DevotionsController> {
                     child: AppText(
                       'READING SERIES',
                       style: TextStyle(
-                        color: Colors.white54,
+                        color: AppColors.secondaryText,
                         fontSize: 11,
                         letterSpacing: 1.4,
                         fontWeight: FontWeight.w700,
@@ -141,8 +142,8 @@ class _SeriesTile extends StatelessWidget {
         const SizedBox(height: 9),
         AppText(
           series.title,
-          style: const TextStyle(
-            color: Colors.white,
+      style: const TextStyle(
+            color: AppColors.deepBlue,
             fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
@@ -153,7 +154,7 @@ class _SeriesTile extends StatelessWidget {
           const SizedBox(height: 3),
           FormattedContent(
             series.description,
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
+            style: const TextStyle(color: AppColors.secondaryText, fontSize: 12),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

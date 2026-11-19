@@ -13,8 +13,7 @@ const config: ResourceConfig = {
   singular: "Series",
   plural: "Devotional series",
   description:
-    "Read-through sets like The Book of James or Christmas. Cover art is loaded from a URL the ministry hosts; "
-    + "a series stays hidden until it is Live and has at least one published day.",
+    "Read-through sets like The Book of James or Christmas. Add a cover image or image link, then publish the series and its introduction/day readings.",
   state: datedPublishState,
   ordering: "order",
   searchPlaceholder: "Search titles or descriptions",
@@ -28,7 +27,7 @@ const config: ResourceConfig = {
         </>
       ),
     },
-    { header: "Days", cell: (row) => countText(row.day_count, "day") },
+    { header: "Readings", cell: (row) => countText(row.day_count, "reading") },
     { header: "Grid position", cell: (row) => String(row.order) },
     { header: "State", cell: (row) => <StateBadge state={String(row.publish_state ?? "draft")} /> },
     { header: "Publish date", cell: (row) => dateText(row.publish_at) },
@@ -42,13 +41,9 @@ const config: ResourceConfig = {
       type: "textarea",
       help: "Shown under the title when a reader opens the series.",
     },
-    {
-      name: "cover_image_url",
-      label: "Cover image URL",
-      type: "text",
-      placeholder: "https://…",
-      help: "A full https:// URL. Until one is set the app draws the title’s initials on a gold tile.",
-    },
+    { name: "image", label: "Series cover image", type: "image", help: "Upload artwork used for the series card and reading thumbnails." },
+    { name: "image_link", label: "Or use an image link", type: "text", placeholder: "https://…", help: "A full image URL. An uploaded cover image takes priority." },
+    { name: "cover_image_url", label: "Previous cover image URL", type: "text", placeholder: "https://…", help: "Legacy cover link; new series should use the image upload or image link above." },
     {
       name: "order",
       label: "Position in the grid",

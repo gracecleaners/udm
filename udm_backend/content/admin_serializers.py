@@ -107,21 +107,30 @@ class PublishStateFields(serializers.Serializer):
 
 class DevotionalSeriesAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):
     day_count = serializers.IntegerField(read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = DevotionalSeries
         fields = (
-            "id", "title", "description", "cover_image_url", "order",
+            "id", "title", "description", "image", "image_link", "image_url", "cover_image_url", "order",
             "is_published", "publish_at", "publish_state", "day_count",
             "created_at", "updated_at",
         )
-        read_only_fields = ("id", "publish_state", "day_count", "created_at", "updated_at")
+        read_only_fields = ("id", "image_url", "publish_state", "day_count", "created_at", "updated_at")
+
+    def get_image_url(self, obj):
+        return artwork_url(obj, self.context.get("request")) or obj.cover_image_url
 
     def validate_cover_image_url(self, value):
         # The app loads this with Image.network; a relative path would fail at
         # render time on a device and only in the field editor here.
         if value and not value.startswith(("http://", "https://")):
             raise serializers.ValidationError("Cover art needs a full https:// URL the app can load.")
+        return value
+
+    def validate_image_link(self, value):
+        if value and not value.startswith(("http://", "https://")):
+            raise serializers.ValidationError("Cover art needs a full http:// or https:// address the app can load.")
         return value
 
 
@@ -173,7 +182,7 @@ class DevotionalAdminSerializer(CurationSerializerMixin, PublishStateFields, ser
     class Meta:
         model = Devotional
         fields = (
-            "id", "title", "author", "scripture_reference", "excerpt", "body",
+            "id", "title", "author", "scripture_reference", "scripture_text", "excerpt", "body",
             "reflection_questions", "application", "prayer", "memory_scripture_reference",
             "reading_minutes", "series", "series_title", "day", "image", "image_link", "image_url",
             "is_published", "publish_at", "publish_state",

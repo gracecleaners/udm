@@ -751,6 +751,7 @@ class PrayerModerationSerializer(serializers.ModelSerializer):
 class DevotionalSerializer(serializers.ModelSerializer):
     series_title = serializers.CharField(source="series.title", read_only=True, default="")
     image_url = serializers.SerializerMethodField()
+    scripture_text = serializers.SerializerMethodField()
     class Meta:
         model = Devotional
         fields = (
@@ -758,6 +759,7 @@ class DevotionalSerializer(serializers.ModelSerializer):
             "title",
             "author",
             "scripture_reference",
+            "scripture_text",
             "excerpt",
             "body",
             "reflection_questions",
@@ -776,11 +778,17 @@ class DevotionalSerializer(serializers.ModelSerializer):
     def get_image_url(self, devotional):
         return artwork_url(devotional, self.context.get("request"))
 
+    def get_scripture_text(self, devotional):
+        # Older series used `excerpt` for the verse itself. Keep those readings
+        # intact while new editorial entries use a dedicated Scripture field.
+        return devotional.scripture_text or devotional.excerpt
+
 
 class DevotionalSeriesSerializer(ContentStampedSerializerMixin, serializers.ModelSerializer):
     """One card in the Devotions grid, with how many days a student can read."""
 
     day_count = serializers.IntegerField(read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = DevotionalSeries
@@ -789,12 +797,16 @@ class DevotionalSeriesSerializer(ContentStampedSerializerMixin, serializers.Mode
             "title",
             "description",
             "cover_image_url",
+            "image_url",
             "order",
             "publish_at",
             "day_count",
             "content_version",
         )
         read_only_fields = fields
+
+    def get_image_url(self, series):
+        return artwork_url(series, self.context.get("request")) or series.cover_image_url
 
 
 class DevotionalDaySerializer(serializers.ModelSerializer):

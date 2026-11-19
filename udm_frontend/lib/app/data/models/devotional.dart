@@ -6,6 +6,7 @@ class Devotional {
     required this.body,
     this.author = '',
     this.excerpt = '',
+    this.scriptureText = '',
     this.reflectionQuestions = const [],
     this.application = '',
     this.prayer = '',
@@ -23,6 +24,7 @@ class Devotional {
   final String body;
   final String author;
   final String excerpt;
+  final String scriptureText;
   final List<String> reflectionQuestions;
   final String application;
   final String prayer;
@@ -45,6 +47,7 @@ class Devotional {
     body: json['body'] as String? ?? '',
     author: json['author'] as String? ?? '',
     excerpt: json['excerpt'] as String? ?? '',
+    scriptureText: json['scripture_text'] as String? ?? json['excerpt'] as String? ?? '',
     reflectionQuestions: (json['reflection_questions'] as List<dynamic>? ?? [])
         .map((item) => item.toString())
         .toList(),
@@ -68,6 +71,7 @@ class Devotional {
     'body': body,
     'author': author,
     'excerpt': excerpt,
+    'scripture_text': scriptureText,
     'reflection_questions': reflectionQuestions,
     'application': application,
     'prayer': prayer,

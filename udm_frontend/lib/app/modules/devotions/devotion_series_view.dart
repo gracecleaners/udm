@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
@@ -15,10 +16,12 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF08090B),
+    backgroundColor: AppColors.background,
     appBar: AppBar(
-      backgroundColor: const Color(0xFF08090B),
-      foregroundColor: Colors.white,
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.deepBlue,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       title: Obx(() => AppText(controller.series.value?.title ?? 'Devotions')),
     ),
     body: Obx(
@@ -29,9 +32,9 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
         emptyTitle: 'Nothing published in this series yet',
         emptyMessage: 'The ministry team has not released a day of this series. Check back soon.',
         child: Container(
-          color: const Color(0xFF08090B),
+          color: AppColors.background,
           child: RefreshIndicator(
-            color: const Color(0xFF9AC755),
+            color: AppColors.primaryBlue,
             onRefresh: controller.load,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -42,12 +45,29 @@ class DevotionSeriesView extends GetView<DevotionSeriesController> {
                     padding: EdgeInsets.all(16),
                     child: OfflineChip(message: 'Offline copy of this series'),
                   ),
+                if (controller.series.value != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 10, 22, 8),
+                    child: Text(
+                      controller.series.value!.description.isEmpty
+                          ? 'Start with the introduction, then continue one day at a time.'
+                          : controller.series.value!.description,
+                      style: const TextStyle(
+                        color: AppColors.secondaryText,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
                 const Padding(
-                  padding: EdgeInsets.fromLTRB(22, 18, 22, 12),
-                  child: Eyebrow(
-                    'READING ORDER',
-                    color: Color(0xFF9AC755),
-                    icon: AppIcons.bookOpen,
+                  padding: EdgeInsets.fromLTRB(22, 10, 22, 8),
+                  child: Text(
+                    'YOUR READING JOURNEY',
+                    style: TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 for (final day in controller.days)
@@ -68,14 +88,17 @@ class _DayRow extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      InkWell(
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
         onTap: onOpen,
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
-          child: Row(
-            children: [
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
               CoverArt(
                 url: day.imageUrl,
                 monogram: day.title.isEmpty
@@ -83,20 +106,20 @@ class _DayRow extends StatelessWidget {
                     : day.title[0].toUpperCase(),
                 width: 64,
                 height: 64,
-                radius: 5,
+                radius: 12,
                 monogramSize: 22,
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppText(
                       day.isIntroduction
-                          ? 'Introduction - ${day.title}'
-                          : 'Day ${day.day} - ${day.title}',
+                          ? (day.title.toLowerCase() == 'introduction' ? 'Introduction' : 'Introduction · ${day.title}')
+                          : 'Day ${day.day}. ${day.title}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.deepBlue,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -108,7 +131,7 @@ class _DayRow extends StatelessWidget {
                       Text(
                         day.scriptureReference,
                         style: const TextStyle(
-                          color: Colors.white60,
+                          color: AppColors.secondaryText,
                           fontSize: 12,
                         ),
                       ),
@@ -116,12 +139,11 @@ class _DayRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white54, size: 24),
-            ],
+              const Icon(Icons.chevron_right, color: AppColors.primaryBlue, size: 24),
+            ]),
           ),
         ),
       ),
-      const Divider(height: 1, color: Color(0xFF262626)),
-    ],
+    ),
   );
 }

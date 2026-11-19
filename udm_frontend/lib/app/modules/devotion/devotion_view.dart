@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/formatted_content.dart';
@@ -43,14 +44,12 @@ class _DevotionBody extends StatelessWidget {
   final Devotional devotional;
   final DevotionController controller;
 
-  static const _green = Color(0xFFA4C965);
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final dayTitle = devotional.day == null
         ? devotional.title
-        : 'Day ${devotional.day}: ${devotional.title}';
+        : 'Day ${devotional.day}. ${devotional.title}';
     final date = devotional.publishAt == null
         ? ''
         : DateFormat('MMMM d, yyyy').format(devotional.publishAt!.toLocal());
@@ -63,7 +62,7 @@ class _DevotionBody extends StatelessWidget {
         SliverAppBar(
           pinned: true,
           elevation: 0,
-          backgroundColor: const Color(0xFF08090B),
+          backgroundColor: AppColors.deepBlue,
           foregroundColor: Colors.white,
           expandedHeight: size.height * .72,
           flexibleSpace: FlexibleSpaceBar(
@@ -74,10 +73,10 @@ class _DevotionBody extends StatelessWidget {
                   Image.network(
                     devotional.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const ColoredBox(color: _green),
+                    errorBuilder: (_, _, _) => const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
                   )
                 else
-                  const ColoredBox(color: _green),
+                  const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
                 if (devotional.imageUrl.isNotEmpty)
                   const ColoredBox(color: Color(0x55000000)),
                 SafeArea(
@@ -95,7 +94,7 @@ class _DevotionBody extends StatelessWidget {
                           ),
                           child: const Icon(
                             Icons.menu_book_rounded,
-                            color: Color(0xFF759E3C),
+                          color: AppColors.primaryBlue,
                             size: 30,
                           ),
                         ),
@@ -142,9 +141,9 @@ class _DevotionBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (devotional.excerpt.isNotEmpty) ...[
+                  if (devotional.scriptureText.isNotEmpty) ...[
                     FormattedContent(
-                      devotional.excerpt,
+                      devotional.scriptureText,
                       style: const TextStyle(
                         color: Color(0xFF343434),
                         fontSize: 20,
@@ -175,7 +174,7 @@ class _DevotionBody extends StatelessWidget {
                   ] else if (devotional.scriptureReference.isNotEmpty) ...[
                     AppText(
                       devotional.scriptureReference,
-                      style: AppTypography.eyebrow(_green),
+                      style: AppTypography.eyebrow(AppColors.primaryBlue),
                     ),
                     const SizedBox(height: 20),
                   ],
@@ -198,7 +197,7 @@ class _DevotionBody extends StatelessWidget {
                     const Text(
                       'Reflect',
                       style: TextStyle(
-                        color: Color(0xFF242424),
+                        color: AppColors.deepBlue,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
@@ -229,7 +228,7 @@ class _DevotionBody extends StatelessWidget {
                     const Text(
                       'Put it into practice',
                       style: TextStyle(
-                        color: Color(0xFF242424),
+                      color: AppColors.deepBlue,
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                       ),
