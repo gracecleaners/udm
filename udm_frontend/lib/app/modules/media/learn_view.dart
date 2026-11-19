@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
-import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/media_collection.dart';
@@ -16,216 +16,64 @@ class LearnView extends GetView<LearnController> {
   const LearnView({super.key});
 
   @override
-  Widget build(BuildContext context) => Obx(() {
-    final shelves = controller.shelves.toList();
-    final featured =
-        controller.featuredShelf.value ??
-        (shelves.isEmpty ? null : shelves.first);
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+    ),
+    child: Obx(() {
+      final shelves = controller.shelves.toList();
 
-    return StateView(
-      state: controller.state.value,
-      failureMessage: controller.failureMessage.value,
-      onRetry: controller.load,
-      emptyTitle: 'No recordings published yet',
-      emptyMessage: 'When the ministry team publishes a teaching series, it will appear here.',
-      child: ColoredBox(
-        color: AppColors.background,
-        child: RefreshIndicator(
-          color: AppColors.primaryBlue,
-          onRefresh: controller.load,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              if (featured != null)
-                SliverToBoxAdapter(
-                  child: _LearnFeatureHero(
-                    shelf: featured,
-                    offline: controller.isOfflineCopy,
-                    onWatch: controller.openFeatured,
-                  ),
-                ),
-              const SliverToBoxAdapter(child: _ContinueWatching()),
-              if (shelves.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _BrowseHeading(
-                    onSeeAll: () => _showAllSeries(context, shelves),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(17, 0, 17, 26),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: coverColumns(
-                        MediaQuery.sizeOf(context).width,
-                      ),
-                      mainAxisSpacing: 13,
-                      crossAxisSpacing: 13,
-                      childAspectRatio: 1.25,
+      return StateView(
+        state: controller.state.value,
+        failureMessage: controller.failureMessage.value,
+        onRetry: controller.load,
+        emptyTitle: 'No recordings published yet',
+        emptyMessage: 'When the ministry team publishes a teaching series, it will appear here.',
+        child: ColoredBox(
+          color: AppColors.background,
+          child: RefreshIndicator(
+            color: AppColors.primaryBlue,
+            onRefresh: controller.load,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                const SliverToBoxAdapter(child: _ContinueWatching()),
+                if (shelves.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: _BrowseHeading(
+                      onSeeAll: () => _showAllSeries(context, shelves),
                     ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final shelf = shelves[index];
-                      return _SeriesCard(
-                        shelf: shelf,
-                        onOpen: () => controller.openShelf(shelf),
-                      );
-                    }, childCount: shelves.length),
                   ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  });
-}
-
-class _LearnFeatureHero extends StatelessWidget {
-  const _LearnFeatureHero({
-    required this.shelf,
-    required this.offline,
-    required this.onWatch,
-  });
-
-  final MediaCollection shelf;
-  final bool offline;
-  final VoidCallback onWatch;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 1768 / 906,
-            child: Image.asset(
-              'assets/images/learn_feature_thumbnail.png',
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(17, 12, 17, 0),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.hairline),
-                boxShadow: AppShadows.card(AppColors.primaryBlue),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Learn',
-                              style: TextStyle(
-                                color: AppColors.deepBlue,
-                                fontFamily: AppFonts.scripture,
-                                fontSize: 32,
-                                height: 1.05,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(height: 3),
-                            Text(
-                              'Grow in God’s Word',
-                              style: TextStyle(
-                                color: AppColors.secondaryText,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(17, 0, 17, 26),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: coverColumns(
+                          MediaQuery.sizeOf(context).width,
                         ),
+                        mainAxisSpacing: 13,
+                        crossAxisSpacing: 13,
+                        childAspectRatio: 1.25,
                       ),
-                      if (offline) const OfflineChip(),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightBlue,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome_rounded, color: AppColors.primaryBlue, size: 15),
-                        SizedBox(width: 6),
-                        Text(
-                          'FEATURED TEACHING',
-                          style: TextStyle(
-                            color: AppColors.primaryBlue,
-                            fontSize: 10,
-                            letterSpacing: .7,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 11),
-                  FormattedContent(
-                    shelf.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.deepBlue,
-                      fontFamily: AppFonts.scripture,
-                      fontSize: 25,
-                      height: 1.08,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  FormattedContent(
-                    shelf.description.isEmpty
-                        ? 'Discover the beauty and purpose of God’s Word.'
-                        : shelf.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.secondaryText,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 46,
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: onWatch,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(AppIcons.play, size: 17),
-                      label: const Text(
-                        'Watch Now',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final shelf = shelves[index];
+                        return _SeriesCard(
+                          shelf: shelf,
+                          onOpen: () => controller.openShelf(shelf),
+                        );
+                      }, childCount: shelves.length),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
+    }),
+  );
 }
 
 class _ContinueWatching extends GetView<LearnController> {
