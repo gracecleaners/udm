@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:udm_frontend/app/core/network/api_client.dart';
 import 'package:get/get.dart';
@@ -1266,6 +1268,24 @@ class FakeResourcesRepository implements ResourcesRepository {
   @override
   ResourceTopic? cachedTopic(String id) =>
       cachedTopicRow?.id == id ? cachedTopicRow : null;
+
+  @override
+  Future<int> registerView(String id) async {
+    if (failure != null) throw failure!;
+    return 1;
+  }
+
+  @override
+  Future<Uint8List> downloadPdf(String url) async {
+    if (failure != null) throw failure!;
+    return Uint8List(0);
+  }
+
+  @override
+  Future<List<ResourceStep>> newBelieverSteps() async {
+    if (failure != null) throw failure!;
+    return const [];
+  }
 }
 
 /// The device looks every reading screen now asks for: light or dark, and how

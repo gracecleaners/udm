@@ -14,7 +14,7 @@ const Devotions = lazy(() => import("./pages/Devotions"));
 const Series = lazy(() => import("./pages/Series"));
 const Articles = lazy(() => import("./pages/Articles"));
 const ResourceGuides = lazy(() => import("./pages/ResourceGuides"));
-const ResourceSteps = lazy(() => import("./pages/ResourceSteps"));
+const NewBelieverResources = lazy(() => import("./pages/NewBelieverResources"));
 const ReadingPlans = lazy(() => import("./pages/ReadingPlans"));
 const Translations = lazy(() => import("./pages/Translations"));
 const MediaShelves = lazy(() => import("./pages/MediaCollections"));
@@ -58,7 +58,7 @@ const App = () => (
                 <Route path="/series" element={<Series />} />
                 <Route path="/articles" element={<Articles />} />
                 <Route path="/resource-guides" element={<ResourceGuides />} />
-                <Route path="/resource-steps" element={<ResourceSteps />} />
+                <Route path="/new-believer" element={<NewBelieverResources />} />
                 <Route path="/plans" element={<ReadingPlans />} />
                 <Route path="/translations" element={<Translations />} />
                 <Route path="/media-shelves" element={<MediaShelves />} />

@@ -9,7 +9,7 @@ from .models import (Article, BibleBook, BibleChapter, BibleReadingAssignment, B
                      BibleTranslation, BibleVerse,
                      Devotional, DevotionalSeries, MemoryVerse,
                      MediaCollection, MediaItem,
-                     ResourceStep, ResourceTopic)
+                     NewBelieverResource, ResourceStep, ResourceTopic)
 from .models import Campus, DiscipleshipGroup, Event, Fellowship, University
 
 
@@ -126,9 +126,20 @@ class ResourceStepAdmin(PublishedContentAdmin):
     list_filter = ("is_published", "topic")
     search_fields = ("title", "scripture_reference", "body")
     fieldsets = (
-        ("Guide", {"fields": ("topic", "order", "is_new_believer")}),
+        ("Guide", {"fields": ("topic", "order")}),
         ("Lesson", {"fields": ("title", "author", "scripture_reference", "excerpt", "body")}),
         ("Media", {"fields": ("video_url",)}),
+        ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),
+    )
+
+
+@admin.register(NewBelieverResource)
+class NewBelieverResourceAdmin(PublishedContentAdmin):
+    list_display = ("title", "order", "scripture_reference", "publish_state", "publish_at")
+    search_fields = ("title", "scripture_reference", "body")
+    fieldsets = (
+        ("Introduction resource", {"fields": ("title", "author", "order", "scripture_reference", "excerpt", "body")}),
+        ("Artwork and media", {"fields": (("image", "image_link"), "video_url")}),
         ("Publishing", {"fields": ("reading_minutes", "is_published", "publish_at", "created_at", "updated_at")}),
     )
 

@@ -7,7 +7,7 @@ from .services import artwork_url, media_file_url
 from .models import (Article, BibleBookmark, BibleBook, BibleChapter, BibleNote, BibleReadingAssignment,
                      BibleReadingPlan, BibleReadingProgress, BibleTranslation, BibleVerse, ContentVersion,
                      MediaCollection, MediaItem, MediaNote, MediaWatch,
-                     MemoryVerse, UserMemoryVerseProgress,
+                     MemoryVerse, NewBelieverResource, UserMemoryVerseProgress,
                      Campus, DiscipleshipGroup, Event, EventRegistration, Fellowship, GroupMembership,
                      PrayerAffirmation, PrayerComment, PrayerRequest, University, Devotional, DevotionalSeries, ResourceStep, ResourceTopic,
                      UserContentProgress, UserNotification, NotificationDevice)
@@ -972,7 +972,6 @@ class ResourceStepSerializer(serializers.ModelSerializer):
             "publish_at",
             "order",
             "video_url",
-            "is_new_believer",
             "topic",
         )
         read_only_fields = fields
@@ -983,6 +982,21 @@ class ResourceStepSerializer(serializers.ModelSerializer):
             "title": step.topic.title,
             "step_count": step.topic.steps_live().count(),
         }
+
+
+class NewBelieverResourceSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NewBelieverResource
+        fields = (
+            "id", "title", "author", "scripture_reference", "excerpt", "body",
+            "reading_minutes", "publish_at", "order", "video_url", "image_url",
+        )
+        read_only_fields = fields
+
+    def get_image_url(self, resource):
+        return artwork_url(resource, self.context.get("request"))
 
 
 class HomeSerializer(ContentStampedSerializerMixin, serializers.Serializer):
@@ -1080,6 +1094,7 @@ _PROGRESS_MODELS = {
     UserContentProgress.Kind.DEVOTIONAL: Devotional,
     UserContentProgress.Kind.ARTICLE: Article,
     UserContentProgress.Kind.RESOURCE_STEP: ResourceStep,
+    UserContentProgress.Kind.NEW_BELIEVER: NewBelieverResource,
 }
 
 

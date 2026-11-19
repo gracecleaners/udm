@@ -3,7 +3,8 @@
 enum ContentKind {
   devotional('devotional'),
   article('article'),
-  resourceStep('resource_step');
+  resourceStep('resource_step'),
+  newBeliever('new_believer');
 
   const ContentKind(this.value);
 

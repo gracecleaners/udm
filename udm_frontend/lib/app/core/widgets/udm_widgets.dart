@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_art.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'app_text.dart';
@@ -74,11 +75,15 @@ class UdmLogo extends StatelessWidget {
 }
 
 /// The gradient tile itself, so a screen can reuse it as an avatar or badge.
+///
+/// With no icon named, the tile carries the ministry's own mark; a screen that
+/// wants a different glyph — a play control on a shelf, for instance — passes
+/// one and the tile keeps its shape.
 class Mark extends StatelessWidget {
-  const Mark({super.key, required this.size, this.icon = Icons.auto_stories_rounded});
+  const Mark({super.key, required this.size, this.icon});
 
   final double size;
-  final IconData icon;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -108,7 +113,12 @@ class Mark extends StatelessWidget {
           ),
         ),
         Center(
-          child: Icon(icon, color: AppColors.white, size: size * 0.48),
+          child: icon != null
+              ? Icon(icon, color: AppColors.white, size: size * 0.48)
+              : SizedBox(
+                  width: size * 0.66,
+                  child: Image.asset(AppArt.logoMark, filterQuality: FilterQuality.medium),
+                ),
         ),
       ],
     ),

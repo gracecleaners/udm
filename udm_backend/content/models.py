@@ -242,6 +242,26 @@ class ResourceTopic(ArtworkLink, TimestampedModel):
         )
 
 
+class ResourceTopicView(models.Model):
+    """A resource view attributed once to a normalized account email."""
+
+    topic = models.ForeignKey(
+        ResourceTopic,
+        on_delete=models.CASCADE,
+        related_name="email_views",
+    )
+    email_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["topic", "email_hash"],
+                name="resource_topic_view_email_unique",
+            )
+        ]
+
+
 class ResourceStep(PublishableModel):
     """One part of a guide: what the topic teaches, the verse it stands on, and an
     optional video the ministry chose to attach.
@@ -268,11 +288,6 @@ class ResourceStep(PublishableModel):
         blank=True,
         help_text="Optional https:// link the ministry hosts. Leave empty and the app shows no video action.",
     )
-    is_new_believer = models.BooleanField(
-        default=False,
-        help_text="Show this step in the app's New Believer section.",
-    )
-
     class Meta:
         ordering = ["-publish_at", "-created_at"]
         indexes = [models.Index(fields=["is_published", "publish_at"], name="content_reststep_pub_idx")]
@@ -283,6 +298,29 @@ class ResourceStep(PublishableModel):
                 name="resourcestep_order_unique_within_topic",
             )
         ]
+
+    def clean(self):
+        super().clean()
+        if self.video_url and not self.video_url.lower().startswith("https://"):
+            raise ValidationError({"video_url": "Resource videos must use a secure HTTPS link."})
+
+
+class NewBelieverResource(ArtworkLink, PublishableModel):
+    """An independent introduction resource for people new to faith.
+
+    These are standalone concepts to understand first, not devotionals and not
+    steps inside a ResourceTopic guide.
+    """
+
+    scripture_reference = models.CharField(max_length=120, blank=True)
+    image = models.ImageField(upload_to="new_believer/", null=True, blank=True)
+    image_link = models.URLField(blank=True)
+    order = models.PositiveSmallIntegerField(default=1)
+    video_url = models.URLField(blank=True)
+
+    class Meta:
+        ordering = ["order", "created_at"]
+        indexes = [models.Index(fields=["is_published", "publish_at"], name="content_newbeliever_pub_idx")]
 
     def clean(self):
         super().clean()
@@ -410,6 +448,7 @@ class UserContentProgress(TimestampedModel):
         DEVOTIONAL = "devotional", "Devotional"
         ARTICLE = "article", "Article"
         RESOURCE_STEP = "resource_step", "Resource step"
+        NEW_BELIEVER = "new_believer", "New believer resource"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="content_progress")
     kind = models.CharField(max_length=20, choices=Kind.choices)

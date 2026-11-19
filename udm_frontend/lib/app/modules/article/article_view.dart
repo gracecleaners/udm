@@ -81,6 +81,8 @@ class _ArticleBody extends StatelessWidget {
             fontWeight: FontWeight.w800,
             letterSpacing: -.3,
           ),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: AppSpacing.md),
         Wrap(

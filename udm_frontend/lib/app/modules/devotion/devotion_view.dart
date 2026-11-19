@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_art.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
@@ -29,10 +30,7 @@ class DevotionView extends GetView<DevotionController> {
         emptyMessage: 'This devotion is no longer published.',
         child: controller.devotional.value == null
             ? const SizedBox.shrink()
-            : _DevotionBody(
-                devotional: controller.devotional.value!,
-                controller: controller,
-              ),
+            : _DevotionBody(devotional: controller.devotional.value!, controller: controller),
       ),
     ),
   );
@@ -73,14 +71,12 @@ class _DevotionBody extends StatelessWidget {
                   Image.network(
                     devotional.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const DecoratedBox(
-                      decoration: BoxDecoration(gradient: AppGradients.hero),
-                    ),
+                    errorBuilder: (_, _, _) =>
+                        const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
                   )
                 else
                   const DecoratedBox(decoration: BoxDecoration(gradient: AppGradients.hero)),
-                if (devotional.imageUrl.isNotEmpty)
-                  const ColoredBox(color: Color(0x55000000)),
+                if (devotional.imageUrl.isNotEmpty) const ColoredBox(color: Color(0x55000000)),
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(28, 62, 28, 30),
@@ -94,10 +90,13 @@ class _DevotionBody extends StatelessWidget {
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.menu_book_rounded,
-                            color: AppColors.primaryBlue,
-                            size: 30,
+                          child: const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Image(
+                              image: AssetImage(AppArt.logoMark),
+                              color: AppColors.primaryBlue,
+                              filterQuality: FilterQuality.medium,
+                            ),
                           ),
                         ),
                         const Spacer(),
@@ -162,7 +161,7 @@ class _DevotionBody extends StatelessWidget {
                             '—${devotional.scriptureReference}',
                             style: const TextStyle(
                               color: Color(0xFF343434),
-                        fontSize: 15,
+                              fontSize: 15,
                               fontStyle: FontStyle.italic,
                               fontWeight: FontWeight.w600,
                             ),
@@ -184,11 +183,7 @@ class _DevotionBody extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 15),
                     child: FormattedContent(
                       devotional.body,
-                      style: const TextStyle(
-                        color: Color(0xFF393939),
-                        fontSize: 15,
-                        height: 1.68,
-                      ),
+                      style: const TextStyle(color: Color(0xFF393939), fontSize: 15, height: 1.68),
                     ),
                   ),
                   if (devotional.hasQuestions) ...[
@@ -205,11 +200,7 @@ class _DevotionBody extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    for (
-                      var i = 0;
-                      i < devotional.reflectionQuestions.length;
-                      i++
-                    )
+                    for (var i = 0; i < devotional.reflectionQuestions.length; i++)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
@@ -238,11 +229,7 @@ class _DevotionBody extends StatelessWidget {
                     const SizedBox(height: 12),
                     FormattedContent(
                       devotional.application,
-                      style: const TextStyle(
-                        color: Color(0xFF393939),
-                        fontSize: 15,
-                        height: 1.68,
-                      ),
+                      style: const TextStyle(color: Color(0xFF393939), fontSize: 15, height: 1.68),
                     ),
                   ],
                   if (devotional.prayer.isNotEmpty) ...[

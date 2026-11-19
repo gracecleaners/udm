@@ -11,7 +11,7 @@ const routeTitles: Array<[string, string]> = [
   ["/series", "Devotional series"],
   ["/articles", "Articles"],
   ["/resource-guides", "Resource guides"],
-  ["/resource-steps", "New Believer"],
+  ["/new-believer", "New Believer"],
   ["/plans", "Reading plans"],
   ["/translations", "Bible translations"],
   ["/media-shelves", "Media shelves"],

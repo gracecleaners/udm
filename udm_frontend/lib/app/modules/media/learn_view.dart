@@ -39,6 +39,15 @@ class LearnView extends GetView<LearnController> {
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
+                SliverToBoxAdapter(
+                  child: AspectRatio(
+                    aspectRatio: 1768 / 906,
+                    child: Image.asset(
+                      'assets/images/learn_feature_thumbnail.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
                 const SliverToBoxAdapter(child: _ContinueWatching()),
                 if (shelves.isNotEmpty) ...[
                   SliverToBoxAdapter(

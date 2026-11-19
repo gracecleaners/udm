@@ -115,7 +115,8 @@ prefers the uploaded file whenever both are set, so a link is never a way to los
 `clean()` refuses a link without a scheme, which `full_clean()` on every admin write turns into a field message instead
 of a URL the device cannot load. Video is never uploaded: a recording's play link is YouTube only, and a ministry-hosted
 file is reached through `download_url`. That is the whole of the app's media policy — the phone ships artwork for the
-splash and the three onboarding slides and takes every other picture from this console.
+splash and the three onboarding slides, plus the ministry's own brand mark and lockup that `Mark`, the devotion disc and
+the console's sidebar all draw, and takes every other picture from this console.
 
 Notifications is not a `ResourceConfig` page, because there is nothing to list. It posts one write to
 `admin/notifications/`, reads the server's answer — how many active students the notice was written for — and stops

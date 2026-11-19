@@ -11,6 +11,7 @@ import '../models/devotional.dart';
 import '../models/home_payload.dart';
 import '../models/media_collection.dart';
 import '../models/media_item.dart';
+import '../models/new_believer_resource.dart';
 import '../models/prayer_post.dart';
 import '../models/resource_step.dart';
 import '../models/resource_topic.dart';
@@ -104,8 +105,16 @@ class UdmApi {
     return Uint8List.fromList(bytes);
   });
 
-  Future<List<ResourceStep>> newBelieverSteps() async =>
-      (await _list('/resources/steps/')).map(ResourceStep.fromJson).toList();
+  Future<List<NewBelieverResource>> newBelieverResources() async =>
+      (await _list('/new-believer/'))
+          .map(NewBelieverResource.fromJson)
+          .toList();
+
+  Future<NewBelieverResource> newBelieverResource(String id) =>
+      _client.guard(() async {
+        final response = await _client.dio.get<dynamic>('/new-believer/$id/');
+        return NewBelieverResource.fromJson(_json(response));
+      });
 
   Future<ResourceStep> resourceStep(String id) => _client.guard(() async {
     final response = await _client.dio.get<dynamic>('/resources/steps/$id/');

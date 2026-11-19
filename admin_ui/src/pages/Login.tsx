@@ -33,7 +33,7 @@ export default function Login() {
       <div className="auth-shell">
         <section className="auth-brand-panel" aria-label="About the ministry console">
           <div className="auth-brand-top">
-            <BrandMark size={44} id="udm-auth-mark" />
+            <BrandMark size={44} />
             <div className="auth-brand-name"><strong>UDM</strong><small>MINISTRY CONSOLE</small></div>
           </div>
 
@@ -59,7 +59,7 @@ export default function Login() {
         <section className="auth-form-panel">
           <div className="auth-form-wrap">
             <div className="auth-mobile-brand">
-              <BrandMark size={38} id="udm-auth-mark-mobile" />
+              <BrandMark size={38} />
               <BrandLockup />
             </div>
 

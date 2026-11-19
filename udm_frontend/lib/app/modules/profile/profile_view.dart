@@ -24,16 +24,6 @@ class ProfileView extends GetView<SessionController> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const AppText('Profile'),
-      actions: [
-        IconButton(
-          tooltip: 'Settings',
-          icon: const Icon(AppIcons.settings),
-          onPressed: () => Get.toNamed(AppRoutes.settings),
-        ),
-      ],
-    ),
     body: SafeArea(
       child: Obx(
         () => switch (controller.status.value) {
@@ -53,41 +43,64 @@ class _SignedOut extends GetView<SessionController> {
   const _SignedOut();
 
   @override
-  Widget build(BuildContext context) => CenteredSlot(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // What the last sign-out left behind has to survive the screen
-        // change, or the student never learns the session is still live on
-        // the server.
-        Obx(
-          () => NoticeBanner(
-            message: controller.error.value,
-            tone: NoticeTone.problem,
-          ),
-        ),
-        Obx(() => NoticeBanner(message: controller.notice.value)),
-        MessagePanel(
-          icon: AppIcons.person,
-          title: 'Not signed in',
-          message:
-              'Devotions, verses and articles stay readable without an account. '
-              'Sign in to save your campus details and your reading progress.',
-          actionLabel: 'Sign in',
-          onAction: () => Get.toNamed(AppRoutes.signIn),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            key: const Key('udm.registerFromProfile'),
-            onPressed: () => Get.toNamed(AppRoutes.register),
-            icon: const Icon(AppIcons.personAdd, size: 18),
-            label: const AppText('Create an account'),
-          ),
-        ),
-      ],
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.fromLTRB(
+      AppSpacing.screen,
+      AppSpacing.md,
+      AppSpacing.screen,
+      AppSpacing.xl,
     ),
+    children: [
+      const _ProfileHeading(),
+      const SizedBox(height: AppSpacing.md),
+      // What the last sign-out left behind has to survive the screen
+      // change, or the student never learns the session is still live on
+      // the server.
+      Obx(
+        () => NoticeBanner(
+          message: controller.error.value,
+          tone: NoticeTone.problem,
+        ),
+      ),
+      Obx(() => NoticeBanner(message: controller.notice.value)),
+      MessagePanel(
+        icon: AppIcons.person,
+        title: 'Not signed in',
+        message:
+            'Devotions, verses and articles stay readable without an account. '
+            'Sign in to save your campus details and your reading progress.',
+        actionLabel: 'Sign in',
+        onAction: () => Get.toNamed(AppRoutes.signIn),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      OutlinedButton.icon(
+        key: const Key('udm.registerFromProfile'),
+        onPressed: () => Get.toNamed(AppRoutes.register),
+        icon: const Icon(AppIcons.personAdd, size: 18),
+        label: const AppText('Create an account'),
+      ),
+    ],
+  );
+}
+
+class _ProfileHeading extends StatelessWidget {
+  const _ProfileHeading();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: AppText(
+          'Profile',
+          style: AppTypography.editorialTitle(AppColors.deepBlue, size: 30),
+        ),
+      ),
+      IconButton(
+        tooltip: 'Settings',
+        icon: const Icon(AppIcons.settings, color: AppColors.deepBlue),
+        onPressed: () => Get.toNamed(AppRoutes.settings),
+      ),
+    ],
   );
 }
 
@@ -134,6 +147,8 @@ class _ProfileBody extends StatelessWidget {
           AppSpacing.xl,
         ),
         children: [
+          const _ProfileHeading(),
+          const SizedBox(height: AppSpacing.md),
           NoticeBanner(message: notice),
           NoticeBanner(message: error, tone: NoticeTone.problem),
           _IdentityCard(profile: profile, onEdit: () => _edit(context)),

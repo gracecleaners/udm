@@ -44,6 +44,7 @@ from .admin_serializers import (
     MediaCollectionAdminSerializer,
     MediaItemAdminSerializer,
     MemoryVerseAdminSerializer,
+    NewBelieverResourceAdminSerializer,
     ResourceStepAdminSerializer,
     ResourceTopicAdminSerializer,
     UniversityAdminSerializer,
@@ -64,6 +65,7 @@ from .models import (
     MediaCollection,
     MediaItem,
     MemoryVerse,
+    NewBelieverResource,
     ResourceStep,
     ResourceTopic,
     University,
@@ -241,6 +243,23 @@ class ResourceStepAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsMinistryStaff]
     serializer_class = ResourceStepAdminSerializer
     queryset = STEP_QUERYSET
+
+
+NEW_BELIEVER_QUERYSET = NewBelieverResource.objects.order_by("order", "created_at")
+
+
+class NewBelieverResourceAdminListView(generics.ListCreateAPIView):
+    permission_classes = [IsMinistryStaff]
+    serializer_class = NewBelieverResourceAdminSerializer
+    queryset = NEW_BELIEVER_QUERYSET
+    search_fields = ["title", "author", "scripture_reference", "body"]
+    ordering_fields = ["order", "title", "author", "reading_minutes", "is_published", "created_at"]
+
+
+class NewBelieverResourceAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsMinistryStaff]
+    serializer_class = NewBelieverResourceAdminSerializer
+    queryset = NEW_BELIEVER_QUERYSET
 
 
 # Bible reading plans --------------------------------------------------------

@@ -196,7 +196,10 @@ class CommunityView extends GetView<CommunityController> {
             if ((group['description'] as String? ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-                child: FormattedContent(group['description'] as String, style: theme.textTheme.bodyMedium),
+                child: FormattedContent(
+                  group['description'] as String,
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             if (membership == null && !isLeader)
               Padding(
@@ -435,7 +438,7 @@ class CommunityView extends GetView<CommunityController> {
   }
 
   Future<void> _newPrayer(BuildContext context) async {
-    final input = TextEditingController();
+    var body = '';
     var visibility = 'private';
     var category = 'prayer';
     String? selectedGroup;
@@ -456,10 +459,10 @@ class CommunityView extends GetView<CommunityController> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextField(
-                      controller: input,
+                    TextFormField(
+                      initialValue: body,
                       maxLines: 4,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (value) => setState(() => body = value),
                       decoration: InputDecoration(labelText: 'What would you like prayer for?'),
                     ),
                     const SizedBox(height: 12),
@@ -538,12 +541,12 @@ class CommunityView extends GetView<CommunityController> {
                 ),
                 FilledButton(
                   onPressed:
-                      input.text.trim().isEmpty ||
+                      body.trim().isEmpty ||
                           (visibility != 'private' && !consent) ||
                           (visibility == 'group' && selectedGroup == null)
                       ? null
                       : () => Navigator.pop(dialogContext, (
-                          body: input.text.trim(),
+                          body: body.trim(),
                           category: category,
                           visibility: visibility,
                           group: selectedGroup,
@@ -555,7 +558,6 @@ class CommunityView extends GetView<CommunityController> {
             ),
           ),
         );
-    input.dispose();
     if (result != null) {
       await controller.createPrayer(
         body: result.body,

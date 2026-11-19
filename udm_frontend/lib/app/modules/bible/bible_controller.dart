@@ -87,8 +87,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       if (selectedTranslation.value.isEmpty ||
           !translations.any((t) => t['code'] == selectedTranslation.value)) {
         selectedTranslation.value =
-            translations.firstWhereOrNull((t) => t['code'] == 'kjv')?['code']
-                as String? ??
+            translations.firstWhereOrNull((t) => t['code'] == 'kjv')?['code'] as String? ??
             translations.first['code'] as String;
       }
       await loadBooks();
@@ -98,9 +97,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     busy.value = false;
   }
 
-  List<Map<String, dynamic>> _englishOnly(
-    Iterable<Map<String, dynamic>> rows,
-  ) => rows.where((row) {
+  List<Map<String, dynamic>> _englishOnly(Iterable<Map<String, dynamic>> rows) => rows.where((row) {
     if ('${row['source_provider'] ?? ''}'.toLowerCase() != 'helloao') {
       return false;
     }
@@ -115,9 +112,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
   Future<void> loadBooks() async {
     try {
       books.assignAll(await api.bibleBooks(selectedTranslation.value));
-      await cache.writeJson('bible.books.${selectedTranslation.value}', {
-        'items': books.toList(),
-      });
+      await cache.writeJson('bible.books.${selectedTranslation.value}', {'items': books.toList()});
     } on Failure catch (failure) {
       books.assignAll(_cachedList('bible.books.${selectedTranslation.value}'));
       if (books.isEmpty) message.value = failure.message;
@@ -149,25 +144,18 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> loadBookChapters() async {
     if (selectedBook.value.isEmpty) return;
-    final key =
-        'bible.chapters.${selectedTranslation.value}.${selectedBook.value}';
+    final key = 'bible.chapters.${selectedTranslation.value}.${selectedBook.value}';
     try {
       chapterNumbers.assignAll(
-        await api.bibleBookChapters(
-          selectedTranslation.value,
-          selectedBook.value,
-        ),
+        await api.bibleBookChapters(selectedTranslation.value, selectedBook.value),
       );
       await cache.writeJson(key, {'items': chapterNumbers.toList()});
     } on Failure catch (failure) {
       final items = cache.readJson(key)?['items'] as List<dynamic>? ?? const [];
-      chapterNumbers.assignAll(
-        items.whereType<num>().map((item) => item.toInt()),
-      );
+      chapterNumbers.assignAll(items.whereType<num>().map((item) => item.toInt()));
       if (chapterNumbers.isEmpty) message.value = failure.message;
     }
-    if (!chapterNumbers.contains(selectedChapter.value) &&
-        chapterNumbers.isNotEmpty) {
+    if (!chapterNumbers.contains(selectedChapter.value) && chapterNumbers.isNotEmpty) {
       selectedChapter.value = chapterNumbers.first;
     }
   }
@@ -231,8 +219,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     });
   }
 
-  GlobalKey verseRowKey(String number) =>
-      _verseRowKeys.putIfAbsent(number, GlobalKey.new);
+  GlobalKey verseRowKey(String number) => _verseRowKeys.putIfAbsent(number, GlobalKey.new);
 
   Future<void> loadPlans() async {
     const plansCacheKey = 'bible.plans';
@@ -245,9 +232,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     } on Failure {
       plans.assignAll(_cachedList(plansCacheKey));
     }
-    final completedIds = session.isSignedIn
-        ? await _readCompletedIds()
-        : <String>{};
+    final completedIds = session.isSignedIn ? await _readCompletedIds() : <String>{};
     if (session.isSignedIn) {
       completedIds.addAll(
         (await _readPending())
@@ -266,36 +251,27 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       .toSet()
       .toList();
 
-  List<Map<String, dynamic>> _publicPlans(List<Map<String, dynamic>> source) =>
-      source.map((plan) {
-        final assignments = (plan['assignments'] as List<dynamic>? ?? const [])
-            .map(
-              (item) => {...item as Map<String, dynamic>, 'completed': false},
-            )
-            .toList();
-        return {...plan, 'assignments': assignments};
-      }).toList();
+  List<Map<String, dynamic>> _publicPlans(List<Map<String, dynamic>> source) => source.map((plan) {
+    final assignments = (plan['assignments'] as List<dynamic>? ?? const [])
+        .map((item) => {...item as Map<String, dynamic>, 'completed': false})
+        .toList();
+    return {...plan, 'assignments': assignments};
+  }).toList();
 
   List<Map<String, dynamic>> _withCompletedAssignments(
     List<Map<String, dynamic>> source,
     Set<String> completedIds,
   ) => source.map((plan) {
-    final assignments = (plan['assignments'] as List<dynamic>? ?? const []).map(
-      (item) {
-        final assignment = Map<String, dynamic>.from(
-          item as Map<String, dynamic>,
-        );
-        assignment['completed'] = completedIds.contains(assignment['id']);
-        return assignment;
-      },
-    ).toList();
+    final assignments = (plan['assignments'] as List<dynamic>? ?? const []).map((item) {
+      final assignment = Map<String, dynamic>.from(item as Map<String, dynamic>);
+      assignment['completed'] = completedIds.contains(assignment['id']);
+      return assignment;
+    }).toList();
     return {...plan, 'assignments': assignments};
   }).toList();
 
   Future<Set<String>> _readCompletedIds() async {
-    final raw = await _secureStorage.read(
-      key: '$_savedKey.completed_assignments',
-    );
+    final raw = await _secureStorage.read(key: '$_savedKey.completed_assignments');
     if (raw == null) return {};
     try {
       return (jsonDecode(raw) as List<dynamic>).whereType<String>().toSet();
@@ -324,14 +300,8 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       final savedNotes = await api.bibleNotes();
       bookmarks.assignAll(savedBookmarks);
       notes.assignAll(savedNotes);
-      await _secureStorage.write(
-        key: '$_savedKey.bookmarks',
-        value: jsonEncode(bookmarks),
-      );
-      await _secureStorage.write(
-        key: '$_savedKey.notes',
-        value: jsonEncode(notes),
-      );
+      await _secureStorage.write(key: '$_savedKey.bookmarks', value: jsonEncode(bookmarks));
+      await _secureStorage.write(key: '$_savedKey.notes', value: jsonEncode(notes));
     } on Failure {
       bookmarks.assignAll(await _readPrivateList('$_savedKey.bookmarks'));
       notes.assignAll(await _readPrivateList('$_savedKey.notes'));
@@ -351,10 +321,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
 
   Future<void> bookmark(String verseId) async {
     if (!session.isSignedIn) {
-      Get.snackbar(
-        'Sign in required',
-        'Sign in to save bookmarks to your account.',
-      );
+      Get.snackbar('Sign in required', 'Sign in to save bookmarks to your account.');
       return;
     }
     _captureAccount();
@@ -368,10 +335,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
         return;
       }
       await _queue({'kind': 'bookmark', 'verse_id': verseId});
-      Get.snackbar(
-        'Saved for sync',
-        'Bookmark will sync when you are back online.',
-      );
+      Get.snackbar('Saved for sync', 'Bookmark will sync when you are back online.');
     }
   }
 
@@ -387,10 +351,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       }
       bookmarks.removeWhere((bookmark) => bookmark['id'] == id);
       await _queue({'kind': 'remove_bookmark', 'bookmark_id': id});
-      Get.snackbar(
-        'Saved for sync',
-        'Bookmark removal will sync when you are back online.',
-      );
+      Get.snackbar('Saved for sync', 'Bookmark removal will sync when you are back online.');
     }
   }
 
@@ -400,27 +361,28 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       return;
     }
     _captureAccount();
-    final input = TextEditingController(text: initial);
+    // The draft is held as plain text rather than a controller: a controller
+    // disposed when this future returns is still attached to the field while
+    // the dialog animates away, and the app then reads a disposed editor.
+    var draft = initial;
     final body = await Get.dialog<String>(
       AlertDialog(
         title: const AppText('Private note'),
-        content: TextField(
-          controller: input,
+        content: TextFormField(
+          initialValue: draft,
           maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: 'Write a note for yourself',
-          ),
+          onChanged: (value) => draft = value,
+          decoration: const InputDecoration(hintText: 'Write a note for yourself'),
         ),
         actions: [
           TextButton(onPressed: Get.back, child: const AppText('Cancel')),
           FilledButton(
-            onPressed: () => Get.back(result: input.text.trim()),
+            onPressed: () => Get.back(result: draft.trim()),
             child: const AppText('Save'),
           ),
         ],
       ),
     );
-    input.dispose();
     if (body == null || body.isEmpty) return;
     try {
       await api.saveBibleNote(verseId, body);
@@ -432,30 +394,30 @@ class BibleController extends GetxController with RefetchesOnContentChange {
         return;
       }
       await _queue({'kind': 'note', 'verse_id': verseId, 'body': body});
-      Get.snackbar(
-        'Saved for sync',
-        'Private note will sync when you are back online.',
-      );
+      Get.snackbar('Saved for sync', 'Private note will sync when you are back online.');
     }
   }
 
   Future<void> editNote(Map<String, dynamic> note) async {
     _captureAccount();
-    final input = TextEditingController(text: note['body'] as String? ?? '');
+    var draft = note['body'] as String? ?? '';
     final body = await Get.dialog<String>(
       AlertDialog(
         title: AppText('Note · ${note['reference']}'),
-        content: TextField(controller: input, maxLines: 4),
+        content: TextFormField(
+          initialValue: draft,
+          maxLines: 4,
+          onChanged: (value) => draft = value,
+        ),
         actions: [
           TextButton(onPressed: Get.back, child: const AppText('Cancel')),
           FilledButton(
-            onPressed: () => Get.back(result: input.text.trim()),
+            onPressed: () => Get.back(result: draft.trim()),
             child: const AppText('Save'),
           ),
         ],
       ),
     );
-    input.dispose();
     if (body == null || body.isEmpty) return;
     try {
       await api.updateBibleNote(note['id'] as String, body);
@@ -467,15 +429,8 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       }
       final index = notes.indexWhere((saved) => saved['id'] == note['id']);
       if (index >= 0) notes[index] = {...notes[index], 'body': body};
-      await _queue({
-        'kind': 'update_note',
-        'note_id': note['id'],
-        'body': body,
-      });
-      Get.snackbar(
-        'Saved for sync',
-        'Your change will sync when you are back online.',
-      );
+      await _queue({'kind': 'update_note', 'note_id': note['id'], 'body': body});
+      Get.snackbar('Saved for sync', 'Your change will sync when you are back online.');
     }
   }
 
@@ -491,19 +446,13 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       }
       notes.removeWhere((note) => note['id'] == id);
       await _queue({'kind': 'remove_note', 'note_id': id});
-      Get.snackbar(
-        'Saved for sync',
-        'Note removal will sync when you are back online.',
-      );
+      Get.snackbar('Saved for sync', 'Note removal will sync when you are back online.');
     }
   }
 
   Future<void> completeAssignment(String id) async {
     if (!session.isSignedIn) {
-      Get.snackbar(
-        'Sign in required',
-        'Sign in to save reading plan progress.',
-      );
+      Get.snackbar('Sign in required', 'Sign in to save reading plan progress.');
       return;
     }
     _captureAccount();
@@ -517,10 +466,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
       }
       await _queue({'kind': 'plan_progress', 'assignment_id': id});
       await loadPlans();
-      Get.snackbar(
-        'Saved for sync',
-        'Reading progress will sync when you are back online.',
-      );
+      Get.snackbar('Saved for sync', 'Reading progress will sync when you are back online.');
     }
   }
 
@@ -534,10 +480,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     final existing = ops.indexWhere(
       (op) =>
           op['kind'] == operation['kind'] &&
-          (op['verse_id'] ??
-                  op['assignment_id'] ??
-                  op['note_id'] ??
-                  op['bookmark_id']) ==
+          (op['verse_id'] ?? op['assignment_id'] ?? op['note_id'] ?? op['bookmark_id']) ==
               dedupeKey,
     );
     if (existing < 0) {
@@ -558,15 +501,9 @@ class BibleController extends GetxController with RefetchesOnContentChange {
         if (op['kind'] == 'bookmark') {
           await api.addBibleBookmark(op['verse_id'] as String);
         } else if (op['kind'] == 'note') {
-          await api.saveBibleNote(
-            op['verse_id'] as String,
-            op['body'] as String,
-          );
+          await api.saveBibleNote(op['verse_id'] as String, op['body'] as String);
         } else if (op['kind'] == 'update_note') {
-          await api.updateBibleNote(
-            op['note_id'] as String,
-            op['body'] as String,
-          );
+          await api.updateBibleNote(op['note_id'] as String, op['body'] as String);
         } else if (op['kind'] == 'remove_note') {
           await api.removeBibleNote(op['note_id'] as String);
         } else if (op['kind'] == 'remove_bookmark') {
@@ -600,10 +537,7 @@ class BibleController extends GetxController with RefetchesOnContentChange {
     if (operations.isEmpty) {
       await _secureStorage.delete(key: _pendingKey);
     } else {
-      await _secureStorage.write(
-        key: _pendingKey,
-        value: jsonEncode(operations),
-      );
+      await _secureStorage.write(key: _pendingKey, value: jsonEncode(operations));
     }
   }
 

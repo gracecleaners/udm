@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
-import '../models/resource_step.dart';
+import '../models/new_believer_resource.dart';
 import '../models/resource_topic.dart';
 import '../providers/udm_api.dart';
 
@@ -52,7 +52,11 @@ class ResourcesRepository {
 
   Future<Uint8List> downloadPdf(String url) => _api.downloadResourcePdf(url);
 
-  Future<List<ResourceStep>> newBelieverSteps() => _api.newBelieverSteps();
+  Future<List<NewBelieverResource>> newBelieverResources() =>
+      _api.newBelieverResources();
+
+  Future<NewBelieverResource> newBelieverResource(String id) =>
+      _api.newBelieverResource(id);
 
   /// The copy on this device, if there is one, labelled as cached. Used before
   /// the network answers so a returning student sees the guide immediately.

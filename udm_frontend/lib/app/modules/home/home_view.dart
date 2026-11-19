@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -299,21 +301,45 @@ class _HomeMemoryVerseCard extends StatelessWidget {
 /// Greeting, name and the face that belongs to them. The sentence is the
 /// server's, the name is the account's, and the avatar is the Profile tab: a
 /// student who taps their own face expects to land on their own details.
-class _Greeting extends GetView<HomeController> {
+class _Greeting extends StatefulWidget {
   const _Greeting();
 
   @override
+  State<_Greeting> createState() => _GreetingState();
+}
+
+class _GreetingState extends State<_Greeting> {
+  DateTime _now = DateTime.now();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = Get.find<HomeController>();
     final session = Get.find<SessionController>();
     final type = Theme.of(context).textTheme;
     return Obx(() {
       final profile = session.profile.value;
+      final greeting = _timeBasedGreeting(_now);
       final displayName = profile?.displayName.trim() ?? '';
       final firstName = displayName.isEmpty
           ? ''
           : displayName.split(RegExp(r'\s+')).first;
       return Padding(
-        padding: const EdgeInsets.fromLTRB(19, 11, 19, 0),
+        padding: const EdgeInsets.fromLTRB(19, 11, 19, 10),
         child: Row(
           children: [
             PressableScale(
@@ -349,7 +375,7 @@ class _Greeting extends GetView<HomeController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good morning,',
+                    greeting,
                     style: type.titleMedium?.copyWith(
                       color: Colors.white,
                       fontSize: 17,
@@ -392,6 +418,12 @@ class _Greeting extends GetView<HomeController> {
       );
     });
   }
+}
+
+String _timeBasedGreeting(DateTime now) {
+  if (now.hour < 12) return 'Good morning,';
+  if (now.hour < 17) return 'Good afternoon,';
+  return 'Good evening,';
 }
 
 /// Four compact, two-column doors keep the home page's most common journeys
@@ -800,7 +832,7 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: .78);
+    _pageController = PageController(viewportFraction: .68);
   }
 
   @override
@@ -824,7 +856,7 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
                 'Recommended Resources',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: AppColors.deepBlue,
-                  fontSize: 21,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -842,7 +874,7 @@ class _RecommendedResourcesState extends State<_RecommendedResources> {
       ),
       const SizedBox(height: 4),
       SizedBox(
-        height: 355,
+        height: 305,
         child: PageView.builder(
           controller: _pageController,
           itemCount: widget.resources.length,

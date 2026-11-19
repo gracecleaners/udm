@@ -84,6 +84,7 @@ class _HistoryRow extends StatelessWidget {
     'devotional': AppIcons.bookmark,
     'article': AppIcons.bookOpen,
     'resource_step': AppIcons.steps,
+    'new_believer': AppIcons.sparkles,
   };
 
   @override

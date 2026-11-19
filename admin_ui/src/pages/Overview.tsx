@@ -41,7 +41,7 @@ const sections: Section[] = [
   },
   {
     title: "New Believer steps",
-    url: "/resource-steps",
+    url: "/new-believer",
     icon: ListChecks,
     note: "Publish and select steps that appear in the app’s New Believer section. Resource Guides are shown separately under Recommended Resources.",
   },

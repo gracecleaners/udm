@@ -13,6 +13,7 @@ abstract class AppRoutes {
   static const String resourceStep = '/resource-step';
   static const String courses = '/courses';
   static const String newBeliever = '/new-believer';
+  static const String newBelieverResource = '/new-believer-resource';
   static const String mediaCollection = '/media-collection';
   static const String mediaItem = '/media-item';
   static const String community = '/community';
@@ -30,6 +31,7 @@ abstract class RouteArgs {
   static const String articleId = 'articleId';
   static const String resourceTopicId = 'resourceTopicId';
   static const String resourceStepId = 'resourceStepId';
+  static const String newBelieverResourceId = 'newBelieverResourceId';
   static const String mediaCollectionId = 'mediaCollectionId';
   static const String mediaItemId = 'mediaItemId';
 

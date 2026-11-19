@@ -25,13 +25,7 @@ class RegisterView extends GetView<RegisterController> {
       // One continuous backdrop; a solid app bar would cut it in half and a
       // loose Stack would stop it at the foot of the form.
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const AppText('Create account'),
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -68,8 +62,7 @@ class RegisterView extends GetView<RegisterController> {
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         AppText(
-                          'An email address and a password are enough. Your campus details, reading '
-                          'progress and reflections are saved to your own account.',
+                          'An email address and a password are enough.',
                           style: theme.textTheme.bodyMedium,
                         ),
                         const SizedBox(height: AppSpacing.lg),
@@ -127,13 +120,18 @@ class RegisterView extends GetView<RegisterController> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            key: const Key('udm.toSignIn'),
-                            onPressed: controller.signIn,
-                            child: const AppText('I already have an account'),
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Flexible(
+                              child: AppText('Already have an account?'),
+                            ),
+                            TextButton(
+                              key: const Key('udm.toSignIn'),
+                              onPressed: controller.signIn,
+                              child: const AppText('Sign in'),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -4,9 +4,10 @@
          manifest adds cleartext so a LAN Django server can be reached. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="udm_frontend"
+        android:label="UDM"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"

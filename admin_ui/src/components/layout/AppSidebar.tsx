@@ -14,7 +14,6 @@ import {
   Library,
   Lightbulb,
   ListChecks,
-  ListOrdered,
   MapPinned,
   Megaphone,
   ScrollText,
@@ -53,7 +52,7 @@ const ministryItems: NavItem[] = [
   { title: "Devotions", url: "/devotions", icon: BookOpenText },
   { title: "Articles", url: "/articles", icon: ScrollText },
   { title: "Resource guides", url: "/resource-guides", icon: Compass },
-  { title: "New Believer", url: "/resource-steps", icon: ListOrdered },
+  { title: "New Believer", url: "/new-believer", icon: Lightbulb },
 ];
 
 const scriptureItems: NavItem[] = [

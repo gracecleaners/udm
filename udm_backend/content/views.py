@@ -1,3 +1,5 @@
+import hashlib
+
 from django.db import InterfaceError, OperationalError, connection, transaction
 from django.db.models import Count, Exists, F, OuterRef, Q
 from django.shortcuts import get_object_or_404
@@ -11,8 +13,8 @@ from .models import (Article, BibleBookmark, BibleBook, BibleChapter, BibleNote,
                      BibleReadingProgress, BibleTranslation, BibleVerse, ContentVersion,
                      Devotional, DevotionalSeries, DiscipleshipGroup, Event, EventRegistration, Fellowship, GroupMembership,
                      MediaCollection, MediaItem, MediaNote, MediaWatch,
-                     MemoryVerse, PrayerAffirmation, PrayerComment, PrayerRequest, University, Campus, UserContentProgress,
-                     UserMemoryVerseProgress, ResourceStep, ResourceTopic)
+                     MemoryVerse, NewBelieverResource, PrayerAffirmation, PrayerComment, PrayerRequest, University, Campus, UserContentProgress,
+                     UserMemoryVerseProgress, ResourceStep, ResourceTopic, ResourceTopicView)
 from .serializers import (ArticleSerializer, BibleBookSerializer, BibleBookmarkSerializer,
                           BibleChapterSerializer, BibleNoteSerializer, BiblePlanSerializer,
                           BibleProgressSerializer, BibleTranslationSerializer, DevotionalSerializer,
@@ -26,7 +28,7 @@ from .serializers import (ArticleSerializer, BibleBookSerializer, BibleBookmarkS
                           FellowshipSerializer, GroupSerializer, GroupMembershipSerializer,
                           EventSerializer, PrayerRequestSerializer, PrayerCommentSerializer,
                           PrayerModerationSerializer,
-                          ResourceStepSerializer, ResourceTopicDetailSerializer, ResourceTopicSerializer)
+                          NewBelieverResourceSerializer, ResourceStepSerializer, ResourceTopicDetailSerializer, ResourceTopicSerializer)
 from .services import day_streak, guide_progress, home_payload, live_media_collections, live_resource_topics
 from .bible_passages import (
     MissingCredential,
@@ -238,18 +240,29 @@ class ResourceTopicViewCountView(APIView):
 
     def post(self, request, pk):
         topic = get_object_or_404(live_resource_topics(), pk=pk)
-        ResourceTopic.objects.filter(pk=topic.pk).update(views=F("views") + 1)
+        user = request.user
+        email = user.email.strip().casefold() if user.is_authenticated else ""
+        if email:
+            email_hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
+            with transaction.atomic():
+                _, created = ResourceTopicView.objects.get_or_create(
+                    topic=topic,
+                    email_hash=email_hash,
+                )
+                if created:
+                    ResourceTopic.objects.filter(pk=topic.pk).update(views=F("views") + 1)
         topic.refresh_from_db(fields=["views"])
         return Response({"views": topic.views})
 
 
 class NewBelieverResourceListView(PublishedContentMixin, generics.ListAPIView):
-    serializer_class = ResourceStepSerializer
+    serializer_class = NewBelieverResourceSerializer
+    queryset = NewBelieverResource.objects.published().order_by("order", "created_at")
 
-    def get_queryset(self):
-        return ResourceStep.objects.published().filter(is_new_believer=True).select_related(
-            "topic"
-        ).order_by("topic__order", F("order").asc(nulls_first=True), "created_at")
+
+class NewBelieverResourceDetailView(PublishedContentMixin, generics.RetrieveAPIView):
+    serializer_class = NewBelieverResourceSerializer
+    queryset = NewBelieverResource.objects.published()
 
 
 class ResourceStepDetailView(PublishedContentMixin, generics.RetrieveAPIView):

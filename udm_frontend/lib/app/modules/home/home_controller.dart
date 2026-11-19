@@ -55,7 +55,9 @@ class HomeController extends GetxController with RefetchesOnContentChange {
 
   @override
   Future<void> load() async {
-    state.value = ViewState.loading;
+    // Keep the last rendered home visible during automatic content-version
+    // refreshes. Only use the blocking loading state on the first load.
+    if (payload.value == null) state.value = ViewState.loading;
     failureMessage.value = '';
     try {
       final result = await _home.load();
@@ -64,7 +66,7 @@ class HomeController extends GetxController with RefetchesOnContentChange {
       state.value = result.isEmpty ? ViewState.empty : ViewState.ready;
     } on Failure catch (failure) {
       failureMessage.value = failure.message;
-      state.value = ViewState.error;
+      if (payload.value == null) state.value = ViewState.error;
     }
     await loadPrivate();
   }

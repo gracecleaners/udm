@@ -34,6 +34,8 @@ from .admin_views import (
     MediaItemAdminListView,
     MemoryVerseAdminDetailView,
     MemoryVerseAdminListView,
+    NewBelieverResourceAdminDetailView,
+    NewBelieverResourceAdminListView,
     ResourceStepAdminDetailView,
     ResourceStepAdminListView,
     ResourceTopicAdminDetailView,
@@ -54,6 +56,8 @@ admin_urlpatterns = [
     # `?topic=<id>` lists one guide's steps in reading order.
     path("resource-steps/", ResourceStepAdminListView.as_view(), name="admin-resource-steps"),
     path("resource-steps/<uuid:pk>/", ResourceStepAdminDetailView.as_view(), name="admin-resource-step-detail"),
+    path("new-believer-resources/", NewBelieverResourceAdminListView.as_view(), name="admin-new-believer-resources"),
+    path("new-believer-resources/<uuid:pk>/", NewBelieverResourceAdminDetailView.as_view(), name="admin-new-believer-resource-detail"),
     path("articles/", ArticleAdminListView.as_view(), name="admin-articles"),
     path("articles/<uuid:pk>/", ArticleAdminDetailView.as_view(), name="admin-article-detail"),
     path("reading-plans/", BibleReadingPlanAdminListView.as_view(), name="admin-reading-plans"),

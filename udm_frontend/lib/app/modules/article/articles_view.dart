@@ -134,7 +134,7 @@ class _ArticleTile extends StatelessWidget {
             article.title,
             style: TextStyle(
               fontFamily: AppFonts.ui,
-              fontSize: 20,
+              fontSize: 18,
               height: 1.18,
               fontWeight: FontWeight.w400,
               letterSpacing: -.25,
@@ -148,7 +148,7 @@ class _ArticleTile extends StatelessWidget {
             _date(article.publishAt),
             style: TextStyle(
               fontFamily: AppFonts.ui,
-              fontSize: 13.5,
+              fontSize: 12.5,
               height: 1.2,
               fontWeight: FontWeight.w400,
               color: secondaryColor,
@@ -162,7 +162,7 @@ class _ArticleTile extends StatelessWidget {
               article.preview,
               style: TextStyle(
                 fontFamily: AppFonts.ui,
-                fontSize: 14.5,
+                fontSize: 13.5,
                 height: 1.38,
                 fontWeight: FontWeight.w400,
                 color: excerptColor,

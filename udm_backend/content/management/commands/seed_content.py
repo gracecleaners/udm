@@ -15,6 +15,7 @@ from content.models import (
     MediaCollection,
     MediaItem,
     MemoryVerse,
+    NewBelieverResource,
     ResourceStep,
     ResourceTopic,
 )
@@ -245,7 +246,7 @@ RESOURCE_TOPICS = [
                     "lived my own way and that I need you. I believe you died for me and rose again. Thank you for "
                     "forgiving me. I turn from my old direction and trust you now as my Lord and Saviour. Live in "
                     "me, and teach me what life with you looks like. Amen.\n\n"
-                    "If you meant that prayer, the next guide — New Believer — is where to go from here."
+                    "If you meant that prayer, the New Believer library has more foundational ideas to explore."
                 ),
                 "reading_minutes": 4,
             },
@@ -834,7 +835,22 @@ class Command(BaseCommand):
         # The home "Find resources on" list. No video URLs are invented here: a
         # step with no `video_url` simply renders no video action in the app.
         step_total = 0
+        new_believer_total = 0
         for guide in RESOURCE_TOPICS:
+            if guide["title"] == "New Believer":
+                for item in guide["steps"]:
+                    NewBelieverResource.objects.update_or_create(
+                        title=item["title"],
+                        defaults={
+                            **{key: value for key, value in item.items() if key != "title"},
+                            "author": "UDM Ministry Team",
+                            "is_published": True,
+                        },
+                    )
+                    new_believer_total += 1
+                # New Believer is a standalone learning library, never a guide.
+                ResourceTopic.objects.filter(title__iexact="New Believer").delete()
+                continue
             topic, _ = ResourceTopic.objects.update_or_create(
                 title=guide["title"],
                 defaults={
@@ -883,7 +899,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             "Seeded %s memory verses, one series of %s devotions, %s articles, %s resource guides of %s steps, "
+            "%s New Believer resources, "
             "%s media shelves of %s recordings."
-            % (len(MEMORY_VERSES), len(DEVOTIONALS), len(ARTICLES), len(RESOURCE_TOPICS), step_total,
-               len(MEDIA_SHELVES), recording_total)
+            % (len(MEMORY_VERSES), len(DEVOTIONALS), len(ARTICLES),
+               sum(1 for guide in RESOURCE_TOPICS if guide["title"] != "New Believer"), step_total,
+               new_believer_total, len(MEDIA_SHELVES), recording_total)
         ))

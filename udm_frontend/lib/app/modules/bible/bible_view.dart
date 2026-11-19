@@ -32,9 +32,7 @@ class BibleView extends GetView<BibleController> {
 
     if (controller.translations.isEmpty) {
       if (controller.busy.value) {
-        return const CenteredSlot(
-          child: UdmProgress(label: 'Loading English Bible versions…'),
-        );
+        return const CenteredSlot(child: UdmProgress(label: 'Loading English Bible versions…'));
       }
       return _Problem(
         message: controller.message.value.isEmpty
@@ -46,8 +44,7 @@ class BibleView extends GetView<BibleController> {
     final translation = controller.translations.firstWhereOrNull(
       (t) => t['code'] == controller.selectedTranslation.value,
     );
-    final verses =
-        (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const [];
+    final verses = (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const [];
 
     return Container(
       color: Colors.white,
@@ -59,9 +56,7 @@ class BibleView extends GetView<BibleController> {
             right: 0,
             bottom: 0,
             height: 110,
-            child: IgnorePointer(
-              child: CustomPaint(painter: _ReaderWavePainter()),
-            ),
+            child: IgnorePointer(child: CustomPaint(painter: _ReaderWavePainter())),
           ),
           RefreshIndicator(
             color: AppColors.primaryBlue,
@@ -71,8 +66,7 @@ class BibleView extends GetView<BibleController> {
                 if (notification.metrics.axis == Axis.vertical &&
                     notification.metrics.maxScrollExtent > 0) {
                   controller.readingProgress.value =
-                      (notification.metrics.pixels /
-                              notification.metrics.maxScrollExtent)
+                      (notification.metrics.pixels / notification.metrics.maxScrollExtent)
                           .clamp(0, 1)
                           .toDouble();
                 }
@@ -91,14 +85,10 @@ class BibleView extends GetView<BibleController> {
                   if (controller.offline.value) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       // The full sentence needs the width a pill cannot give it: this
                       // chapter is on the device, not on the network.
-                      child: const NoticeBanner(
-                        message: 'Offline copy · saved on this device',
-                      ),
+                      child: const NoticeBanner(message: 'Offline copy · saved on this device'),
                     ),
                   ],
                   if (translation != null) ...[
@@ -108,21 +98,14 @@ class BibleView extends GetView<BibleController> {
                   if (controller.message.value.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
-                      child: AppText(
-                        controller.message.value,
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                      child: AppText(controller.message.value, style: theme.textTheme.bodySmall),
                     ),
                   ],
                   if (translation == null) ...[
                     const SizedBox(height: AppSpacing.md),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       child: AppText(
                         'No translation has been synced into this deployment yet, so '
                         'reading a whole chapter is not available yet.',
@@ -132,17 +115,14 @@ class BibleView extends GetView<BibleController> {
                   ] else ...[
                     const SizedBox(height: 25),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       child: verses.isEmpty && controller.busy.value
                           ? const _ReadingSkeleton()
                           : _ScriptureBlock(
                               heading: chapterHeading(controller),
                               translationCode: '${translation['code'] ?? ''}',
                               verses: verses,
-                              attribution:
-                                  '${translation['attribution'] ?? ''}',
+                              attribution: '${translation['attribution'] ?? ''}',
                             ),
                     ),
                   ],
@@ -150,53 +130,33 @@ class BibleView extends GetView<BibleController> {
                     const SizedBox(height: 14),
                     const SizedBox(height: AppSpacing.md),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
-                      child: _ReaderActionBar(
-                        controller: controller,
-                        verses: verses,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+                      child: _ReaderActionBar(controller: controller, verses: verses),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       child: const _ReadingProgress(),
                     ),
                   ],
                   const SizedBox(height: AppSpacing.xl),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screen,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                     child: controller.session.isSignedIn
                         ? _SavedVerses(controller: controller, theme: theme)
                         : _KeepPrompt(theme: theme),
                   ),
                   if (controller.plans.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.xl),
-                    const RailHeader(
-                      eyebrow: 'Go with a group',
-                      title: 'Reading plans',
-                    ),
+                    const RailHeader(eyebrow: 'Go with a group', title: 'Reading plans'),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       child: Column(
                         children: [
                           for (final plan in controller.plans)
                             Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.sm,
-                              ),
-                              child: _PlanCard(
-                                plan: plan,
-                                controller: controller,
-                                theme: theme,
-                              ),
+                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                              child: _PlanCard(plan: plan, controller: controller, theme: theme),
                             ),
                         ],
                       ),
@@ -205,9 +165,7 @@ class BibleView extends GetView<BibleController> {
                   if (translation != null) ...[
                     const SizedBox(height: AppSpacing.lg),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screen,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
                       child: _Licensing(translation: translation, theme: theme),
                     ),
                   ],
@@ -238,11 +196,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
-      child: Row(
-        children: [
-          const SizedBox(width: 0),
-        ],
-      ),
+      child: Row(children: [const SizedBox(width: 0)]),
     );
   }
 }
@@ -309,11 +263,7 @@ class _ChapterTitle extends StatelessWidget {
 }
 
 class _CircleHeaderButton extends StatelessWidget {
-  const _CircleHeaderButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _CircleHeaderButton({required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -374,9 +324,8 @@ class _ReadingBar extends StatelessWidget {
             Expanded(
               flex: 1,
               child: _ReaderSegment(
-                label:
-                    '${selectedTranslation?['code'] ?? controller.selectedTranslation.value}'
-                        .toUpperCase(),
+                label: '${selectedTranslation?['code'] ?? controller.selectedTranslation.value}'
+                    .toUpperCase(),
                 alignment: MainAxisAlignment.center,
                 onTap: () => _chooseTranslation(context),
               ),
@@ -405,64 +354,15 @@ class _ReadingBar extends StatelessWidget {
   );
 
   Future<void> _chooseTranslation(BuildContext context) async {
-    final search = TextEditingController();
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final query = search.text.trim().toLowerCase();
-          final rows = controller.translations.where((row) {
-            if (query.isEmpty) return true;
-            return '${row['name'] ?? ''} ${row['code'] ?? ''}'
-                .toLowerCase()
-                .contains(query);
-          }).toList();
-          return SafeArea(
-            child: SizedBox(
-              height: MediaQuery.sizeOf(context).height * .78,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-                    child: TextField(
-                      controller: search,
-                      autofocus: true,
-                      onChanged: (_) => setModalState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Search English versions',
-                        prefixIcon: Icon(AppIcons.search),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: rows.length,
-                      itemBuilder: (context, index) {
-                        final row = rows[index];
-                        final code = '${row['code'] ?? ''}';
-                        return ListTile(
-                          title: Text('${row['name'] ?? code}'),
-                          subtitle: Text(code.toUpperCase()),
-                          trailing: code == controller.selectedTranslation.value
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: AppColors.primaryBlue,
-                                )
-                              : null,
-                          onTap: () => Navigator.pop(sheetContext, code),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      builder: (sheetContext) => _TranslationSearchSheet(
+        rows: controller.translations.toList(),
+        current: controller.selectedTranslation.value,
+        onPick: (code) => Navigator.pop(sheetContext, code),
       ),
     );
-    search.dispose();
     if (selected != null && selected != controller.selectedTranslation.value) {
       controller.selectedTranslation.value = selected;
       await controller.loadBooks();
@@ -481,8 +381,7 @@ class _ReadingBar extends StatelessWidget {
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setModalState) => Obx(() {
           final verses =
-              (controller.chapterData.value?['verses'] as List<dynamic>?) ??
-              const <dynamic>[];
+              (controller.chapterData.value?['verses'] as List<dynamic>?) ?? const <dynamic>[];
           return SafeArea(
             child: SizedBox(
               height: MediaQuery.sizeOf(context).height * .58,
@@ -504,9 +403,7 @@ class _ReadingBar extends StatelessWidget {
                         ),
                         DropdownButton<int>(
                           value:
-                              controller.chapterNumbers.contains(
-                                controller.selectedChapter.value,
-                              )
+                              controller.chapterNumbers.contains(controller.selectedChapter.value)
                               ? controller.selectedChapter.value
                               : null,
                           hint: const Text('Chapter'),
@@ -519,8 +416,7 @@ class _ReadingBar extends StatelessWidget {
                               )
                               .toList(),
                           onChanged: (number) async {
-                            if (number == null ||
-                                number == controller.selectedChapter.value) {
+                            if (number == null || number == controller.selectedChapter.value) {
                               return;
                             }
                             await _setChapter(number);
@@ -542,54 +438,40 @@ class _ReadingBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   if (controller.busy.value && verses.isEmpty)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
+                    const Expanded(child: Center(child: CircularProgressIndicator()))
                   else if (verses.isEmpty)
                     const Expanded(
-                      child: Center(
-                        child: Text('No verses available for this chapter.'),
-                      ),
+                      child: Center(child: Text('No verses available for this chapter.')),
                     )
                   else
                     Expanded(
                       child: GridView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 1,
-                            ),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1,
+                        ),
                         itemCount: verses.length,
                         itemBuilder: (context, index) {
                           final verse = verses[index] as Map<String, dynamic>;
-                          final number =
-                              '${verse['number'] ?? verse['verse'] ?? index + 1}';
-                          final selected =
-                              controller.selectedVerseNumber.value == number;
+                          final number = '${verse['number'] ?? verse['verse'] ?? index + 1}';
+                          final selected = controller.selectedVerseNumber.value == number;
                           return Material(
-                            color: selected
-                                ? AppColors.primaryBlue
-                                : AppColors.lightBlue,
+                            color: selected ? AppColors.primaryBlue : AppColors.lightBlue,
                             borderRadius: BorderRadius.circular(13),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(13),
                               onTap: () {
-                                controller.selectVerse(
-                                  number,
-                                  '${verse['id'] ?? ''}',
-                                );
+                                controller.selectVerse(number, '${verse['id'] ?? ''}');
                                 Navigator.pop(sheetContext);
                               },
                               child: Center(
                                 child: Text(
                                   number,
                                   style: TextStyle(
-                                    color: selected
-                                        ? Colors.white
-                                        : AppColors.deepBlue,
+                                    color: selected ? Colors.white : AppColors.deepBlue,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -628,8 +510,7 @@ class _ReadingBar extends StatelessWidget {
               final book = controller.books[index];
               return _SelectorPill(
                 label: book['name'] as String? ?? '',
-                selected:
-                    controller.bookKey(book) == controller.selectedBook.value,
+                selected: controller.bookKey(book) == controller.selectedBook.value,
                 onTap: () => Navigator.pop(context, controller.bookKey(book)),
               );
             },
@@ -638,6 +519,79 @@ class _ReadingBar extends StatelessWidget {
       ),
     );
     if (chosen != null) controller.selectBook(chosen);
+  }
+}
+
+/// The version picker's search field. It owns its controller so the text
+/// editor is torn down with the sheet: disposed by the caller instead, the
+/// field is still alive during the sheet's exit animation and reads a controller
+/// that has already gone.
+class _TranslationSearchSheet extends StatefulWidget {
+  const _TranslationSearchSheet({required this.rows, required this.current, required this.onPick});
+
+  final List<Map<String, dynamic>> rows;
+  final String current;
+  final ValueChanged<String> onPick;
+
+  @override
+  State<_TranslationSearchSheet> createState() => _TranslationSearchSheetState();
+}
+
+class _TranslationSearchSheetState extends State<_TranslationSearchSheet> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _search.text.trim().toLowerCase();
+    final rows = widget.rows.where((row) {
+      if (query.isEmpty) return true;
+      return '${row['name'] ?? ''} ${row['code'] ?? ''}'.toLowerCase().contains(query);
+    }).toList();
+
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * .78,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+              child: TextField(
+                controller: _search,
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'Search English versions',
+                  prefixIcon: Icon(AppIcons.search),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: rows.length,
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  final code = '${row['code'] ?? ''}';
+                  return ListTile(
+                    title: Text('${row['name'] ?? code}'),
+                    subtitle: Text(code.toUpperCase()),
+                    trailing: code == widget.current
+                        ? const Icon(Icons.check_rounded, color: AppColors.primaryBlue)
+                        : null,
+                    onTap: () => widget.onPick(code),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -663,25 +617,29 @@ class _SelectorPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(30),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             if (leading != null) ...[
-              Icon(leading, size: 17, color: Colors.white),
-              const SizedBox(width: 6),
+              Icon(leading, size: 15, color: Colors.white),
+              const SizedBox(width: 4),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.white : AppColors.deepBlue,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? Colors.white : AppColors.deepBlue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             if (trailing != null) ...[
-              const SizedBox(width: 6),
-              Icon(trailing, size: 16, color: AppColors.deepBlue),
+              const SizedBox(width: 4),
+              Icon(trailing, size: 14, color: AppColors.deepBlue),
             ],
           ],
         ),
@@ -763,9 +721,7 @@ class _ChapterControl extends StatelessWidget {
           onPressed: onTap,
           icon: Icon(
             icon,
-            color: onTap == null
-                ? AppColors.secondaryText
-                : AppColors.primaryBlue,
+            color: onTap == null ? AppColors.secondaryText : AppColors.primaryBlue,
             size: 22,
           ),
         ),
@@ -780,17 +736,10 @@ class _ChapterControl extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.deepBlue,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: AppColors.deepBlue),
                     ),
                   ),
-                  const Icon(
-                    AppIcons.chevronDown,
-                    color: AppColors.primaryBlue,
-                    size: 20,
-                  ),
+                  const Icon(AppIcons.chevronDown, color: AppColors.primaryBlue, size: 20),
                 ],
               ),
             ),
@@ -816,15 +765,9 @@ class _ChapterControl extends StatelessWidget {
 /// only has its range as a heading, and a range is not a chapter: "John
 /// 3:16-18" is read in John 3, so its sixteenth verse is John 3:16 rather than
 /// the nonsense of John 3:16-18:16.
-String _verseReference({
-  required String heading,
-  required String number,
-  String? fromServer,
-}) {
+String _verseReference({required String heading, required String number, String? fromServer}) {
   if (fromServer != null && fromServer.isNotEmpty) return fromServer;
-  final chapter =
-      RegExp(r'^(.*?\s\d{1,3})(?::|$)').firstMatch(heading)?.group(1) ??
-      heading;
+  final chapter = RegExp(r'^(.*?\s\d{1,3})(?::|$)').firstMatch(heading)?.group(1) ?? heading;
   return '$chapter:$number';
 }
 
@@ -870,8 +813,7 @@ class _ScriptureBlock extends StatelessWidget {
         children: [
           for (final raw in verses)
             _VerseLine(
-              number:
-                  '${(raw as Map<String, dynamic>)['number'] ?? raw['verse']}',
+              number: '${(raw as Map<String, dynamic>)['number'] ?? raw['verse']}',
               text: '${raw['text'] ?? ''}',
               verseId: '${raw['id'] ?? ''}',
               reference: '${raw['reference'] ?? ''}',
@@ -920,11 +862,7 @@ class _VerseLine extends StatelessWidget {
           arguments: {
             RouteArgs.verse: VerseFocus(
               verseId: verseId,
-              reference: _verseReference(
-                heading: heading,
-                number: number,
-                fromServer: reference,
-              ),
+              reference: _verseReference(heading: heading, number: number, fromServer: reference),
               text: text,
               translationCode: translationCode,
               attribution: attribution,
@@ -1001,18 +939,8 @@ class _ReaderWavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final back = Path()
       ..moveTo(0, size.height * .48)
-      ..quadraticBezierTo(
-        size.width * .28,
-        size.height * .15,
-        size.width * .56,
-        size.height * .62,
-      )
-      ..quadraticBezierTo(
-        size.width * .78,
-        size.height * .92,
-        size.width,
-        size.height * .42,
-      )
+      ..quadraticBezierTo(size.width * .28, size.height * .15, size.width * .56, size.height * .62)
+      ..quadraticBezierTo(size.width * .78, size.height * .92, size.width, size.height * .42)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
@@ -1020,25 +948,12 @@ class _ReaderWavePainter extends CustomPainter {
 
     final front = Path()
       ..moveTo(0, size.height * .68)
-      ..quadraticBezierTo(
-        size.width * .35,
-        size.height * .25,
-        size.width * .64,
-        size.height * .72,
-      )
-      ..quadraticBezierTo(
-        size.width * .83,
-        size.height,
-        size.width,
-        size.height * .60,
-      )
+      ..quadraticBezierTo(size.width * .35, size.height * .25, size.width * .64, size.height * .72)
+      ..quadraticBezierTo(size.width * .83, size.height, size.width, size.height * .60)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
-    canvas.drawPath(
-      front,
-      Paint()..color = AppColors.royalBlue.withValues(alpha: .2),
-    );
+    canvas.drawPath(front, Paint()..color = AppColors.royalBlue.withValues(alpha: .2));
   }
 
   @override
@@ -1158,13 +1073,9 @@ class _ReaderActionBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 7),
             child: AppText(
-              hasSelection
-                  ? 'Selected: $_reference'
-                  : 'Tap a verse to select it',
+              hasSelection ? 'Selected: $_reference' : 'Tap a verse to select it',
               style: TextStyle(
-                color: hasSelection
-                    ? AppColors.primaryBlue
-                    : AppColors.secondaryText,
+                color: hasSelection ? AppColors.primaryBlue : AppColors.secondaryText,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -1173,8 +1084,7 @@ class _ReaderActionBar extends StatelessWidget {
           Row(
             children: [
               for (var i = 0; i < actions.length; i++) ...[
-                if (i > 0)
-                  Container(width: 1, height: 38, color: AppColors.mist),
+                if (i > 0) Container(width: 1, height: 38, color: AppColors.mist),
                 Expanded(
                   child: InkWell(
                     onTap: actions[i].onTap,
@@ -1182,11 +1092,7 @@ class _ReaderActionBar extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Column(
                         children: [
-                          Icon(
-                            actions[i].icon,
-                            size: 21,
-                            color: AppColors.primaryBlue,
-                          ),
+                          Icon(actions[i].icon, size: 21, color: AppColors.primaryBlue),
                           const SizedBox(height: 4),
                           AppText(
                             actions[i].label,
@@ -1209,10 +1115,8 @@ class _ReaderActionBar extends StatelessWidget {
     );
   });
 
-  void _promptSelection() => Get.snackbar(
-    'Select a verse',
-    'Tap a verse in the chapter, then choose an action.',
-  );
+  void _promptSelection() =>
+      Get.snackbar('Select a verse', 'Tap a verse in the chapter, then choose an action.');
 
   Future<void> _highlight(BuildContext context) async {
     if (_id.isEmpty) {
@@ -1222,12 +1126,7 @@ class _ReaderActionBar extends StatelessWidget {
       );
       return;
     }
-    const colors = [
-      Color(0xFFFFF1A8),
-      Color(0xFFD9FBE8),
-      AppColors.mist,
-      Color(0xFFFFDFE6),
-    ];
+    const colors = [Color(0xFFFFF1A8), Color(0xFFD9FBE8), AppColors.mist, Color(0xFFFFDFE6)];
     final chosen = await showModalBottomSheet<Color>(
       context: context,
       builder: (context) => SafeArea(
@@ -1353,19 +1252,12 @@ class _SavedVerses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Panel(
-    padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.sm,
-      vertical: AppSpacing.xs,
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
     child: ExpansionTile(
       shape: const Border(),
       collapsedShape: const Border(),
       tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      leading: const IconBadge(
-        icon: AppIcons.bookmarks,
-        size: 40,
-        filled: false,
-      ),
+      leading: const IconBadge(icon: AppIcons.bookmarks, size: 40, filled: false),
       title: const AppText('My saved verses and notes'),
       subtitle: controller.pendingOperations.isEmpty
           ? null
@@ -1380,9 +1272,7 @@ class _SavedVerses extends StatelessWidget {
         if (controller.bookmarks.isEmpty && controller.notes.isEmpty)
           const Padding(
             padding: EdgeInsets.all(AppSpacing.md),
-            child: AppText(
-              'Your saved verses and private notes will appear here.',
-            ),
+            child: AppText('Your saved verses and private notes will appear here.'),
           ),
         ...controller.bookmarks.map(
           (saved) => _SavedRow(
@@ -1438,10 +1328,7 @@ class _SavedRow extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.radiusTile),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1515,11 +1402,7 @@ class _KeepPrompt extends StatelessWidget {
 
 /// A plan opened: its days, and how far through it the student already is.
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.plan,
-    required this.controller,
-    required this.theme,
-  });
+  const _PlanCard({required this.plan, required this.controller, required this.theme});
 
   final Map<String, dynamic> plan;
   final BibleController controller;
@@ -1533,10 +1416,7 @@ class _PlanCard extends StatelessWidget {
     final done = assignments.where((a) => a['completed'] == true).length;
     final fraction = assignments.isEmpty ? 0.0 : done / assignments.length;
     return Panel(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       child: Column(
         children: [
           ExpansionTile(
@@ -1544,29 +1424,20 @@ class _PlanCard extends StatelessWidget {
             collapsedShape: const Border(),
             tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             leading: ProgressRing(fraction: fraction, size: 42),
-            title: AppText(
-              plan['title'] as String,
-              style: theme.textTheme.titleMedium,
-            ),
+            title: AppText(plan['title'] as String, style: theme.textTheme.titleMedium),
             subtitle: AppText(
               '$done of ${assignments.length} days read',
               style: theme.textTheme.bodySmall,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.sm,
-            ),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
             child: UdmProgressBar(fraction: fraction),
           ),
           for (final assignment in assignments)
             _PlanDay(
               assignment: assignment,
-              onComplete: () =>
-                  controller.completeAssignment(assignment['id'] as String),
+              onComplete: () => controller.completeAssignment(assignment['id'] as String),
             ),
         ],
       ),
@@ -1598,10 +1469,7 @@ class _PlanDay extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppText(
-                  'Day ${assignment['day']}',
-                  style: theme.textTheme.titleSmall,
-                ),
+                AppText('Day ${assignment['day']}', style: theme.textTheme.titleSmall),
                 AppText(
                   assignment['reference'] as String? ?? '',
                   style: theme.textTheme.bodySmall,
@@ -1612,11 +1480,7 @@ class _PlanDay extends StatelessWidget {
             ),
           ),
           if (done)
-            const MetaPill(
-              label: 'Done',
-              icon: AppIcons.check,
-              tone: AppColors.success,
-            )
+            const MetaPill(label: 'Done', icon: AppIcons.check, tone: AppColors.success)
           else
             AppIconButton(
               icon: AppIcons.check,
@@ -1645,10 +1509,7 @@ class _Licensing extends StatelessWidget {
       children: [
         const Eyebrow('Licensing'),
         const SizedBox(height: AppSpacing.sm),
-        AppText(
-          translation['attribution'] as String? ?? '',
-          style: theme.textTheme.bodySmall,
-        ),
+        AppText(translation['attribution'] as String? ?? '', style: theme.textTheme.bodySmall),
         if ((translation['source_url'] as String? ?? '').startsWith('https://'))
           Align(
             alignment: AlignmentDirectional.centerStart,

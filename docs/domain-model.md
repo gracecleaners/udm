@@ -29,6 +29,7 @@ All records use UUID identifiers where they cross the API boundary and carry `cr
 - **MediaWatch**: user, recording, position in seconds, completion; unique pair, owner-scoped. This is the resume point and the "watched" mark, and it is the reason a shared device shows one student nothing about another. `GET /media/resume/` reads the same rows back as the home feed's continue-watching shelf: unfinished watches on still-published recordings, most recently touched first, capped at six — a recording the ministry withdrew is skipped rather than offered.
 - **ArticleCategory** → **Article**: author, rich body, featured image, references, publication metadata, status.
 - **ResourceTopic** → **ResourceStep**: a guide the student works through one step at a time, and the ordered steps inside it. This is what the app calls *Courses* — the word is a UI label, not a resurrected course model; migration `0014` dropped those tables for good.
+- **NewBelieverResource**: a standalone introduction to a foundational idea for people new to faith. It has its own ordered admin library and is not a devotion or a step in a `ResourceTopic` guide.
 - Video and audio files are not held here. The ministry publishes them on YouTube and the row stores the address the app plays; the only uploads that land on this server are the artwork files, under `MEDIA_ROOT`. Courses, lessons, enrolments and quizzes were removed in migration `0014`, which dropped those tables and created the media models in their place.
 
 ## Community, prayer, and activities

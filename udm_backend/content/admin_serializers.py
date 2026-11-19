@@ -32,7 +32,8 @@ from .media_refs import youtube_thumbnail
 from .models import (Article, BibleReadingAssignment, BibleReadingPlan, BibleTranslation,
                      BibleVerse, Campus, Devotional,
                      DevotionalSeries, DiscipleshipGroup, Event, Fellowship,
-                     MediaCollection, MediaItem, MemoryVerse, ResourceStep, ResourceTopic, University)
+                     MediaCollection, MediaItem, MemoryVerse, NewBelieverResource,
+                     ResourceStep, ResourceTopic, University)
 from .services import artwork_url
 
 
@@ -257,7 +258,7 @@ class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, s
         model = ResourceStep
         fields = (
             "id", "topic", "topic_title", "title", "author", "scripture_reference",
-            "excerpt", "body", "reading_minutes", "order", "video_url", "is_new_believer",
+            "excerpt", "body", "reading_minutes", "order", "video_url",
             "is_published", "publish_at", "publish_state",
             "created_at", "updated_at",
         )
@@ -273,6 +274,24 @@ class ResourceStepAdminSerializer(CurationSerializerMixin, PublishStateFields, s
             else validator
             for validator in super().get_validators()
         ]
+
+
+class NewBelieverResourceAdminSerializer(
+    CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer
+):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = NewBelieverResource
+        fields = (
+            "id", "title", "author", "scripture_reference", "excerpt", "body",
+            "reading_minutes", "order", "video_url", "image", "image_link", "image_url",
+            "is_published", "publish_at", "publish_state", "created_at", "updated_at",
+        )
+        read_only_fields = ("id", "image_url", "publish_state", "created_at", "updated_at")
+
+    def get_image_url(self, obj):
+        return artwork_url(obj, self.context.get("request"))
 
 
 class BibleReadingPlanAdminSerializer(CurationSerializerMixin, PublishStateFields, serializers.ModelSerializer):

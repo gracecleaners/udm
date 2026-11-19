@@ -20,40 +20,43 @@ class NewBelieverView extends GetView<NewBelieverController> {
         state: controller.state.value,
         failureMessage: controller.failureMessage.value,
         onRetry: controller.load,
-        emptyTitle: 'No New Believer steps yet',
-        emptyMessage: 'The ministry team will add your first steps here.',
+        emptyTitle: 'No introduction resources yet',
+        emptyMessage: 'The ministry team will add resources for your first steps in faith here.',
         emptyIcon: AppIcons.sparkles,
         child: RefreshIndicator(
           onRefresh: controller.load,
           child: ListView.separated(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
-            itemCount: controller.steps.length,
+            itemCount: controller.resources.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final step = controller.steps[index];
+              final resource = controller.resources[index];
               return Panel(
-                onTap: () => controller.open(step),
+                onTap: () => controller.open(resource),
                 padding: const EdgeInsets.all(18),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      backgroundColor: AppColors.lightBlue,
-                      child: Icon(Icons.menu_book_rounded, color: AppColors.primaryBlue),
+                    CoverArt(
+                      url: resource.imageUrl,
+                      monogram: UdmAvatar.initialsFor(resource.title),
+                      width: 56,
+                      height: 56,
+                      radius: 14,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppText(step.title, style: Theme.of(context).textTheme.titleMedium),
-                          if (step.excerpt.isNotEmpty) ...[
+                          AppText(resource.title, style: Theme.of(context).textTheme.titleMedium),
+                          if (resource.excerpt.isNotEmpty) ...[
                             const SizedBox(height: 5),
-                            FormattedContent(step.excerpt, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            FormattedContent(resource.excerpt, maxLines: 2, overflow: TextOverflow.ellipsis),
                           ],
-                          if (step.scriptureReference.isNotEmpty) ...[
+                          if (resource.scriptureReference.isNotEmpty) ...[
                             const SizedBox(height: 7),
-                            AppText(step.scriptureReference, style: const TextStyle(color: AppColors.primaryBlue)),
+                            AppText(resource.scriptureReference, style: const TextStyle(color: AppColors.primaryBlue)),
                           ],
                         ],
                       ),
