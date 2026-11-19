@@ -63,12 +63,20 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.picture_as_pdf_outlined, size: 48, color: AppColors.primaryBlue),
+                  const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 48,
+                    color: AppColors.primaryBlue,
+                  ),
                   const SizedBox(height: 12),
                   const Text(
                     'This PDF could not be opened.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.deepBlue, fontSize: 17, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: AppColors.deepBlue,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -77,7 +85,10 @@ class _ResourcePdfViewState extends State<ResourcePdfView> {
                     style: TextStyle(color: AppColors.secondaryText),
                   ),
                   const SizedBox(height: 18),
-                  FilledButton(onPressed: _retry, child: const Text('Try again')),
+                  FilledButton(
+                    onPressed: _retry,
+                    child: const Text('Try again'),
+                  ),
                 ],
               ),
             ),
