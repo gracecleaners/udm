@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../data/models/devotional.dart';
 import '../reader/reading_progress.dart';
@@ -47,10 +48,6 @@ class _DevotionBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final paragraphs = devotional.body
-        .split(RegExp(r'\n\s*\n'))
-        .where((paragraph) => paragraph.trim().isNotEmpty)
-        .toList();
     final dayTitle = devotional.day == null
         ? devotional.title
         : 'Day ${devotional.day}: ${devotional.title}';
@@ -146,7 +143,7 @@ class _DevotionBody extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (devotional.excerpt.isNotEmpty) ...[
-                    Text(
+                    FormattedContent(
                       devotional.excerpt,
                       style: const TextStyle(
                         color: Color(0xFF343434),
@@ -182,18 +179,17 @@ class _DevotionBody extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                   ],
-                  for (final paragraph in paragraphs)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 15),
-                      child: Text(
-                        paragraph.trim(),
-                        style: const TextStyle(
-                          color: Color(0xFF393939),
-                          fontSize: 19,
-                          height: 1.72,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: FormattedContent(
+                      devotional.body,
+                      style: const TextStyle(
+                        color: Color(0xFF393939),
+                        fontSize: 19,
+                        height: 1.72,
                       ),
                     ),
+                  ),
                   if (devotional.hasQuestions) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
@@ -239,7 +235,7 @@ class _DevotionBody extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
+                    FormattedContent(
                       devotional.application,
                       style: const TextStyle(
                         color: Color(0xFF393939),
@@ -253,7 +249,7 @@ class _DevotionBody extends StatelessWidget {
                       padding: EdgeInsets.symmetric(vertical: 24),
                       child: Divider(color: Color(0xFFE5E5E5)),
                     ),
-                    Text(
+                    FormattedContent(
                       devotional.prayer,
                       style: const TextStyle(
                         color: Color(0xFF343434),

@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/resource_topic.dart';
@@ -163,7 +164,7 @@ class _CourseRow extends StatelessWidget {
                 ),
                 if (topic.summary.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  AppText(
+                  FormattedContent(
                     topic.summary,
                     style: theme.textTheme.bodySmall,
                     maxLines: 2,

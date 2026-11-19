@@ -279,6 +279,15 @@ div.console-child-dialog { max-width: min(1180px, calc(100vw - 3rem)); }
 .console-field textarea::placeholder { color: #a9b6c5; }
 .console-field p.console-field-help { margin: 0; }
 .console-field-help { color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 1.55; }
+.console-rich-editor { display: grid; gap: 0; overflow: hidden; border: 1px solid #dce5ee; border-radius: 10px; background: #fff; }
+.console-rich-toolbar { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid #e7edf3; background: #f8fafc; }
+.console-rich-toolbar button { display: grid; width: 32px; height: 30px; place-items: center; border: 0; border-radius: 6px; color: #34465b; background: transparent; cursor: pointer; }
+.console-rich-toolbar button:hover:not(:disabled) { color: #075fbe; background: #e7f0ff; }
+.console-rich-toolbar button:disabled { opacity: .45; cursor: not-allowed; }
+.console-rich-content { min-height: 150px; max-height: 420px; overflow-y: auto; padding: 11px 12px; color: #25303c; font-size: 13px; line-height: 1.65; outline: none; }
+.console-rich-content:empty::before { content: attr(data-placeholder); color: #a9b6c5; pointer-events: none; }
+.console-rich-content h2 { margin: .5em 0; font-size: 1.35em; font-weight: 700; }
+.console-rich-content blockquote { margin: .6em 0; padding-left: 12px; border-left: 3px solid #8bb5ee; color: #566273; }
 .console-required { color: #c0392b; }
 .console-datetime-row { display: flex; align-items: center; gap: 8px; }
 .console-datetime-row > div { flex: 1; min-width: 0; }

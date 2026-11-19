@@ -5,6 +5,7 @@ import '../../core/localization/date_labels.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
@@ -50,10 +51,6 @@ class _RecordingBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bodyColor = theme.textTheme.bodyLarge!.color!;
-    final paragraphs = item.body
-        .split(RegExp(r'\n\s*\n'))
-        .where((paragraph) => paragraph.trim().isNotEmpty)
-        .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -108,7 +105,7 @@ class _RecordingBody extends StatelessWidget {
         _Actions(item: item, controller: controller),
         if (item.excerpt.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          AppText(
+          FormattedContent(
             item.excerpt,
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.textTheme.bodySmall?.color,
@@ -116,10 +113,9 @@ class _RecordingBody extends StatelessWidget {
             ),
           ),
         ],
-        for (final paragraph in paragraphs)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.lg),
-            child: AppText(paragraph.trim(), style: AppTypography.scriptureBody(bodyColor)),
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.lg),
+          child: FormattedContent(item.body, style: AppTypography.scriptureBody(bodyColor)),
           ),
         const SizedBox(height: AppSpacing.xl),
         _NoteSection(item: item, controller: controller),

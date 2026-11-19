@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { VersePicker } from "@/components/curation/VersePicker";
+import { RichTextEditor } from "@/components/curation/RichTextEditor";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAuth } from "@/contexts/AuthContext";
 import { extractApiError } from "@/lib/api";
@@ -162,12 +163,11 @@ function FieldEditor({
             </div>
           )}
           {field.type === "textarea" && (
-            <Textarea
-              id={inputId}
-              rows={5}
-              placeholder={field.placeholder}
+            <RichTextEditor
               value={String(value ?? "")}
-              onChange={(event) => onChange(event.target.value)}
+              onChange={onChange as (value: string) => void}
+              disabled={disabled}
+              placeholder={field.placeholder}
             />
           )}
           {(field.type === "json" || field.type === "lines") && (

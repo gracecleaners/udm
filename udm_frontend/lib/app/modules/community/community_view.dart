@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/prayer_post.dart';
@@ -195,7 +196,7 @@ class CommunityView extends GetView<CommunityController> {
             if ((group['description'] as String? ?? '').isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-                child: AppText(group['description'] as String, style: theme.textTheme.bodyMedium),
+                child: FormattedContent(group['description'] as String, style: theme.textTheme.bodyMedium),
               ),
             if (membership == null && !isLeader)
               Padding(
@@ -338,7 +339,7 @@ class CommunityView extends GetView<CommunityController> {
               ),
               if ((event['description'] as String? ?? '').isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.md),
-                AppText(event['description'] as String, style: theme.textTheme.bodyMedium),
+                FormattedContent(event['description'] as String, style: theme.textTheme.bodyMedium),
               ],
               if ((event['online_url'] as String? ?? '').isNotEmpty)
                 Align(

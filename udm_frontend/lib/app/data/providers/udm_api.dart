@@ -92,7 +92,10 @@ class UdmApi {
   Future<Uint8List> downloadResourcePdf(String url) => _client.guard(() async {
     final response = await _client.dio.get<List<int>>(
       url,
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(
+        responseType: ResponseType.bytes,
+        receiveTimeout: const Duration(minutes: 2),
+      ),
     );
     final bytes = response.data;
     if (bytes == null || bytes.isEmpty) {

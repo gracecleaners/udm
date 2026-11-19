@@ -5,6 +5,7 @@ import '../theme/app_art.dart';
 import '../theme/app_theme.dart';
 import 'app_kit.dart';
 import 'app_text.dart';
+import 'formatted_content.dart';
 import 'state_view.dart';
 import 'udm_widgets.dart';
 
@@ -608,25 +609,9 @@ class _HighlightedVerse extends StatelessWidget {
       letterSpacing: -.25,
       shadows: const [Shadow(color: Color(0xB3071125), blurRadius: 10)],
     );
-    final spans = <TextSpan>[const TextSpan(text: '“')];
-    final pattern = RegExp(r'vision|law', caseSensitive: false);
-    var cursor = 0;
-    for (final match in pattern.allMatches(clean)) {
-      if (match.start > cursor)
-        spans.add(TextSpan(text: clean.substring(cursor, match.start)));
-      spans.add(
-        TextSpan(
-          text: match.group(0),
-          style: const TextStyle(color: Color(0xFFFFC000)),
-        ),
-      );
-      cursor = match.end;
-    }
-    if (cursor < clean.length)
-      spans.add(TextSpan(text: clean.substring(cursor)));
-    spans.add(const TextSpan(text: '”'));
-    return Text.rich(
-      TextSpan(style: base, children: spans),
+    return FormattedContent(
+      '“$clean”',
+      style: base,
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
     );

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/devotion_series.dart';
@@ -150,7 +151,7 @@ class _SeriesTile extends StatelessWidget {
         ),
         if (series.description.isNotEmpty) ...[
           const SizedBox(height: 3),
-          AppText(
+          FormattedContent(
             series.description,
             style: const TextStyle(color: Colors.white60, fontSize: 12),
             maxLines: 1,

@@ -46,24 +46,6 @@ class ResourceTopicController extends GetxController
     try {
       final fresh = await _resources.topic(topicId);
       topic.value = fresh;
-      try {
-        final views = await _resources.registerView(topicId);
-        topic.value = ResourceTopic(
-          id: fresh.id,
-          title: fresh.title,
-          summary: fresh.summary,
-          imageUrl: fresh.imageUrl,
-          pdfUrl: fresh.pdfUrl,
-          order: fresh.order,
-          stepCount: fresh.stepCount,
-          views: views,
-          stepsCompleted: fresh.stepsCompleted,
-          steps: fresh.steps,
-          contentVersion: fresh.contentVersion,
-        );
-      } catch (_) {
-        // A view counter is helpful metadata, never a reason to block reading.
-      }
       stampLoadedContent(fresh.contentVersion);
       state.value = ViewState.ready;
     } on Failure catch (failure) {
@@ -99,6 +81,25 @@ class ResourceTopicController extends GetxController
         'The ministry has not uploaded a PDF for this resource yet.',
       );
       return;
+    }
+    try {
+      final resource = topic.value!;
+      final views = await _resources.registerView(topicId);
+      topic.value = ResourceTopic(
+        id: resource.id,
+        title: resource.title,
+        summary: resource.summary,
+        imageUrl: resource.imageUrl,
+        pdfUrl: resource.pdfUrl,
+        order: resource.order,
+        stepCount: resource.stepCount,
+        views: views,
+        stepsCompleted: resource.stepsCompleted,
+        steps: resource.steps,
+        contentVersion: resource.contentVersion,
+      );
+    } catch (_) {
+      // A view counter is helpful metadata, never a reason to block reading.
     }
     Get.to(() => ResourcePdfView(loadPdf: () => _resources.downloadPdf(url)));
   }

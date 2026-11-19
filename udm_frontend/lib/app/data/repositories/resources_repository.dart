@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../../core/network/failure.dart';
 import '../../core/storage/local_cache.dart';
+import '../models/resource_step.dart';
 import '../models/resource_topic.dart';
 import '../providers/udm_api.dart';
 

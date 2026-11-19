@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/article.dart';
@@ -47,7 +48,6 @@ class _ArticleBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bodyColor = theme.textTheme.bodyLarge!.color!;
-    final paragraphs = article.body.split(RegExp(r'\n\s*\n')).where((p) => p.trim().isNotEmpty).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
@@ -100,7 +100,7 @@ class _ArticleBody extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: AppText(
+                  child: FormattedContent(
                     article.excerpt,
                     style: AppTypography.scriptureVerse(bodyColor, size: 17).copyWith(
                       fontStyle: FontStyle.italic,
@@ -114,17 +114,11 @@ class _ArticleBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
-        ...paragraphs.indexed.map(
-          (entry) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: AppText(
-              entry.$2.trim(),
-              // The opening paragraph runs a touch larger, the way a printed
-              // feature leads in.
-              style: entry.$1 == 0
-                  ? AppTypography.scriptureBody(bodyColor, baseSize: 19.5)
-                  : AppTypography.scriptureBody(bodyColor),
-            ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: FormattedContent(
+            article.body,
+            style: AppTypography.scriptureBody(bodyColor, baseSize: 19.5),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),

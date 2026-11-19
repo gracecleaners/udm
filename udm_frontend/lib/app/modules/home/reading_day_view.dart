@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/app_text.dart';
 import '../../core/widgets/content_card.dart';
 import '../../core/widgets/state_view.dart';
@@ -204,7 +205,7 @@ class _Prose extends StatelessWidget {
     final theme = Theme.of(context);
     return Panel(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: AppText(
+      child: FormattedContent(
         text,
         style: AppTypography.scriptureBody(theme.textTheme.bodyLarge!.color!, baseSize: 16.5),
       ),

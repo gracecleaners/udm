@@ -4,6 +4,7 @@ import 'package:udm_frontend/app/core/widgets/app_text.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_kit.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
 import '../../core/widgets/udm_widgets.dart';
 import '../../data/models/resource_step.dart';
@@ -41,10 +42,6 @@ class _StepBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bodyColor = theme.textTheme.bodyLarge!.color!;
-    final paragraphs = step.body
-        .split(RegExp(r'\n\s*\n'))
-        .where((paragraph) => paragraph.trim().isNotEmpty)
-        .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, AppSpacing.xl),
@@ -75,7 +72,7 @@ class _StepBody extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         if (step.excerpt.isNotEmpty) ...[
-          AppText(
+          FormattedContent(
             step.excerpt,
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.textTheme.bodySmall?.color,
@@ -84,10 +81,9 @@ class _StepBody extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
-        for (final paragraph in paragraphs)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: AppText(paragraph.trim(), style: AppTypography.scriptureBody(bodyColor)),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: FormattedContent(step.body, style: AppTypography.scriptureBody(bodyColor)),
           ),
         if (step.hasVideo) ...[
           const SizedBox(height: AppSpacing.sm),

@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_kit.dart';
 import '../../core/widgets/app_text.dart';
+import '../../core/widgets/formatted_content.dart';
 import '../../core/widgets/state_view.dart';
+import '../../core/widgets/udm_widgets.dart';
 import 'new_believer_controller.dart';
 
 class NewBelieverView extends GetView<NewBelieverController> {
@@ -47,7 +49,7 @@ class NewBelieverView extends GetView<NewBelieverController> {
                           AppText(step.title, style: Theme.of(context).textTheme.titleMedium),
                           if (step.excerpt.isNotEmpty) ...[
                             const SizedBox(height: 5),
-                            AppText(step.excerpt, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            FormattedContent(step.excerpt, maxLines: 2, overflow: TextOverflow.ellipsis),
                           ],
                           if (step.scriptureReference.isNotEmpty) ...[
                             const SizedBox(height: 7),
